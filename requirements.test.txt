@@ -1,0 +1,8 @@
+homeassistant==2025.6.0
+pytest
+pytest-cov
+pytest-homeassistant-custom-component
+pyserial
+bleak
+pyudev
+aiousbwatcher

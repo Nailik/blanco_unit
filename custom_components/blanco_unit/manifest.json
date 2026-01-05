@@ -1,0 +1,18 @@
+{
+  "domain": "blanco_unit",
+  "name": "Blanco Unit",
+  "bluetooth": [
+    {
+      "service_uuid": "847bba10-a31f-41bf-a35f-3f73a22bb307"
+    }
+  ],
+  "codeowners": ["@Nailik"],
+  "config_flow": true,
+  "dependencies": ["bluetooth"],
+  "documentation": "https://github.com/Nailik/blanco_unit",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Nailik/blanco_unit/issues",
+  "requirements": ["bleak>=0.21.1"],
+  "version": "0.0.1"
+}
