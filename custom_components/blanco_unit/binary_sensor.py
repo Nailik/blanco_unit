@@ -4,6 +4,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -35,6 +36,7 @@ class ConnectionBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
     _attr_unique_id = "connection"
     _attr_translation_key = _attr_unique_id
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def is_on(self):
@@ -76,6 +78,7 @@ class FirmwareUpdateBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
     _attr_unique_id = "firmware_update"
     _attr_translation_key = _attr_unique_id
     _attr_device_class = BinarySensorDeviceClass.UPDATE
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:update"
 
     @property
@@ -100,6 +103,7 @@ class CloudConnectBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
     _attr_unique_id = "cloud_connection"
     _attr_translation_key = _attr_unique_id
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:cloud"
 
     @property

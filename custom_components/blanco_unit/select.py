@@ -1,6 +1,7 @@
 """Select entities to define properties for Blanco Unit BLE entities."""
 
 from homeassistant.components.select import SelectEntity
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -32,7 +33,7 @@ class TemperatureSelect(BlancoUnitBaseEntity, SelectEntity):
     _attr_unique_id = "temperature"
     _attr_translation_key = _attr_unique_id
     _attr_options = ["4", "5", "6", "7", "8", "9", "10"]
-    _attr_icon = "mdi:thermometer"
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_entity_category = EntityCategory.CONFIG
     _attr_unit_of_measurement = UnitOfTemperature.CELSIUS
 
@@ -65,19 +66,6 @@ class WaterHardnessSelect(BlancoUnitBaseEntity, SelectEntity):
     _attr_icon = "mdi:water-opacity"
     _attr_entity_category = EntityCategory.CONFIG
 
-    # Water hardness level descriptions (in °dH - German hardness degrees)
-    _HARDNESS_LEVELS = {
-        1: "<8 °dH",
-        2: "8-10 °dH",
-        3: "11-13 °dH",
-        4: "14-16 °dH",
-        5: "17-19 °dH",
-        6: "20-22 °dH",
-        7: "23-25 °dH",
-        8: "26-28 °dH",
-        9: ">28 °dH",
-    }
-
     @property
     def available(self) -> bool:
         """Set availability if settings are available."""
@@ -92,16 +80,6 @@ class WaterHardnessSelect(BlancoUnitBaseEntity, SelectEntity):
         if self.coordinator.data.settings is None:
             return None
         return str(self.coordinator.data.settings.wtr_hardness)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, str] | None:
-        """Return extra state attributes with hardness description."""
-        if self.coordinator.data.settings is None:
-            return None
-        level = self.coordinator.data.settings.wtr_hardness
-        return {
-            "hardness_range": self._HARDNESS_LEVELS.get(level, "Unknown"),
-        }
 
     async def async_select_option(self, option: str) -> None:
         """Select a water hardness level."""

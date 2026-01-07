@@ -70,7 +70,7 @@ class FilterRemainingSensor(BlancoUnitBaseEntity, SensorEntity):
 
     _attr_unique_id = "filter_remaining"
     _attr_translation_key = _attr_unique_id
-    _attr_icon = "mdi:filter"
+    _attr_device_class = SensorDeviceClass.BATTERY
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
@@ -92,7 +92,7 @@ class CO2RemainingSensor(BlancoUnitBaseEntity, SensorEntity):
 
     _attr_unique_id = "co2_remaining"
     _attr_translation_key = _attr_unique_id
-    _attr_icon = "mdi:gas-cylinder"
+    _attr_device_class = SensorDeviceClass.BATTERY
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
@@ -182,6 +182,7 @@ class FilterLifetimeSensor(BlancoUnitBaseEntity, SensorEntity):
 
     _attr_unique_id = "filter_lifetime"
     _attr_translation_key = _attr_unique_id
+    _attr_device_class = SensorDeviceClass.DURATION
     _attr_icon = "mdi:calendar-clock"
     _attr_native_unit_of_measurement = UnitOfTime.DAYS
     _attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -204,8 +205,9 @@ class PostFlushQuantitySensor(BlancoUnitBaseEntity, SensorEntity):
 
     _attr_unique_id = "post_flush_quantity"
     _attr_translation_key = _attr_unique_id
+    _attr_device_class = SensorDeviceClass.VOLUME
     _attr_icon = "mdi:water"
-    _attr_native_unit_of_measurement = "ml"
+    _attr_native_unit_of_measurement = "mL"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
@@ -315,7 +317,7 @@ class ResetCountSensor(BlancoUnitBaseEntity, SensorEntity):
 
     _attr_unique_id = "reset_count"
     _attr_translation_key = _attr_unique_id
-    _attr_icon = "mdi:restart"
+    _attr_icon = "mdi:counter"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
 

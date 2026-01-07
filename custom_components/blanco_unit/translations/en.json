@@ -4,45 +4,46 @@
       "message": "Required device_id not specified."
     },
     "device_not_found": {
-      "message": "Device for id {device_id} not found."
+      "message": "Device with ID {device_id} not found."
     },
     "config_entry_not_found": {
-      "message": "Config entry for device {device_id} not found."
+      "message": "Configuration entry for device {device_id} not found."
     },
     "invalid_runtime_data": {
-      "message": "Device with id {device_id} has invalid runtime data."
+      "message": "Device with ID {device_id} has invalid runtime data."
     },
     "error_device_not_found": {
-      "message": "Device not found. Please check the MAC address and ensure the device is powered on."
+      "message": "Device not found. Please check the MAC address and ensure the device is powered on and in range."
     },
     "error_unknown": {
-      "message": "An unknown error occurred while trying to connect to the device. {error}"
+      "message": "An unknown error occurred: {error}"
     },
     "not_saved_temperature": {
-      "message": "Temperature change not saved on device. Expected {expected}°C, actual {actual}°C."
+      "message": "Temperature change was not saved on the device. Expected {expected}°C but device shows {actual}°C."
     },
     "not_saved_water_hardness": {
-      "message": "Water hardness change not saved on device. Expected level {expected}, actual level {actual}."
+      "message": "Water hardness change was not saved on the device. Expected level {expected} but device shows level {actual}."
     }
   },
   "config": {
     "error": {
-      "invalid_ha_version": "Blanco Unit BLE requires Home Assistant Version {version}.",
-      "invalid_mac_code": "The inserted MAC address is not valid.",
-      "invalid_pin_format": "PIN must be exactly 5 digits.",
-      "error_device_not_found": "Device not found. Please check the MAC address and ensure the device is powered on.",
-      "error_invalid_authentication": "Authentication failed, wrong PIN.",
-      "error_unknown": "An unknown error occurred while trying to connect to the device. {error}"
+      "invalid_ha_version": "Blanco Unit integration requires Home Assistant version {version} or newer.",
+      "invalid_mac_code": "The MAC address format is invalid. Please use format XX:XX:XX:XX:XX:XX.",
+      "invalid_pin_format": "PIN must be exactly 5 digits (00000-99999).",
+      "error_device_not_found": "Device not found. Please ensure the Blanco Unit is powered on and in Bluetooth range.",
+      "error_invalid_authentication": "Authentication failed. Please check that the PIN is correct.",
+      "error_unknown": "Failed to connect to the device: {error}"
     },
     "abort": {
-      "already_configured": "The device is already configured.",
-      "reconfigure_successful": "Reconfiguration successful!",
-      "reauth_successful": "Authentication successful!",
-      "wrong_device": "Wrong device selected during re-authentication."
+      "already_configured": "This device is already configured.",
+      "reconfigure_successful": "Configuration updated successfully!",
+      "reauth_successful": "Re-authentication successful!",
+      "wrong_device": "Wrong device selected. Please select the correct device for re-authentication."
     },
     "step": {
       "bluetooth": {
-        "title": "Configure discovered Blanco Unit",
+        "title": "Configure Discovered Blanco Unit",
+        "description": "Configure your Blanco Unit water dispenser.",
         "data": {
           "conf_mac": "MAC Address",
           "conf_name": "Device Name",
@@ -51,6 +52,7 @@
       },
       "user": {
         "title": "Add Blanco Unit",
+        "description": "Set up your Blanco Unit water dispenser. You can find the MAC address and PIN in the device documentation.",
         "data": {
           "conf_mac": "MAC Address",
           "conf_name": "Device Name",
@@ -58,7 +60,8 @@
         }
       },
       "reauth": {
-        "title": "Update Authentication",
+        "title": "Re-authenticate Blanco Unit",
+        "description": "The device requires re-authentication. Please enter the correct PIN.",
         "data": {
           "conf_mac": "MAC Address",
           "conf_name": "Device Name",
@@ -66,7 +69,8 @@
         }
       },
       "reconfigure": {
-        "title": "Update Configuration",
+        "title": "Reconfigure Blanco Unit",
+        "description": "Update the configuration for your Blanco Unit.",
         "data": {
           "conf_mac": "MAC Address",
           "conf_name": "Device Name",
@@ -78,7 +82,7 @@
   "entity": {
     "binary_sensor": {
       "connection": {
-        "name": "Connection"
+        "name": "BLE Connection"
       },
       "water_dispensing": {
         "name": "Water Dispensing"
@@ -108,39 +112,59 @@
     },
     "select": {
       "temperature": {
-        "name": "Cooling Temperature"
+        "name": "Cooling Temperature",
+        "state": {
+          "4": "4°C (coldest)",
+          "5": "5°C",
+          "6": "6°C",
+          "7": "7°C (recommended)",
+          "8": "8°C",
+          "9": "9°C",
+          "10": "10°C (warmest)"
+        }
       },
       "water_hardness": {
-        "name": "Water Hardness"
+        "name": "Water Hardness Level",
+        "state": {
+          "1": "Level 1 (very soft: <8°dH)",
+          "2": "Level 2 (soft: 8-10°dH)",
+          "3": "Level 3 (medium soft: 11-13°dH)",
+          "4": "Level 4 (medium: 14-16°dH)",
+          "5": "Level 5 (medium hard: 17-19°dH)",
+          "6": "Level 6 (hard: 20-22°dH)",
+          "7": "Level 7 (very hard: 23-25°dH)",
+          "8": "Level 8 (extremely hard: 26-28°dH)",
+          "9": "Level 9 (ultra hard: >28°dH)"
+        }
       }
     },
     "sensor": {
       "filter_remaining": {
-        "name": "Filter Remaining"
+        "name": "Filter Capacity Remaining"
       },
       "co2_remaining": {
-        "name": "CO2 Remaining"
+        "name": "CO2 Cylinder Remaining"
       },
       "tap_state": {
         "name": "Tap State"
       },
       "clean_mode_state": {
-        "name": "Clean Mode State"
+        "name": "Cleaning Mode State"
       },
       "error_bits": {
-        "name": "Error Bits"
+        "name": "Error Code"
       },
       "filter_lifetime": {
         "name": "Filter Lifetime"
       },
       "post_flush_quantity": {
-        "name": "Post Flush Quantity"
+        "name": "Post-Flush Quantity"
       },
       "firmware_main": {
         "name": "Main Controller Firmware"
       },
       "firmware_comm": {
-        "name": "Comm Controller Firmware"
+        "name": "Communication Controller Firmware"
       },
       "firmware_elec": {
         "name": "Electronic Controller Firmware"
@@ -158,28 +182,66 @@
         "name": "Service Code"
       },
       "wifi_ssid": {
-        "name": "WiFi SSID"
+        "name": "WiFi Network Name"
       },
       "wifi_signal": {
-        "name": "WiFi Signal"
+        "name": "WiFi Signal Strength"
       },
       "ip_address": {
         "name": "IP Address"
       },
       "ble_mac": {
-        "name": "BLE MAC Address"
+        "name": "Bluetooth MAC Address"
       },
       "wifi_mac": {
         "name": "WiFi MAC Address"
       },
       "gateway": {
-        "name": "Gateway"
+        "name": "Network Gateway"
       },
       "gateway_mac": {
-        "name": "Gateway MAC"
+        "name": "Gateway MAC Address"
       },
       "subnet": {
         "name": "Subnet Mask"
+      }
+    }
+  },
+  "services": {
+    "dispense_water": {
+      "name": "Dispense Water",
+      "description": "Dispense a specified amount of water with the selected carbonation level.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Blanco Unit device to dispense water from."
+        },
+        "amount_ml": {
+          "name": "Amount",
+          "description": "Amount of water to dispense in milliliters (100-1500ml, in increments of 100ml)."
+        },
+        "co2_intensity": {
+          "name": "Carbonation Level",
+          "description": "CO2 carbonation intensity: 1 = Still water, 2 = Medium carbonation, 3 = High carbonation."
+        }
+      }
+    },
+    "change_pin": {
+      "name": "Change PIN",
+      "description": "Change the device PIN code. Optionally update the integration configuration to reconnect automatically with the new PIN.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Blanco Unit device to change the PIN for."
+        },
+        "new_pin": {
+          "name": "New PIN",
+          "description": "New 5-digit PIN code (00000-99999)."
+        },
+        "update_config": {
+          "name": "Update Configuration",
+          "description": "When enabled, the integration configuration will be updated with the new PIN and the device will reconnect automatically. When disabled, you will need to manually reconfigure the integration with the new PIN."
+        }
       }
     }
   }
