@@ -3,143 +3,74 @@
     "device_id_not_specified": {
       "message": "Required device_id not specified."
     },
-    "device_missing_entry": {
+    "device_not_found": {
       "message": "Device for id {device_id} not found."
     },
-    "device_invalid_runtime_data": {
-      "message": "Device width id {device_id} has an invalid runtime data object {runtime_data}."
+    "config_entry_not_found": {
+      "message": "Config entry for device {device_id} not found."
     },
-    "missing_permission": {
-      "message": "User has no permission to change this setting."
-    },
-    "invalid_distance": {
-      "message": "Invalid distance {actual}, must be in {expected}."
-    },
-    "invalid_tv_width": {
-      "message": "Invalid tv width {actual}, must be in {expected}."
-    },
-    "invalid_rotation": {
-      "message": "Invalid rotation {actual}, must be in {expected}."
-    },
-    "invalid_preset_index": {
-      "message": "Invalid preset index {actual}, must be in {expected}."
-    },
-    "invalid_multi_pin_settings_not_active": {
-      "message": "To change multi pin features, both authorised user and supervisior pin must be set."
-    },
-    "invalid_preset_index_not_exists": {
-      "message": "Invalid preset index, preset at {preset_index} does not exist."
-    },
-    "invalid_name": {
-      "message": "Invalid name {name} with length {actual}, max length is {expected}."
-    },
-    "invalid_status_remove_authorised_user_supervisior_set": {
-      "message": "Authorised user pin cannot be removed when supervisior pin is set."
-    },
-    "invalid_status_remove_supervisior_not_set": {
-      "message": "Supervisior pin cannot be activated when supervisior pin is not set."
-    },
-    "invalid_status_supervisior_requires_authorised_user": {
-      "message": "Supervisior pin cannot be set when authorized user pin is not set."
-    },
-    "invalid_auto_move_type": {
-      "message": "Invalid auto move type {actual}, must be one of {expected}."
-    },
-    "invalid_pin_length": {
-      "message": "Invalid pin length {actual}, length must be {expected}."
-    },
-    "invalid_pin_characters": {
-      "message": "All pin characters must be in [0-9]."
-    },
-    "not_saved_name": {
-      "message": "Name change not saved on device. Expected {expected} actual {actual}."
-    },
-    "not_saved_preset": {
-      "message": "Preset change not saved on device. Expected {expected} actual {actual}."
-    },
-    "not_saved_tv_width": {
-      "message": "Tv width change not saved on device. Expected {expected} actual {actual}."
-    },
-    "not_saved_remove_authorised_user_pin": {
-      "message": "Pin removal not saved on device. Expected type {expected} for pin settings actual type {actual}."
-    },
-    "not_saved_authorised_user_pin": {
-      "message": "Pin not saved on device. Expected not type {expected} for pin settings actual type {actual}."
-    },
-    "not_saved_remove_supervisior_pin": {
-      "message": "Pin removal not saved on device. Expected type {expected} for pin settings actual type {actual}."
-    },
-    "not_saved_supervisior_pin": {
-      "message": "Pin not saved on device. Expected type {expected} for pin settings actual type {actual}."
-    },
-    "not_saved_freeze_preset_index": {
-      "message": "Freeze preset index change not saved on device. Expected {expected} actual {actual}."
-    },
-    "not_saved_multi_pin_features": {
-      "message": "Multi pin features change not saved on device. Expected {expected} actual {actual}."
-    },
-    "device_not_found_while_connecting": {
-      "message": "Device with {mac} not found while trying to connect."
-    },
-    "calibration_timeout_status": {
-      "message": "Calibration timed out while waiting for status, took longer than {seconds} seconds."
-    },
-    "calibration_timeout_homeing": {
-      "message": "Calibration timed out while homeing, stuck at distance {distance} with rotation {rotation}, took longer than {seconds} seconds."
+    "invalid_runtime_data": {
+      "message": "Device with id {device_id} has invalid runtime data."
     },
     "error_device_not_found": {
       "message": "Device not found. Please check the MAC address and ensure the device is powered on."
     },
     "error_unknown": {
       "message": "An unknown error occurred while trying to connect to the device. {error}"
+    },
+    "not_saved_temperature": {
+      "message": "Temperature change not saved on device. Expected {expected}°C, actual {actual}°C."
+    },
+    "not_saved_water_hardness": {
+      "message": "Water hardness change not saved on device. Expected level {expected}, actual level {actual}."
     }
   },
   "config": {
     "error": {
-      "invalid_ha_version": "Vogels Motion Mount BLE requires Home Assistant Version {version}.",
+      "invalid_ha_version": "Blanco Unit BLE requires Home Assistant Version {version}.",
       "invalid_mac_code": "The inserted MAC address is not valid.",
+      "invalid_pin_format": "PIN must be exactly 5 digits.",
       "error_device_not_found": "Device not found. Please check the MAC address and ensure the device is powered on.",
-      "error_invalid_authentication": "Authentication failed, missing or invalid pin.",
-      "error_invalid_authentication_cooldown": "Authentication failed, too many attempts. You can try again at {retry_at}.",
-      "error_missing_permission": "User has no permission for requested action.",
+      "error_invalid_authentication": "Authentication failed, wrong PIN.",
       "error_unknown": "An unknown error occurred while trying to connect to the device. {error}"
     },
     "abort": {
       "already_configured": "The device is already configured.",
       "reconfigure_successful": "Reconfiguration successful!",
-      "reauth_successful": "Authentication successful!"
+      "reauth_successful": "Authentication successful!",
+      "wrong_device": "Wrong device selected during re-authentication."
     },
     "step": {
       "bluetooth": {
-        "title": "Configure recognized device",
+        "title": "Configure discovered Blanco Unit",
         "data": {
-          "conf_mac": "MAC",
-          "conf_name": "Device name",
-          "conf_pin": "PIN"
+          "conf_mac": "MAC Address",
+          "conf_name": "Device Name",
+          "conf_pin": "PIN (5 digits)"
         }
       },
       "user": {
-        "title": "Add new device",
+        "title": "Add Blanco Unit",
         "data": {
-          "conf_mac": "MAC",
-          "conf_name": "Device name",
-          "conf_pin": "PIN"
+          "conf_mac": "MAC Address",
+          "conf_name": "Device Name",
+          "conf_pin": "PIN (5 digits)"
         }
       },
       "reauth": {
-        "title": "Update auuthentication",
+        "title": "Update Authentication",
         "data": {
-          "conf_mac": "MAC",
-          "conf_name": "Device name",
-          "conf_pin": "PIN"
+          "conf_mac": "MAC Address",
+          "conf_name": "Device Name",
+          "conf_pin": "PIN (5 digits)"
         }
       },
       "reconfigure": {
-        "title": "Update configuration",
+        "title": "Update Configuration",
         "data": {
-          "conf_mac": "MAC",
-          "conf_name": "Device name",
-          "conf_pin": "PIN"
+          "conf_mac": "MAC Address",
+          "conf_name": "Device Name",
+          "conf_pin": "PIN (5 digits)"
         }
       }
     }
@@ -148,197 +79,107 @@
     "binary_sensor": {
       "connection": {
         "name": "Connection"
+      },
+      "water_dispensing": {
+        "name": "Water Dispensing"
+      },
+      "firmware_update": {
+        "name": "Firmware Update Available"
+      },
+      "cloud_connection": {
+        "name": "Cloud Connection"
       }
     },
     "button": {
-      "start_calibration": {
-        "name": "Start calibration"
-      },
       "refresh_data": {
         "name": "Refresh Data"
       },
       "disconnect": {
         "name": "Disconnect"
-      },
-      "select_preset_default": {
-        "name": "Select default preset"
-      },
-      "select_preset_custom": {
-        "name": "Select preset {preset}"
-      },
-      "delete_preset_custom": {
-        "name": "Delete preset {preset}"
-      },
-      "add_preset_custom": {
-        "name": "Add preset {preset}"
       }
     },
     "number": {
-      "distance": {
-        "name": "Distance"
+      "calibration_still": {
+        "name": "Still Water Calibration"
       },
-      "rotation": {
-        "name": "Rotation"
-      },
-      "tv_width": {
-        "name": "TV width"
-      },
-      "preset_distance_custom": {
-        "name": "Preset {preset} distance"
-      },
-      "preset_rotation_custom": {
-        "name": "Preset {preset} rotation"
+      "calibration_soda": {
+        "name": "Soda Water Calibration"
       }
     },
     "select": {
-      "auto_move": {
-        "name": "Automove setting",
-        "state": {
-          "0": "Off",
-          "1": "HDMI 1",
-          "2": "HDMI 2",
-          "3": "HDMI 3",
-          "4": "HDMI 4",
-          "5": "HDMI 5"
-        }
+      "temperature": {
+        "name": "Cooling Temperature"
       },
-      "freeze_preset": {
-        "name": "Freeze preset",
-        "state": {
-          "0": "Default",
-          "1": "Preset 1",
-          "2": "Preset 2",
-          "3": "Preset 3",
-          "4": "Preset 4",
-          "5": "Preset 5",
-          "6": "Preset 6",
-          "7": "Preset 7"
-        }
+      "water_hardness": {
+        "name": "Water Hardness"
       }
     },
     "sensor": {
-      "current_distance": {
-        "name": "Distance"
+      "filter_remaining": {
+        "name": "Filter Remaining"
       },
-      "current_rotation": {
-        "name": "Rotation"
+      "co2_remaining": {
+        "name": "CO2 Remaining"
       },
-      "ceb_bl_version": {
-        "name": "CEB BL Version"
+      "tap_state": {
+        "name": "Tap State"
       },
-      "mcp_hw_version": {
-        "name": "MCP HW Version"
+      "clean_mode_state": {
+        "name": "Clean Mode State"
       },
-      "mcp_bl_version": {
-        "name": "MCP BL Version"
+      "error_bits": {
+        "name": "Error Bits"
       },
-      "mcp_fw_version": {
-        "name": "MCP FW Version"
+      "filter_lifetime": {
+        "name": "Filter Lifetime"
       },
-      "pin_settings": {
-        "name": "Pin Settings",
-        "state": {
-          "12": "Off",
-          "13": "Single",
-          "15": "Multi"
-        }
+      "post_flush_quantity": {
+        "name": "Post Flush Quantity"
       },
-      "authentication": {
-        "name": "Authentication",
-        "state": {
-          "0": "Wrong",
-          "1": "Control",
-          "2": "Full"
-        }
-      }
-    },
-    "switch": {
-      "change_presets": {
-        "name": "Change presets",
-        "state": {
-          "on": "On",
-          "off": "Off"
-        }
+      "firmware_main": {
+        "name": "Main Controller Firmware"
       },
-      "change_name": {
-        "name": "Change name"
+      "firmware_comm": {
+        "name": "Comm Controller Firmware"
       },
-      "disable_channel": {
-        "name": "Disable channel"
+      "firmware_elec": {
+        "name": "Electronic Controller Firmware"
       },
-      "change_tv_on_off_detection": {
-        "name": "Change tv on off detection"
+      "device_name": {
+        "name": "Device Name"
       },
-      "change_default_position": {
-        "name": "Change default position"
+      "reset_count": {
+        "name": "Reset Count"
       },
-      "start_calibration": {
-        "name": "Start calibration",
-        "state": {
-          "on": "On",
-          "off": "Off"
-        }
-      }
-    },
-    "text": {
-      "name": {
-        "name": "Name"
+      "serial_number": {
+        "name": "Serial Number"
       },
-      "preset_name_custom": {
-        "name": "Preset {preset} name"
-      }
-    }
-  },
-  "selector": {
-    "preset": {
-      "options": {
-        "0": "Preset 0",
-        "1": "Preset 1",
-        "2": "Preset 2",
-        "3": "Preset 3",
-        "4": "Preset 4",
-        "5": "Preset 5",
-        "6": "Preset 6"
-      }
-    },
-    "automove": {
-      "options": {
-        "off": "Off",
-        "hdmi_1": "HDMI 1",
-        "hdmi_2": "HDMI 2",
-        "hdmi_3": "HDMI 3",
-        "hdmi_4": "HDMI 4",
-        "hdmi_5": "HDMI 5"
-      }
-    }
-  },
-  "services": {
-    "set_authorised_user_pin": {
-      "name": "Set authorised user pin",
-      "description": "Set a pin for authorised users that are allowed to control and eventually change settings of the mount.",
-      "fields": {
-        "device_id": {
-          "name": "Target Device",
-          "description": "What should this action use as targeted device."
-        },
-        "pin": {
-          "name": "Pin",
-          "description": "4 digit numeric pin. 0000 removes the pin but can only used if no Supervisior pin is set."
-        }
-      }
-    },
-    "set_supervisior_pin": {
-      "name": "Set superivsior pin",
-      "description": "Sets a pin for a supervisior. Downgrades authorised users to control only. Only available if authorised user pin is already set.",
-      "fields": {
-        "device_id": {
-          "name": "Target Device",
-          "description": "What should this action use as targeted device."
-        },
-        "pin": {
-          "name": "Pin",
-          "description": "4 digit numeric pin. 0000 removes the pin."
-        }
+      "service_code": {
+        "name": "Service Code"
+      },
+      "wifi_ssid": {
+        "name": "WiFi SSID"
+      },
+      "wifi_signal": {
+        "name": "WiFi Signal"
+      },
+      "ip_address": {
+        "name": "IP Address"
+      },
+      "ble_mac": {
+        "name": "BLE MAC Address"
+      },
+      "wifi_mac": {
+        "name": "WiFi MAC Address"
+      },
+      "gateway": {
+        "name": "Gateway"
+      },
+      "gateway_mac": {
+        "name": "Gateway MAC"
+      },
+      "subnet": {
+        "name": "Subnet Mask"
       }
     }
   }

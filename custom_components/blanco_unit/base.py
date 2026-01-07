@@ -1,4 +1,4 @@
-"""Base entity to define common properties and methods for Vogels Motion Mount BLE entities."""
+"""Base entity to define common properties and methods for Blanco Unit BLE entities."""
 
 from propcache.api import cached_property
 

@@ -465,17 +465,11 @@ class BlancoUnitBluetoothClient:
         if not is_valid:
             raise BlancoUnitAuthenticationError("Wrong PIN - Authentication failed")
 
-        # Extract device ID from results (always in results[0].meta.dev_id)
-        try:
-            body = response.get(
-                "body", {}
-            )  # TODO use one function with validate pin do not do logic twice
-            if "dev_id" in body.get("meta", {}):
-                return body["meta"]["dev_id"]
-        except (KeyError, IndexError, TypeError) as e:
-            raise BlancoUnitConnectionError("Failed to extract device ID") from e
-
-        raise BlancoUnitConnectionError("No device ID in pairing response")
+        # Extract device ID using shared helper
+        dev_id = _extract_device_id(response)
+        if dev_id is None:
+            raise BlancoUnitConnectionError("No device ID in pairing response")
+        return dev_id
 
     async def _execute_transaction(
         self,
@@ -701,6 +695,25 @@ class BlancoUnitBluetoothClient:
 # -------------------------------
 
 
+def _extract_device_id(response: dict[str, Any]) -> str | None:
+    """Extract device ID from a pairing response.
+
+    Args:
+        response: The response dictionary from a pairing request.
+
+    Returns:
+        The device ID if found, None otherwise.
+    """
+    try:
+        body = response.get("body", {})
+        meta = body.get("meta", {})
+        if "dev_id" in meta:
+            return meta["dev_id"]
+    except (KeyError, TypeError):
+        pass
+    return None
+
+
 async def validate_pin(
     client: BleakClient, pin: str, protocol: _BlancoUnitProtocol | None = None
 ) -> tuple[bool, dict[str, Any]]:
@@ -743,13 +756,10 @@ async def validate_pin(
             return (False, response)
 
     # Check if we got a device ID in results (successful pairing)
-    try:
-        body_resp = response.get("body", {})
-        if "dev_id" in body_resp.get("meta", {}):
-            _LOGGER.debug("PIN validation successful")
-            return (True, response)
-    except (KeyError, IndexError, TypeError):
-        pass
+    dev_id = _extract_device_id(response)
+    if dev_id is not None:
+        _LOGGER.debug("PIN validation successful")
+        return (True, response)
 
     _LOGGER.debug("PIN validation failed: no device ID in response")
     return (False, response)

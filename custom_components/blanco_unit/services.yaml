@@ -1,0 +1,67 @@
+# Services for the Blanco Unit integration
+
+dispense_water:
+  name: Dispense water
+  description: Dispense water with specified amount and carbonation level.
+  fields:
+    device_id:
+      name: Device
+      description: The Blanco Unit device to dispense water from.
+      required: true
+      example: "a1b2c3d4e5f6"
+      selector:
+        device:
+          integration: blanco_unit
+    amount_ml:
+      name: Amount (ml)
+      description: Amount of water to dispense in milliliters (100-1500, must be multiple of 100).
+      required: true
+      example: 250
+      selector:
+        number:
+          min: 100
+          max: 1500
+          step: 100
+          unit_of_measurement: "ml"
+    co2_intensity:
+      name: CO2 intensity
+      description: Carbonation level (1=still, 2=medium, 3=high).
+      required: true
+      example: 1
+      selector:
+        select:
+          options:
+            - label: "Still (1)"
+              value: "1"
+            - label: "Medium (2)"
+              value: "2"
+            - label: "High (3)"
+              value: "3"
+
+change_pin:
+  name: Change PIN
+  description: Change the device PIN. Optionally update the integration configuration to avoid disconnection.
+  fields:
+    device_id:
+      name: Device
+      description: The Blanco Unit device to change the PIN for.
+      required: true
+      example: "a1b2c3d4e5f6"
+      selector:
+        device:
+          integration: blanco_unit
+    new_pin:
+      name: New PIN
+      description: New 5-digit PIN for the device.
+      required: true
+      example: "12345"
+      selector:
+        text:
+          type: password
+    update_config:
+      name: Update configuration
+      description: If enabled, updates the integration configuration with the new PIN and reconnects automatically. If disabled, you will need to reconfigure the integration manually with the new PIN.
+      required: false
+      default: false
+      selector:
+        boolean:

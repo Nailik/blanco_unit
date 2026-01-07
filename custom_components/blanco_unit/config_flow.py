@@ -1,4 +1,4 @@
-"""Config flow and options flow for Vogels Motion Mount BLE integration."""
+"""Config flow and options flow for Blanco Unit BLE integration."""
 
 from __future__ import annotations
 
@@ -107,6 +107,8 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
     async def validate_input(self, user_input: dict[str, Any]) -> ValidationResult:
         """Set up the entry from user data."""
         _LOGGER.debug("validate_input %s", user_input)
+
+        # Validate MAC address format
         if not bool(
             re.match(
                 r"^([0-9A-Fa-f]{2}([-:])){5}([0-9A-Fa-f]{2})$", user_input[CONF_MAC]
@@ -115,6 +117,13 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             _LOGGER.error("Invalid MAC code: %s", user_input[CONF_MAC])
             return ValidationResult({CONF_ERROR: "invalid_mac_code"})
 
+        # Validate PIN format (5 digits)
+        pin_str = str(user_input[CONF_PIN])
+        if len(pin_str) != 5 or not pin_str.isdigit():
+            _LOGGER.error("Invalid PIN: must be exactly 5 digits")
+            return ValidationResult({CONF_ERROR: "invalid_pin_format"})
+
+        client = None
         try:
             _LOGGER.debug("await async_ble_device_from_address")
             device = bluetooth.async_ble_device_from_address(
@@ -133,23 +142,31 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
                 name=device.name or "Unknown Device",
             )
 
-            _LOGGER.debug("await get_permissions")
-            result = await validate_pin(client, str(user_input[CONF_PIN]))
-            _LOGGER.debug("get_permission returned %s", result)
-            if not result:
+            _LOGGER.debug("await validate_pin")
+            is_valid, _ = await validate_pin(client, pin_str)
+            _LOGGER.debug("validate_pin returned %s", is_valid)
+
+            if not is_valid:
                 return ValidationResult({CONF_ERROR: "error_invalid_authentication"})
 
             _LOGGER.debug(
-                "Successfully tested connection to %s pers %s",
+                "Successfully tested connection to %s",
                 user_input[CONF_MAC],
-                result,
             )
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.error("Setting Exception: %s", err)
+        except ValueError as err:
+            _LOGGER.error("Validation error: %s", err)
+            return ValidationResult({CONF_ERROR: "invalid_pin_format"})
+        except Exception as err:
+            _LOGGER.exception("Unexpected error during validation")
             return ValidationResult(
                 errors={CONF_ERROR: "error_unknown"},
-                description_placeholders={"error": err},
+                description_placeholders={"error": str(err)},
             )
+        finally:
+            # Always disconnect the client
+            if client is not None and client.is_connected:
+                await client.disconnect()
+
         return ValidationResult({})
 
     async def async_step_bluetooth(

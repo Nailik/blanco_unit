@@ -1,4 +1,4 @@
-"""Diagnostics support for Vogels Motion Mount BLE."""
+"""Diagnostics support for Blanco Unit BLE."""
 
 from __future__ import annotations
 
