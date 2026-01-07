@@ -192,7 +192,7 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
                 status=await self._client.get_status(),
                 identity=await self._client.get_device_identity(),
                 wifi_info=await self._client.get_wifi_info(),
-                connected=self.data.connected if self.data is not None else False,
+                connected=self._client.is_connected,
                 available=True,
                 device_id=self._client.device_id or "",
             )

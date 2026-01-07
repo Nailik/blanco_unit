@@ -406,6 +406,14 @@ class BlancoUnitBluetoothClient:
         """Return the device ID from the current session, or None if not connected."""
         return self._session_data.dev_id if self._session_data else None
 
+    @property
+    def is_connected(self) -> bool:
+        """Return True if the BLE client is currently connected."""
+        return (
+            self._session_data is not None
+            and self._session_data.client.is_connected
+        )
+
     # -------------------------------
     # region Connection Management
     # -------------------------------

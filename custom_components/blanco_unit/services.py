@@ -4,7 +4,6 @@ import logging
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
@@ -25,11 +24,20 @@ from .coordinator import BlancoUnitCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 # Service schemas
+def _validate_amount_ml(value: int) -> int:
+    """Validate amount is a multiple of 100."""
+    if value % 100 != 0:
+        raise vol.Invalid("Amount must be a multiple of 100ml")
+    return value
+
+
 SERVICE_DISPENSE_WATER_SCHEMA = vol.Schema(
     {
         vol.Required(HA_SERVICE_ATTR_DEVICE_ID): cv.string,
         vol.Required(HA_SERVICE_ATTR_AMOUNT_ML): vol.All(
-            vol.Coerce(int), vol.Range(min=100, max=1500), vol.Multiple(100)
+            vol.Coerce(int),
+            vol.Range(min=100, max=1500),
+            _validate_amount_ml,
         ),
         vol.Required(HA_SERVICE_ATTR_CO2_INTENSITY): vol.All(
             vol.Coerce(int), vol.In([1, 2, 3])
@@ -85,7 +93,7 @@ def async_setup_services(hass: HomeAssistant):
             device = registry.async_get(device_id)
             if device:
                 entry_id = next(iter(device.config_entries))
-                entry: ConfigEntry = hass.config_entries.async_get_entry(entry_id)
+                entry = hass.config_entries.async_get_entry(entry_id)
                 if entry:
                     # Update the config entry with the new PIN
                     hass.config_entries.async_update_entry(
@@ -132,7 +140,7 @@ def _get_coordinator(hass: HomeAssistant, call: ServiceCall) -> BlancoUnitCoordi
         )
 
     entry_id = next(iter(device.config_entries))
-    entry: ConfigEntry = hass.config_entries.async_get_entry(entry_id)
+    entry = hass.config_entries.async_get_entry(entry_id)
     if entry is None:
         raise ServiceValidationError(
             translation_domain=DOMAIN,

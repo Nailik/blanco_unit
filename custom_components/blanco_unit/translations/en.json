@@ -126,15 +126,15 @@
       "water_hardness": {
         "name": "Water Hardness Level",
         "state": {
-          "1": "Level 1 (very soft: <8°dH)",
-          "2": "Level 2 (soft: 8-10°dH)",
-          "3": "Level 3 (medium soft: 11-13°dH)",
-          "4": "Level 4 (medium: 14-16°dH)",
-          "5": "Level 5 (medium hard: 17-19°dH)",
-          "6": "Level 6 (hard: 20-22°dH)",
-          "7": "Level 7 (very hard: 23-25°dH)",
-          "8": "Level 8 (extremely hard: 26-28°dH)",
-          "9": "Level 9 (ultra hard: >28°dH)"
+          "1": "<8°dH",
+          "2": "8-10°dH",
+          "3": "11-13°dH",
+          "4": "14-16°dH",
+          "5": "17-19°dH",
+          "6": "20-22°dH",
+          "7": "23-25°dH",
+          "8": "26-28°dH",
+          "9": ">28°dH"
         }
       }
     },

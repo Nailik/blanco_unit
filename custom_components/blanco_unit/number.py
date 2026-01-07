@@ -37,6 +37,7 @@ class CalibrationStillNumber(BlancoUnitBaseEntity, NumberEntity):
     _attr_native_step = 1
     _attr_icon = "mdi:water"
     _attr_entity_category = EntityCategory.CONFIG
+    _attr_native_unit_of_measurement = "mL"
 
     @property
     def available(self) -> bool:
@@ -66,6 +67,7 @@ class CalibrationSodaNumber(BlancoUnitBaseEntity, NumberEntity):
     _attr_native_step = 1
     _attr_icon = "mdi:cup-water"
     _attr_entity_category = EntityCategory.CONFIG
+    _attr_native_unit_of_measurement = "mL"
 
     @property
     def available(self) -> bool:
