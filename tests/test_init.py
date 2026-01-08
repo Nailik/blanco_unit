@@ -30,7 +30,7 @@ async def test_async_setup_min_ha_version_check(hass: HomeAssistant) -> None:
     """Test async_setup checks minimum HA version."""
     mock_entry = MagicMock(spec=ConfigEntry)
 
-    with patch("homeassistant.const.__version__", "2024.1.0"):
+    with patch("custom_components.blanco_unit.ha_version", "2024.1.0"):
         with pytest.raises(IntegrationError) as exc_info:
             await async_setup(hass, mock_entry)
 

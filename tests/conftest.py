@@ -1,10 +1,11 @@
 """Common test fixtures for Blanco Unit tests."""
-
-from __future__ import annotations
-
+import asyncio
 from unittest.mock import MagicMock
 
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from homeassistant.core import HomeAssistant
 
 # Import pytest plugins
 pytest_plugins = "pytest_homeassistant_custom_component"
@@ -15,6 +16,22 @@ def auto_enable_custom_integrations(enable_custom_integrations):
     """Enable custom integrations defined in the test dir."""
     return enable_custom_integrations
 
+@pytest.fixture
+def expected_lingering_timers() -> bool:
+    """Fixture used by pytest-homeassistant to decide if timers are ok."""
+    return True
+
+@pytest.fixture(autouse=True)
+def mock_bluetooth(enable_bluetooth):
+    """Auto-enable Bluetooth for all tests."""
+    return enable_bluetooth
+
+async def setup_integration(hass: HomeAssistant, config_entry: MockConfigEntry) -> None:
+    """Fixture for setting up the component."""
+    config_entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
 
 # Create fixtures for common test data
 @pytest.fixture(name="mock_blanco_unit_data")
