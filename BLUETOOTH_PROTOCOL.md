@@ -6,58 +6,54 @@ Characteristics `3b531d4d-ed58-4677-b2fa-1c72a86082cf` used to sent and read jso
 
 Write
 {
-    "session":7780315, # id of currently connected session
-    "id":9077670, # request id, response contains the same
-    "type":1, # type (1 seems to be request)
-    "token":"993223dcf15d3865439a66ea4b10c576ea485ccf989b6e9c235acdd27bda8634", # token (sha256(sha256(pin)+salt))
-    "salt":"77803159077670", # salt to generate token (session#id)
-    "body":{
-        "meta":{
-            "dev_type":1,
-            "evt_ts":1767457215710,
-            "evt_type":10,
-            "evt_ver":1
-            },
-        "pars":{
-        }
-    }
+"session":7780315, # id of currently connected session
+"id":9077670, # request id, response contains the same
+"type":1, # type (1 seems to be request)
+"token":"993223dcf15d3865439a66ea4b10c576ea485ccf989b6e9c235acdd27bda8634", # token (sha256(sha256(pin)+salt))
+"salt":"77803159077670", # salt to generate token (session#id)
+"body":{
+"meta":{
+"dev_type":1,
+"evt_ts":1767457215710,
+"evt_type":10,
+"evt_ver":1
+},
+"pars":{
+}
+}
 }
 
 Read
 {
-    "session":7780315, # id of currently connected session
-    "id":9077670, # rid from request
-    "type":2, # type (2 seems to be response)
-    "body":{
-        "meta":{
-            "dev_id":"52a62a5263f77bd49ff9760b39e613db88293631d6b25561ac9500924a3ed039",
-            "dev_type":1,
-            "evt_ts":2706416986,
-            "evt_type":10,
-            "evt_ver":1,
-            "res_type":2
-        }
-    }
+"session":7780315, # id of currently connected session
+"id":9077670, # rid from request
+"type":2, # type (2 seems to be response)
+"body":{
+"meta":{
+"dev_id":"52a62a5263f77bd49ff9760b39e613db88293631d6b25561ac9500924a3ed039",
+"dev_type":1,
+"evt_ts":2706416986,
+"evt_type":10,
+"evt_ver":1,
+"res_type":2
 }
-
+}
+}
 
 known event types
 
-| evt_type  | evt_ver  | opts ctrl | pars evt_type  | Description  |
-|---|---|---|---|---|
-| 10 | 1 |  - | - | Connection  |
-| 7 | 1 | 3 |  | Version Information  |
-| 7 | 1 | 3 |  5 | Calibration Information  |
-| 7 | 1 | 2 | -  | Serial Information  |
-| 7 | 1 | 3 | 6 | State Information  |
-| 7 | 1 | 3 | 4 | Error Information  |
-
-
-
+| evt_type | evt_ver | opts ctrl | pars evt_type | Description             |
+| -------- | ------- | --------- | ------------- | ----------------------- |
+| 10       | 1       | -         | -             | Connection              |
+| 7        | 1       | 3         |               | Version Information     |
+| 7        | 1       | 3         | 5             | Calibration Information |
+| 7        | 1       | 2         | -             | Serial Information      |
+| 7        | 1       | 3         | 6             | State Information       |
+| 7        | 1       | 3         | 4             | Error Information       |
 
 [BLE Write =>] UUID: 3b531d4d-ed58-4677-b2fa-1c72a86082cf {"session":7780315,"id":9077670,"type":1,"token":"993223dcf15d3865439a66ea4b10c576ea485ccf989b6e9c235acdd27bda8634","salt":"77803159077670","body":{"meta":{"dev_type":1,"evt_ts":1767457215710,"evt_type":10,"evt_ver":1},"pars":{}}}
 
-[BLE Read <=] UUID: 3b531d4d-ed58-4677-b2fa-1c72a86082cf  {"session":7780315,"id":9077670,"type":2,"body":{"meta":{"dev_id":"52a62a5263f77bd49ff9760b39e613db88293631d6b25561ac9500924a3ed039","dev_type":1,"evt_ts":2706416986,"evt_type":10,"evt_ver":1,"res_type":2}}}
+[BLE Read <=] UUID: 3b531d4d-ed58-4677-b2fa-1c72a86082cf {"session":7780315,"id":9077670,"type":2,"body":{"meta":{"dev_id":"52a62a5263f77bd49ff9760b39e613db88293631d6b25561ac9500924a3ed039","dev_type":1,"evt_ts":2706416986,"evt_type":10,"evt_ver":1,"res_type":2}}}
 
 [BLE Write =>] UUID: 3b531d4d-ed58-4677-b2fa-1c72a86082cf {"session":7780315,"id":7604844,"type":1,"token":"6cb618c3e6a95cef6a1178c68fb34d4fa44c0b6ec09142c073ab49bd70786311","salt":"77803157604844","body":{"meta":{"dev_id":"52a62a5263f77bd49ff9760b39e613db88293631d6b25561ac9500924a3ed039","dev_type":1,"evt_ts":1767457216910,"evt_type":7,"evt_ver":1},"opts":{"ctrl":3},"pars":{"evt_type":2}}}
 
