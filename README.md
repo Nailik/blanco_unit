@@ -1,5 +1,13 @@
 # Blanco Unit Integration for Home Assistant
 
+
+[![Open Blanco Unit in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Nailik&repository=blanco_unit&category=integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
+[![Version](https://img.shields.io/github/v/release/Nailik/blanco_unit)](https://github.com/Nailik/vogels_motblanco_unition_mount_ble/releases/latest)
+![Downloads latest](https://img.shields.io/github/downloads/nailik/blanco_unit/latest/total.svg)
+![Downloads](https://img.shields.io/github/downloads/nailik/blanco_unit/total)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+
 A Home Assistant custom integration for Blanco water dispensers with Bluetooth Low Energy (BLE) connectivity. Control and monitor your Blanco Unit water dispenser directly from Home Assistant.
 
 ## Overview
