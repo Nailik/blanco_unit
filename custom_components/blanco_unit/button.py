@@ -14,7 +14,7 @@ async def async_setup_entry(
     _: HomeAssistant,
     config_entry: BlancoUnitConfigEntry,
     async_add_entities: AddEntitiesCallback,
-):
+) -> None:
     """Set up the Disconnect and RefreshData buttons."""
     coordinator: BlancoUnitCoordinator = config_entry.runtime_data
 
@@ -39,7 +39,7 @@ class DisconnectButton(BlancoUnitBaseEntity, ButtonEntity):
         """Set availability only if device is connected currently."""
         return super().available and self.coordinator.data.connected
 
-    async def async_press(self):
+    async def async_press(self) -> None:
         """Execute disconnect."""
         await self.coordinator.disconnect()
 
@@ -52,6 +52,6 @@ class RefreshDataButton(BlancoUnitBaseEntity, ButtonEntity):
     _attr_icon = "mdi:refresh"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    async def async_press(self):
+    async def async_press(self) -> None:
         """Execute data refresh."""
         await self.coordinator.refresh_data()

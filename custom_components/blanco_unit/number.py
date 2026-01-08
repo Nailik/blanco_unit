@@ -14,7 +14,7 @@ async def async_setup_entry(
     _: HomeAssistant,
     config_entry: BlancoUnitConfigEntry,
     async_add_entities: AddEntitiesCallback,
-):
+) -> None:
     """Set up the Number entities for calibration."""
     coordinator: BlancoUnitCoordinator = config_entry.runtime_data
 
@@ -45,7 +45,7 @@ class CalibrationStillNumber(BlancoUnitBaseEntity, NumberEntity):
         return super().available and self.coordinator.data.settings is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> float | None:
         """Return the state of the entity."""
         if self.coordinator.data.settings is None:
             return None
@@ -75,7 +75,7 @@ class CalibrationSodaNumber(BlancoUnitBaseEntity, NumberEntity):
         return super().available and self.coordinator.data.settings is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> float | None:
         """Return the state of the entity."""
         if self.coordinator.data.settings is None:
             return None

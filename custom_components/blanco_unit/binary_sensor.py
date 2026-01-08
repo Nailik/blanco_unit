@@ -17,7 +17,7 @@ async def async_setup_entry(
     _: HomeAssistant,
     config_entry: BlancoUnitConfigEntry,
     async_add_entities: AddEntitiesCallback,
-):
+) -> None:
     """Set up the binary sensors."""
     coordinator: BlancoUnitCoordinator = config_entry.runtime_data
     async_add_entities(
@@ -39,12 +39,12 @@ class ConnectionBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool:
         """Return if the device is currently connected."""
         return self.coordinator.data.connected
 
     @property
-    def icon(self):
+    def icon(self) -> str:
         """Return icon."""
         return "mdi:bluetooth-connect" if self.is_on else "mdi:bluetooth-off"
 
@@ -65,7 +65,7 @@ class WaterDispensingBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
         )
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool | None:
         """Return if water is currently being dispensed."""
         if self.coordinator.data.status is None:
             return None
@@ -90,7 +90,7 @@ class FirmwareUpdateBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
         )
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool | None:
         """Return if a firmware update is available."""
         if self.coordinator.data.status is None:
             return None
@@ -115,7 +115,7 @@ class CloudConnectBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
         )
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool | None:
         """Return if the device is connected to cloud."""
         if self.coordinator.data.wifi_info is None:
             return None

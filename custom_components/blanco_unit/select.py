@@ -15,7 +15,7 @@ async def async_setup_entry(
     _: HomeAssistant,
     config_entry: BlancoUnitConfigEntry,
     async_add_entities: AddEntitiesCallback,
-):
+) -> None:
     """Set up the Selectors for temperature and water hardness."""
     coordinator: BlancoUnitCoordinator = config_entry.runtime_data
 

@@ -55,9 +55,9 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             "Load prefilled form with: %s and info %s", data, self._discovery_info
         )
         # Setup Values
-        mac = UNDEFINED
-        name = UNDEFINED
-        pin = UNDEFINED
+        mac: Any = UNDEFINED
+        name: Any = UNDEFINED
+        pin: Any = UNDEFINED
 
         # Read values from data if provided
         if data is not None:

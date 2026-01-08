@@ -58,7 +58,7 @@ SERVICE_CHANGE_PIN_SCHEMA = vol.Schema(
 )
 
 
-def async_setup_services(hass: HomeAssistant):
+def async_setup_services(hass: HomeAssistant) -> None:
     """Set up Blanco Unit integration services."""
     _LOGGER.debug("async_setup_services called")
 

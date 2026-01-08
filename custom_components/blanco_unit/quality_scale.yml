@@ -126,7 +126,4 @@ rules:
     status: exempt
     comment: |
       This is a Bluetooth integration and does not use HTTP/websockets.
-  strict-typing:
-    status: todo
-    comment: |
-      Need to add strict typing throughout the codebase.
+  strict-typing: done

@@ -23,7 +23,7 @@ async def async_setup_entry(
     _: HomeAssistant,
     config_entry: BlancoUnitConfigEntry,
     async_add_entities: AddEntitiesCallback,
-):
+) -> None:
     """Set up the sensors for Blanco Unit."""
     coordinator: BlancoUnitCoordinator = config_entry.runtime_data
 
@@ -80,7 +80,7 @@ class FilterRemainingSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.status is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> int | None:
         """Return the filter remaining percentage."""
         if self.coordinator.data.status is None:
             return None
@@ -102,7 +102,7 @@ class CO2RemainingSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.status is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> int | None:
         """Return the CO2 remaining percentage."""
         if self.coordinator.data.status is None:
             return None
@@ -123,7 +123,7 @@ class TapStateSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.status is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> int | None:
         """Return the tap state."""
         if self.coordinator.data.status is None:
             return None
@@ -144,7 +144,7 @@ class CleanModeStateSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.status is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> int | None:
         """Return the clean mode state."""
         if self.coordinator.data.status is None:
             return None
@@ -165,7 +165,7 @@ class ErrorBitsSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.status is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> int | None:
         """Return the error bits."""
         if self.coordinator.data.status is None:
             return None
@@ -193,7 +193,7 @@ class FilterLifetimeSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.settings is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> int | None:
         """Return the filter lifetime."""
         if self.coordinator.data.settings is None:
             return None
@@ -216,7 +216,7 @@ class PostFlushQuantitySensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.settings is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> int | None:
         """Return the post flush quantity."""
         if self.coordinator.data.settings is None:
             return None
@@ -242,7 +242,7 @@ class FirmwareMainSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.system_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the main firmware version."""
         if self.coordinator.data.system_info is None:
             return None
@@ -263,7 +263,7 @@ class FirmwareCommSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.system_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the comm firmware version."""
         if self.coordinator.data.system_info is None:
             return None
@@ -284,7 +284,7 @@ class FirmwareElecSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.system_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the elec firmware version."""
         if self.coordinator.data.system_info is None:
             return None
@@ -305,7 +305,7 @@ class DeviceNameSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.system_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the device name."""
         if self.coordinator.data.system_info is None:
             return None
@@ -327,7 +327,7 @@ class ResetCountSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.system_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> int | None:
         """Return the reset count."""
         if self.coordinator.data.system_info is None:
             return None
@@ -353,7 +353,7 @@ class SerialNumberSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.identity is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the serial number."""
         if self.coordinator.data.identity is None:
             return None
@@ -374,7 +374,7 @@ class ServiceCodeSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.identity is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the service code."""
         if self.coordinator.data.identity is None:
             return None
@@ -400,7 +400,7 @@ class WiFiSSIDSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.wifi_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the WiFi SSID."""
         if self.coordinator.data.wifi_info is None:
             return None
@@ -423,7 +423,7 @@ class WiFiSignalSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.wifi_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> int | None:
         """Return the WiFi signal strength."""
         if self.coordinator.data.wifi_info is None:
             return None
@@ -444,7 +444,7 @@ class IPAddressSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.wifi_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the IP address."""
         if self.coordinator.data.wifi_info is None:
             return None
@@ -465,7 +465,7 @@ class BLEMacSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.wifi_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the BLE MAC address."""
         if self.coordinator.data.wifi_info is None:
             return None
@@ -486,7 +486,7 @@ class WiFiMacSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.wifi_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the WiFi MAC address."""
         if self.coordinator.data.wifi_info is None:
             return None
@@ -507,7 +507,7 @@ class GatewaySensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.wifi_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the gateway IP."""
         if self.coordinator.data.wifi_info is None:
             return None
@@ -528,7 +528,7 @@ class GatewayMacSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.wifi_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the gateway MAC."""
         if self.coordinator.data.wifi_info is None:
             return None
@@ -549,7 +549,7 @@ class SubnetSensor(BlancoUnitBaseEntity, SensorEntity):
         return super().available and self.coordinator.data.wifi_info is not None
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the subnet mask."""
         if self.coordinator.data.wifi_info is None:
             return None

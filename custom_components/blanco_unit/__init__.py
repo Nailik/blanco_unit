@@ -74,7 +74,7 @@ async def async_setup_entry(
             # Register a callback to retry setup when the device appears
             def _available_callback(
                 info: BluetoothServiceInfoBleak, change: BluetoothChange
-            ):
+            ) -> None:
                 _LOGGER.debug("%s is discovered again", info)
                 if info.address == config_entry.data[CONF_MAC]:
                     _LOGGER.debug("%s is discovered again", info.address)
