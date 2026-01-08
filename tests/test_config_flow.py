@@ -622,4 +622,17 @@ async def test_validate_input_disconnects_on_error(
             "custom_components.blanco_unit.config_flow.establish_connection",
             return_value=mock_bleak_client,
         ),
-     
+        patch(
+            "custom_components.blanco_unit.config_flow.authenticate",
+            side_effect=ValueError("Test error"),
+        ),
+    ):
+        result = await flow._validate_input(
+            {"mac": "AA:BB:CC:DD:EE:FF", "pin": "12345"}
+        )
+
+        # Should have error
+        assert "error" in result
+
+        # Should still disconnect on error
+        mock_bleak_client.disconnect.assert_called_once()

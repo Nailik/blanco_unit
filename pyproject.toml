@@ -253,7 +253,10 @@ split-on-trailing-comma = false
 
 # Temporary
 "homeassistant/**" = ["PTH"]
-"tests/**" = ["PTH"]
+"tests/**" = ["PTH", "SLF001", "PLC0415"]
+
+# Allow performance overhead in external BLE client
+"custom_components/blanco_unit/client.py" = ["PERF203"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 25

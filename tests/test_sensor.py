@@ -542,4 +542,4 @@ async def test_sensor_when_data_is_unavailable(mock_coordinator) -> None:
     mock_coordinator.data.available = False
     sensor = FilterRemainingSensor(mock_coordinator)
 
-    assert sensor.available is 
+    assert sensor.available is False
