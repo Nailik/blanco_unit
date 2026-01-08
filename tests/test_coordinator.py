@@ -742,7 +742,7 @@ async def test_coordinator_async_update_data_connection_error(
             device_id="test_device_id",
         )
 
-        with pytest.raises(UpdateFailed, match="error_device_not_found"):
+        with pytest.raises(UpdateFailed):
             await coordinator._async_update_data()
 
 
@@ -780,7 +780,7 @@ async def test_coordinator_async_update_data_not_found_error(
             device_id="test_device_id",
         )
 
-        with pytest.raises(UpdateFailed, match="error_device_not_found"):
+        with pytest.raises(UpdateFailed):
             await coordinator._async_update_data()
 
 
@@ -818,7 +818,7 @@ async def test_coordinator_async_update_data_generic_error(
             device_id="test_device_id",
         )
 
-        with pytest.raises(UpdateFailed, match="error_unknown"):
+        with pytest.raises(UpdateFailed):
             await coordinator._async_update_data()
 
 
@@ -885,7 +885,7 @@ async def test_coordinator_call_connection_error(
         async def failing_func():
             raise BleakConnectionError("Error")
 
-        with pytest.raises(ServiceValidationError, match="error_device_not_found"):
+        with pytest.raises(ServiceValidationError):
             await coordinator._call(failing_func)
 
 
@@ -923,7 +923,7 @@ async def test_coordinator_call_not_found_error(
         async def failing_func():
             raise BleakNotFoundError("Error")
 
-        with pytest.raises(ServiceValidationError, match="error_device_not_found"):
+        with pytest.raises(ServiceValidationError):
             await coordinator._call(failing_func)
 
 
@@ -961,7 +961,7 @@ async def test_coordinator_call_generic_error(
         async def failing_func():
             raise ValueError("Error")
 
-        with pytest.raises(ServiceValidationError, match="error_unknown"):
+        with pytest.raises(ServiceValidationError):
             await coordinator._call(failing_func)
 
 

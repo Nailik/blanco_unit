@@ -1,5 +1,5 @@
 """Common test fixtures for Blanco Unit tests."""
-import asyncio
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,15 +16,18 @@ def auto_enable_custom_integrations(enable_custom_integrations):
     """Enable custom integrations defined in the test dir."""
     return enable_custom_integrations
 
+
 @pytest.fixture
 def expected_lingering_timers() -> bool:
     """Fixture used by pytest-homeassistant to decide if timers are ok."""
     return True
 
+
 @pytest.fixture(autouse=True)
 def mock_bluetooth(enable_bluetooth):
     """Auto-enable Bluetooth for all tests."""
     return enable_bluetooth
+
 
 async def setup_integration(hass: HomeAssistant, config_entry: MockConfigEntry) -> None:
     """Fixture for setting up the component."""
@@ -32,6 +35,7 @@ async def setup_integration(hass: HomeAssistant, config_entry: MockConfigEntry) 
 
     await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
+
 
 # Create fixtures for common test data
 @pytest.fixture(name="mock_blanco_unit_data")
