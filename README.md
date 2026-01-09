@@ -1,6 +1,5 @@
 # Blanco Unit Integration for Home Assistant
 
-
 [![Open Blanco Unit in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Nailik&repository=blanco_unit&category=integration)
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
 [![Version](https://img.shields.io/github/v/release/Nailik/blanco_unit)](https://github.com/Nailik/vogels_motblanco_unition_mount_ble/releases/latest)

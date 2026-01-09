@@ -10,7 +10,9 @@
       "Bash(wc:*)",
       "Bash(wsl bash -c \"cd /mnt/c/Users/kilia/SynologyDrive/Dokumente/Projects/blanco_unit/blanco_unit && pytest --cov=custom_components.blanco_unit --cov-report=term-missing tests/ -v\")",
       "Bash(wsl bash:*)",
-      "Bash(pre-commit run:*)"
+      "Bash(pre-commit run:*)",
+      "Bash(wsl pytest:*)",
+      "Bash(wsl python3 -m pytest:*)"
     ]
   }
 }
