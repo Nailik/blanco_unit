@@ -52,7 +52,7 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
 
         # Create client
         self._client = BlancoUnitBluetoothClient(
-            pin=config_entry.data[CONF_PIN],
+            pin=str(config_entry.data[CONF_PIN]),
             device=device,
             connection_callback=self._connection_changed,
         )
