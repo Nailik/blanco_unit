@@ -24,7 +24,7 @@ from homeassistant.data_entry_flow import FlowResultType
 
 MOCKED_CONF_MAC = "AA:BB:CC:DD:EE:FF"
 MOCKED_CONF_NAME = "Test Blanco Unit"
-MOCKED_CONF_PIN = 12345
+MOCKED_CONF_PIN = "01234"
 
 MOCKED_CONFIG: dict[str, Any] = {
     CONF_MAC: MOCKED_CONF_MAC,
