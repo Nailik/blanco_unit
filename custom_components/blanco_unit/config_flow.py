@@ -113,7 +113,7 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             return ValidationResult({CONF_ERROR: "invalid_mac_code"})
 
         # Validate PIN format (5 digits)
-        pin_str = user_input[CONF_PIN]
+        pin_str = str(user_input[CONF_PIN])
         if len(pin_str) != 5 or not pin_str.isdigit():
             _LOGGER.error("Invalid PIN: must be exactly 5 digits")
             return ValidationResult({CONF_ERROR: "invalid_pin_format"})
