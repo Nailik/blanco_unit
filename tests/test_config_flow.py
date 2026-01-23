@@ -24,7 +24,7 @@ from homeassistant.data_entry_flow import FlowResultType
 
 MOCKED_CONF_MAC = "AA:BB:CC:DD:EE:FF"
 MOCKED_CONF_NAME = "Test Blanco Unit"
-MOCKED_CONF_PIN = 12345
+MOCKED_CONF_PIN = "01234"
 
 MOCKED_CONFIG: dict[str, Any] = {
     CONF_MAC: MOCKED_CONF_MAC,
@@ -163,7 +163,7 @@ async def test_user_flow_invalid_pin_format(hass: HomeAssistant) -> None:
 
     configure_result = await hass.config_entries.flow.async_configure(
         flow_result["flow_id"],
-        {**MOCKED_CONFIG, CONF_PIN: 123},  # Only 3 digits
+        {**MOCKED_CONFIG, CONF_PIN: "123"},  # Only 3 digits
     )
 
     assert configure_result["type"] is FlowResultType.FORM
@@ -537,10 +537,10 @@ async def test_prefilled_form_with_data(hass: HomeAssistant) -> None:
     schema = flow.prefilledForm(data=MOCKED_CONFIG)
 
     # Validate schema creates proper defaults
-    validated = schema({CONF_PIN: 12345})
+    validated = schema({CONF_PIN: MOCKED_CONF_PIN})
     assert validated[CONF_MAC] == MOCKED_CONF_MAC
     assert validated[CONF_NAME] == MOCKED_CONF_NAME
-    assert validated[CONF_PIN] == 12345
+    assert validated[CONF_PIN] == MOCKED_CONF_PIN
 
 
 async def test_prefilled_form_with_discovery_info(
@@ -557,7 +557,7 @@ async def test_prefilled_form_with_discovery_info(
     schema = flow.prefilledForm()
 
     # Validate schema uses discovery info
-    validated = schema({CONF_PIN: 12345})
+    validated = schema({CONF_PIN: MOCKED_CONF_PIN})
     assert validated[CONF_MAC] == MOCKED_CONF_MAC
     assert validated[CONF_NAME] == MOCKED_CONF_NAME
 

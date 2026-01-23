@@ -644,9 +644,7 @@ async def test_validate_pin_with_provided_protocol():
 
 def test_bluetooth_client_init_valid_pin():
     """Test BlancoUnitBluetoothClient initialization with valid PIN."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -661,9 +659,7 @@ def test_bluetooth_client_init_valid_pin():
 
 def test_bluetooth_client_init_invalid_pin_length():
     """Test BlancoUnitBluetoothClient initialization with invalid PIN length."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     with pytest.raises(ValueError, match="PIN must be exactly 5 digits"):
@@ -674,9 +670,7 @@ def test_bluetooth_client_init_invalid_pin_length():
 
 def test_bluetooth_client_init_invalid_pin_format():
     """Test BlancoUnitBluetoothClient initialization with non-digit PIN."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     with pytest.raises(ValueError, match="PIN must be exactly 5 digits"):
@@ -687,9 +681,7 @@ def test_bluetooth_client_init_invalid_pin_format():
 
 def test_bluetooth_client_device_id_when_not_connected():
     """Test device_id property returns None when not connected."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -703,9 +695,7 @@ def test_bluetooth_client_device_id_when_connected():
     """Test device_id property returns device ID when connected."""
     from custom_components.blanco_unit.client import _BlancoUnitSessionData
 
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -724,9 +714,7 @@ def test_bluetooth_client_device_id_when_connected():
 
 def test_bluetooth_client_is_connected_when_not_connected():
     """Test is_connected property returns False when not connected."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -740,9 +728,7 @@ def test_bluetooth_client_is_connected_when_connected():
     """Test is_connected property returns True when connected."""
     from custom_components.blanco_unit.client import _BlancoUnitSessionData
 
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -765,9 +751,7 @@ async def test_bluetooth_client_disconnect_when_connected():
     """Test disconnect method when client is connected."""
     from custom_components.blanco_unit.client import _BlancoUnitSessionData
 
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -789,9 +773,7 @@ async def test_bluetooth_client_disconnect_when_connected():
 @pytest.mark.asyncio
 async def test_bluetooth_client_disconnect_when_not_connected():
     """Test disconnect method when client is not connected."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -806,9 +788,7 @@ async def test_bluetooth_client_disconnect_when_not_connected():
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_connect_first_time(mock_establish):
     """Test _connect method on first connection."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -844,9 +824,7 @@ async def test_bluetooth_client_connect_already_connected(mock_establish):
     """Test _connect method when already connected."""
     from custom_components.blanco_unit.client import _BlancoUnitSessionData
 
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -870,9 +848,7 @@ async def test_bluetooth_client_connect_already_connected(mock_establish):
 
 def test_bluetooth_client_handle_disconnect():
     """Test _handle_disconnect callback."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -898,9 +874,7 @@ def test_bluetooth_client_handle_disconnect():
 @pytest.mark.asyncio
 async def test_bluetooth_client_perform_pairing_success():
     """Test _perform_pairing with successful authentication."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -930,9 +904,7 @@ async def test_bluetooth_client_perform_pairing_success():
 @pytest.mark.asyncio
 async def test_bluetooth_client_perform_pairing_wrong_pin():
     """Test _perform_pairing with wrong PIN (error code 4)."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -960,9 +932,7 @@ async def test_bluetooth_client_perform_pairing_wrong_pin():
 @patch("custom_components.blanco_unit.client.validate_pin")
 async def test_bluetooth_client_perform_pairing_no_device_id(mock_validate_pin):
     """Test _perform_pairing when no device ID is returned."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -984,9 +954,7 @@ async def test_bluetooth_client_perform_pairing_no_device_id(mock_validate_pin):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_execute_transaction_success(mock_establish):
     """Test _execute_transaction with successful response."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1038,9 +1006,7 @@ async def test_bluetooth_client_execute_transaction_success(mock_establish):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_execute_transaction_auth_error(mock_establish):
     """Test _execute_transaction with authentication error."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1091,9 +1057,7 @@ async def test_bluetooth_client_execute_transaction_auth_error(mock_establish):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_get_system_info(mock_establish):
     """Test get_system_info method."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1157,9 +1121,7 @@ async def test_bluetooth_client_get_system_info(mock_establish):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_get_settings(mock_establish):
     """Test get_settings method."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1225,9 +1187,7 @@ async def test_bluetooth_client_get_settings(mock_establish):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_get_status(mock_establish):
     """Test get_status method."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1294,9 +1254,7 @@ async def test_bluetooth_client_get_status(mock_establish):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_get_device_identity(mock_establish):
     """Test get_device_identity method."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1345,9 +1303,7 @@ async def test_bluetooth_client_get_device_identity(mock_establish):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_get_wifi_info(mock_establish):
     """Test get_wifi_info method."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1414,9 +1370,7 @@ async def test_bluetooth_client_get_wifi_info(mock_establish):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_set_temperature_success(mock_establish):
     """Test set_temperature method with valid temperature."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1461,9 +1415,7 @@ async def test_bluetooth_client_set_temperature_success(mock_establish):
 @pytest.mark.asyncio
 async def test_bluetooth_client_set_temperature_invalid_low():
     """Test set_temperature with temperature too low."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1477,9 +1429,7 @@ async def test_bluetooth_client_set_temperature_invalid_low():
 @pytest.mark.asyncio
 async def test_bluetooth_client_set_temperature_invalid_high():
     """Test set_temperature with temperature too high."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1494,9 +1444,7 @@ async def test_bluetooth_client_set_temperature_invalid_high():
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_set_water_hardness_success(mock_establish):
     """Test set_water_hardness method."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1542,9 +1490,7 @@ async def test_bluetooth_client_set_water_hardness_success(mock_establish):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_change_pin_success(mock_establish):
     """Test change_pin method with successful PIN change."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1591,9 +1537,7 @@ async def test_bluetooth_client_change_pin_success(mock_establish):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_change_pin_failure(mock_establish):
     """Test change_pin method when PIN change fails."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1640,9 +1584,7 @@ async def test_bluetooth_client_change_pin_failure(mock_establish):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_dispense_water_success(mock_establish):
     """Test dispense_water method with valid parameters."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1687,9 +1629,7 @@ async def test_bluetooth_client_dispense_water_success(mock_establish):
 @pytest.mark.asyncio
 async def test_bluetooth_client_dispense_water_invalid_amount_low():
     """Test dispense_water with amount too low."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1703,9 +1643,7 @@ async def test_bluetooth_client_dispense_water_invalid_amount_low():
 @pytest.mark.asyncio
 async def test_bluetooth_client_dispense_water_invalid_amount_high():
     """Test dispense_water with amount too high."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1719,9 +1657,7 @@ async def test_bluetooth_client_dispense_water_invalid_amount_high():
 @pytest.mark.asyncio
 async def test_bluetooth_client_dispense_water_invalid_amount_not_multiple():
     """Test dispense_water with amount not a multiple of 100."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1735,9 +1671,7 @@ async def test_bluetooth_client_dispense_water_invalid_amount_not_multiple():
 @pytest.mark.asyncio
 async def test_bluetooth_client_dispense_water_invalid_intensity():
     """Test dispense_water with invalid CO2 intensity."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1752,9 +1686,7 @@ async def test_bluetooth_client_dispense_water_invalid_intensity():
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_set_calibration_still(mock_establish):
     """Test set_calibration_still method."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
@@ -1800,9 +1732,7 @@ async def test_bluetooth_client_set_calibration_still(mock_establish):
 @patch("custom_components.blanco_unit.client.establish_connection")
 async def test_bluetooth_client_set_calibration_soda(mock_establish):
     """Test set_calibration_soda method."""
-    device = BLEDevice(
-        address="AA:BB:CC:DD:EE:FF", name="Test Device", details={}, rssi=-50
-    )
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
     callback = MagicMock()
 
     client = BlancoUnitBluetoothClient(
