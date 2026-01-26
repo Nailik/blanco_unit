@@ -234,6 +234,8 @@ class _BlancoUnitProtocol:
 
     def parse_response(self, raw_chunks: list[bytes]) -> dict[str, Any]:
         """Parse BLE response chunks into JSON."""
+        _LOGGER.debug("Parsing response data: %s", raw_chunks)
+
         if not raw_chunks or raw_chunks[0][0] != 0xFF:
             raise ValueError("Invalid chunk stream")
 
@@ -247,7 +249,9 @@ class _BlancoUnitProtocol:
 
         clean = payload.split(b"\x00")[0]
         try:
-            return json.loads(clean.decode("utf-8"))
+            result: dict[str, Any] = json.loads(clean.decode("utf-8"))
+            _LOGGER.debug("Parsed response data: %s", result)
+            return result  # noqa: TRY300
         except Exception as e:
             _LOGGER.error("JSON parse failed: %s", clean)
             raise ValueError("Failed to parse JSON response") from e
@@ -315,6 +319,7 @@ class _BlancoUnitProtocol:
         request_dict = envelope.to_dict()
         packets = self.create_packets(request_dict, self.msg_id_counter)
 
+        _LOGGER.debug("Sending pairing data: %s", envelope)
         _LOGGER.debug("Sending pairing request (ReqID: %s)", req_id)
 
         # Send packets
@@ -357,6 +362,7 @@ class _BlancoUnitProtocol:
         request_dict = envelope.to_dict()
         packets = self.create_packets(request_dict, self.msg_id_counter)
 
+        _LOGGER.debug("Sending data: %s", envelope)
         _LOGGER.debug("Sending request (ReqID: %s, %d packets)", req_id, len(packets))
 
         # Send packets
