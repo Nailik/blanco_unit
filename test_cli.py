@@ -236,6 +236,9 @@ class BlancoUnitCLI:
             print(" 10. Set Soda Water Calibration")
             print(" 11. Change PIN")
             print()
+            print("Testing:")
+            print(" 12. Scan Protocol Parameters")
+            print()
             print("Other:")
             print("  0. Disconnect and Exit")
             print("=" * 70)
@@ -267,6 +270,8 @@ class BlancoUnitCLI:
                     await self.test_set_calibration_soda()
                 elif choice == "11":
                     await self.test_change_pin()
+                elif choice == "12":
+                    await self.test_scan_protocol_parameters()
                 else:
                     print("Invalid option. Please try again.")
             except Exception as e:
@@ -469,6 +474,98 @@ class BlancoUnitCLI:
                     print("PINs don't match. Please try again.")
             else:
                 print("PIN must be exactly 5 digits. Please try again.")
+
+    async def test_scan_protocol_parameters(self) -> None:
+        """Scan for valid protocol parameters."""
+        print("\n--- Scan Protocol Parameters ---")
+        print("This will test evt_type 0-10, ctrl 0-10, and pars evt_type 0-10")
+        print("Only responses with meaningful data will be shown.")
+        print()
+
+        confirm = input("This may take a few minutes. Continue? (y/n): ").strip().lower()
+        if confirm != 'y':
+            print("Scan cancelled")
+            return
+
+        results = []
+        total_tests = 0
+        successful_tests = 0
+
+        print("\nScanning...")
+
+        # Test evt_type 0-10
+        for evt_type in range(11):
+            # Test without ctrl
+            print(f"  Testing evt_type={evt_type}, ctrl=None, pars_evt_type=None...")
+            total_tests += 1
+            response = await self.client.test_protocol_parameters(evt_type, None, None)
+            if response:
+                successful_tests += 1
+                results.append({
+                    "evt_type": evt_type,
+                    "ctrl": None,
+                    "pars_evt_type": None,
+                    "response": response
+                })
+
+            # Test with ctrl 0-10
+            for ctrl in range(11):
+                # Without pars evt_type
+                print(f"  Testing evt_type={evt_type}, ctrl={ctrl}, pars_evt_type=None...")
+                total_tests += 1
+                response = await self.client.test_protocol_parameters(evt_type, ctrl, None)
+                if response:
+                    successful_tests += 1
+                    results.append({
+                        "evt_type": evt_type,
+                        "ctrl": ctrl,
+                        "pars_evt_type": None,
+                        "response": response
+                    })
+
+                # With pars evt_type 0-10
+                for pars_evt_type in range(11):
+                    print(f"  Testing evt_type={evt_type}, ctrl={ctrl}, pars_evt_type={pars_evt_type}...")
+                    total_tests += 1
+                    response = await self.client.test_protocol_parameters(evt_type, ctrl, pars_evt_type)
+                    if response:
+                        successful_tests += 1
+                        results.append({
+                            "evt_type": evt_type,
+                            "ctrl": ctrl,
+                            "pars_evt_type": pars_evt_type,
+                            "response": response
+                        })
+
+        print("\n" + "=" * 70)
+        print(f"Scan Complete: {successful_tests}/{total_tests} tests returned data")
+        print("=" * 70)
+
+        if results:
+            print("\nResults with meaningful data:\n")
+            for i, result in enumerate(results, 1):
+                print(f"\n--- Result {i} ---")
+                print(f"evt_type: {result['evt_type']}")
+                print(f"ctrl: {result['ctrl']}")
+                print(f"pars_evt_type: {result['pars_evt_type']}")
+                print(f"Response:")
+                import json
+                print(json.dumps(result['response'], indent=2))
+        else:
+            print("\nNo meaningful data found in any test.")
+
+        # Offer to save results
+        if results:
+            save = input("\nSave results to file? (y/n): ").strip().lower()
+            if save == 'y':
+                filename = input("Enter filename (default: protocol_scan_results.json): ").strip()
+                if not filename:
+                    filename = "protocol_scan_results.json"
+
+                import json
+                with open(filename, 'w') as f:
+                    json.dump(results, f, indent=2)
+                print(f"✓ Results saved to {filename}")
 
     async def cleanup(self) -> None:
         """Clean up resources."""
