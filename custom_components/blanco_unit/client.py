@@ -519,9 +519,8 @@ class BlancoUnitBluetoothClient:
 
     async def get_system_info(self) -> BlancoUnitSystemInfo:
         """Read and return system information (firmware versions, device name, reset count)."""
-        session_data = await self._connect()
         resp = await self._execute_transaction(evt_type=7, ctrl=3, pars={"evt_type": 2})
-        pars = session_data.protocol.extract_pars(resp)
+        pars = self._session_data.protocol.extract_pars(resp)
         return BlancoUnitSystemInfo(
             sw_ver_comm_con=pars.get("sw_ver_comm_con", {}).get("val", "Unknown"),
             sw_ver_elec_con=pars.get("sw_ver_elec_con", {}).get("val", "Unknown"),
@@ -532,9 +531,8 @@ class BlancoUnitBluetoothClient:
 
     async def get_settings(self) -> BlancoUnitSettings:
         """Read and return device configuration settings."""
-        session_data = await self._connect()
         resp = await self._execute_transaction(evt_type=7, ctrl=3, pars={"evt_type": 5})
-        pars = session_data.protocol.extract_pars(resp)
+        pars = self._session_data.protocol.extract_pars(resp)
         return BlancoUnitSettings(
             calib_still_wtr=pars.get("calib_still_wtr", {}).get("val", 0),
             calib_soda_wtr=pars.get("calib_soda_wtr", {}).get("val", 0),
@@ -546,9 +544,8 @@ class BlancoUnitBluetoothClient:
 
     async def get_status(self) -> BlancoUnitStatus:
         """Read and return real-time device status."""
-        session_data = await self._connect()
         resp = await self._execute_transaction(evt_type=7, ctrl=3, pars={"evt_type": 6})
-        pars = session_data.protocol.extract_pars(resp)
+        pars = self._session_data.protocol.extract_pars(resp)
         return BlancoUnitStatus(
             tap_state=pars.get("tap_state", {}).get("val", 0),
             filter_rest=pars.get("filter_rest", {}).get("val", 0),
@@ -562,9 +559,8 @@ class BlancoUnitBluetoothClient:
 
     async def get_device_identity(self) -> BlancoUnitIdentity:
         """Read and return device identity (serial number, service code)."""
-        session_data = await self._connect()
         resp = await self._execute_transaction(evt_type=7, ctrl=2, pars={})
-        pars = session_data.protocol.extract_pars(resp)
+        pars = self._session_data.protocol.extract_pars(resp)
         return BlancoUnitIdentity(
             serial_no=pars.get("ser_no", "Unknown"),
             service_code=pars.get("serv_code", "Unknown"),
@@ -572,9 +568,8 @@ class BlancoUnitBluetoothClient:
 
     async def get_wifi_info(self) -> BlancoUnitWifiInfo:
         """Read and return WiFi and network information."""
-        session_data = await self._connect()
         resp = await self._execute_transaction(evt_type=7, ctrl=10, pars={})
-        pars = session_data.protocol.extract_pars(resp)
+        pars = self._session_data.protocol.extract_pars(resp)
         return BlancoUnitWifiInfo(
             cloud_connect=pars.get("cloud_connect", {}).get("val", False),
             ssid=pars.get("ssid", {}).get("val", ""),
