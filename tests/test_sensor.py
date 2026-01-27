@@ -144,10 +144,22 @@ async def test_all_entities(
         )
 
 
+@pytest.mark.parametrize(
+    ("device_type", "expected_count"),
+    [
+        (1, 28),
+        (2, 33),
+    ],
+)
 async def test_async_setup_entry(
-    hass: HomeAssistant, mock_config_entry, mock_coordinator
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_coordinator,
+    device_type,
+    expected_count,
 ) -> None:
-    """Test async_setup_entry creates all sensors."""
+    """Test async_setup_entry creates correct sensors."""
+    mock_coordinator.data.device_type = device_type
     mock_config_entry.runtime_data = mock_coordinator
     entities_added = []
 
@@ -157,7 +169,7 @@ async def test_async_setup_entry(
     await async_setup_entry(hass, mock_config_entry, mock_add_entities)
 
     # Verify all 24 sensors were added
-    assert len(entities_added) == 33
+    assert len(entities_added) == expected_count
 
     # Verify sensor types
     sensor_types = [type(entity).__name__ for entity in entities_added]
@@ -184,6 +196,12 @@ async def test_async_setup_entry(
     assert "GatewaySensor" in sensor_types
     assert "GatewayMacSensor" in sensor_types
     assert "SubnetSensor" in sensor_types
+    if device_type == 2:
+        assert "BoilerTemp1Sensor" in sensor_types
+        assert "BoilerTemp2Sensor" in sensor_types
+        assert "CoolingTempSensor" in sensor_types
+        assert "MainControllerStatusSensor" in sensor_types
+        assert "ConnControllerStatusSensor" in sensor_types
 
 
 async def test_filter_remaining_sensor(mock_coordinator) -> None:

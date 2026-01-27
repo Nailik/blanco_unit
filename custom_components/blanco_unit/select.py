@@ -19,13 +19,13 @@ async def async_setup_entry(
     """Set up the Selectors for temperature and water hardness."""
     coordinator: BlancoUnitCoordinator = config_entry.runtime_data
 
-    async_add_entities(
-        [
-            TemperatureSelect(coordinator),
-            HeatingTemperatureSelect(coordinator),
-            WaterHardnessSelect(coordinator),
-        ]
-    )
+    entities = [
+        TemperatureSelect(coordinator),
+        WaterHardnessSelect(coordinator),
+    ]
+    if coordinator.data.device_type == 2:
+        entities.append(HeatingTemperatureSelect(coordinator))
+    async_add_entities(entities)
 
 
 class TemperatureSelect(BlancoUnitBaseEntity, SelectEntity):
