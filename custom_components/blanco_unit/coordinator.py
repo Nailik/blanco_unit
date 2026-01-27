@@ -21,7 +21,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ServiceValidationErr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .client import BlancoUnitAuthenticationError, BlancoUnitBluetoothClient
-from .const import CONF_MAC, CONF_PIN, DOMAIN
+from .const import CHARACTERISTIC_UUID, CONF_MAC, CONF_PIN, DOMAIN, RANDOM_MAC_PLACEHOLDER
 from .data import BlancoUnitData
 
 _LOGGER = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
         # Store setup data
         self.address = device.address
         self.mac_address = config_entry.data[CONF_MAC]
+        self._random_mac = self.mac_address == RANDOM_MAC_PLACEHOLDER
 
         # Create client
         self._client = BlancoUnitBluetoothClient(
@@ -72,14 +73,23 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
         self._unsub_unavailable_update_listener = bluetooth.async_track_unavailable(
             hass, self._unavailable_callback, self.address, connectable=True
         )
-        self._unsub_available_update_listener = bluetooth.async_register_callback(
-            hass,
-            self._available_callback,
-            {"address": self.address, "connectable": True},
-            BluetoothScanningMode.ACTIVE,
-        )
+        if self._random_mac:
+            # For random MAC, listen for any device advertising our service UUID
+            self._unsub_available_update_listener = bluetooth.async_register_callback(
+                hass,
+                self._available_callback,
+                {"service_uuid": CHARACTERISTIC_UUID, "connectable": True},
+                BluetoothScanningMode.ACTIVE,
+            )
+        else:
+            self._unsub_available_update_listener = bluetooth.async_register_callback(
+                hass,
+                self._available_callback,
+                {"address": self.address, "connectable": True},
+                BluetoothScanningMode.ACTIVE,
+            )
 
-        _LOGGER.debug("Coordinator startup finished")
+        _LOGGER.debug("Coordinator startup finished (random_mac=%s)", self._random_mac)
 
     def _available_callback(
         self, info: BluetoothServiceInfoBleak, change: BluetoothChange
@@ -264,9 +274,10 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
             ) from err
 
     def _set_unavailable(self) -> None:
-        _LOGGER.debug("_set_unavailable width data %s", str(self.data))
-        # trigger rediscovery for the device
-        bluetooth.async_rediscover_address(self.hass, self.mac_address)
+        _LOGGER.debug("_set_unavailable with data %s", str(self.data))
+        # trigger rediscovery for the device (only for static MAC)
+        if not self._random_mac:
+            bluetooth.async_rediscover_address(self.hass, self.mac_address)
         if self.data is None:  # may be called before data is available
             return
         # tell HA to refresh all entities
