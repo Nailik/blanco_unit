@@ -185,7 +185,7 @@
         "name": "Boiler Temperature 2"
       },
       "cooling_temp": {
-        "name": "Cooling Compartment Temperature"
+        "name": "Compressor Temperature"
       },
       "main_controller_status": {
         "name": "Main Controller Status"

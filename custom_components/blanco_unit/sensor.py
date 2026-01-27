@@ -248,14 +248,18 @@ class BoilerTemp2Sensor(BlancoUnitBaseEntity, SensorEntity):
 
 
 class CoolingTempSensor(BlancoUnitBaseEntity, SensorEntity):
-    """Sensor for cooling compartment temperature (CHOICE.All only)."""
+    """Sensor for compressor temperature (CHOICE.All only).
+
+    Measures the compressor/condenser temperature (hot side of cooling system).
+    Idles at ~32-34°C, spikes to ~52-55°C when compressor is running.
+    """
 
     _attr_unique_id = "cooling_temp"
     _attr_translation_key = _attr_unique_id
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_icon = "mdi:snowflake-thermometer"
+    _attr_icon = "mdi:heat-wave"
 
     @property
     def entity_registry_visible_default(self) -> bool:
