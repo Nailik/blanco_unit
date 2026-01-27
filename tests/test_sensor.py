@@ -156,8 +156,8 @@ async def test_async_setup_entry(
 
     await async_setup_entry(hass, mock_config_entry, mock_add_entities)
 
-    # Verify all 23 sensors were added
-    assert len(entities_added) == 23
+    # Verify all 24 sensors were added
+    assert len(entities_added) == 24
 
     # Verify sensor types
     sensor_types = [type(entity).__name__ for entity in entities_added]

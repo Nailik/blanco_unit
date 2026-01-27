@@ -365,7 +365,7 @@ class _BlancoUnitProtocol:
         request_dict = envelope.to_dict()
         packets = self.create_packets(request_dict, self.msg_id_counter)
 
-        _LOGGER.debug("Sending data: %s", envelope)
+        _LOGGER.debug("Sending data: %s", request_dict)
         _LOGGER.debug("Sending request (ReqID: %s, %d packets)", req_id, len(packets))
 
         # Send packets

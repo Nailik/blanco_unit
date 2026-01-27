@@ -45,6 +45,7 @@ async def async_setup_entry(
             DeviceNameSensor(coordinator),
             ResetCountSensor(coordinator),
             DeviceTypeSensor(coordinator),
+            DeviceIdSensor(coordinator),
             # Identity sensors
             SerialNumberSensor(coordinator),
             ServiceCodeSensor(coordinator),
@@ -347,6 +348,20 @@ class DeviceTypeSensor(BlancoUnitBaseEntity, SensorEntity):
     def native_value(self) -> int | None:
         """Return the device type."""
         return self.coordinator.data.device_type
+
+
+class DeviceIdSensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for device id."""
+
+    _attr_unique_id = "device_id"
+    _attr_translation_key = _attr_unique_id
+    _attr_icon = "mdi:information"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the device id."""
+        return self.coordinator.data.device_id
 
 
 # -------------------------------
