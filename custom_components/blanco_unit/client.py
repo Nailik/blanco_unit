@@ -64,15 +64,17 @@ class _RequestMeta:
 
     evt_type: int
     dev_id: str | None = None
-    dev_type: int = 1
+    dev_type: int | None = None
     evt_ver: int = 1
     evt_ts: int = field(default_factory=lambda: int(time.time() * 1000))
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary, omitting None dev_id."""
+        """Convert to dictionary, omitting None dev_id and dev_type."""
         data = asdict(self)
         if self.dev_id is None:
             del data["dev_id"]
+        if self.dev_type is None:
+            del data["dev_type"]
         return data
 
 
@@ -302,7 +304,7 @@ class _BlancoUnitProtocol:
         self, client: BleakClient, pin: str
     ) -> dict[str, Any]:
         """Send pairing request and return parsed response."""
-        meta = _RequestMeta(evt_type=10, dev_id=None)
+        meta = _RequestMeta(evt_type=10, dev_id=None, dev_type=None)
         body = _RequestBody(meta=meta, pars={})
 
         req_id = random.randint(1000000, 9999999)
@@ -319,7 +321,7 @@ class _BlancoUnitProtocol:
         request_dict = envelope.to_dict()
         packets = self.create_packets(request_dict, self.msg_id_counter)
 
-        _LOGGER.debug("Sending pairing data: %s", envelope)
+        _LOGGER.debug("Sending pairing data: %s", request_dict)
         _LOGGER.debug("Sending pairing request (ReqID: %s)", req_id)
 
         # Send packets
@@ -335,12 +337,13 @@ class _BlancoUnitProtocol:
         client: BleakClient,
         pin: str,
         dev_id: str,
+        dev_type: int,
         evt_type: int,
         ctrl: int | None = None,
         pars: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Send a general request and return parsed response."""
-        meta = _RequestMeta(evt_type=evt_type, dev_id=dev_id)
+        meta = _RequestMeta(evt_type=evt_type, dev_id=dev_id, dev_type=dev_type)
         opts_dict: dict[str, int] | None = {"ctrl": ctrl} if ctrl is not None else None
         body = _RequestBody(meta=meta, opts=opts_dict, pars=pars)
 
@@ -448,12 +451,17 @@ class BlancoUnitBluetoothClient:
             protocol = _BlancoUnitProtocol(mtu=MTU_SIZE)
 
             # Perform initial pairing
-            dev_id = await self._perform_pairing(client, protocol)
+            dev_id, dev_type = await self._perform_pairing(client, protocol)
 
-            _LOGGER.debug("Connected and paired with device ID: %s", dev_id)
+            _LOGGER.debug(
+                "Connected and paired with device ID: %s, device type: %d",
+                dev_id,
+                dev_type,
+            )
             self._session_data = _BlancoUnitSessionData(
                 client=client,
                 dev_id=dev_id,
+                dev_type=dev_type,
                 protocol=protocol,
             )
             self._connection_callback(self._session_data.client.is_connected)
@@ -467,8 +475,11 @@ class BlancoUnitBluetoothClient:
 
     async def _perform_pairing(
         self, client: BleakClient, protocol: _BlancoUnitProtocol
-    ) -> str:
-        """Perform initial pairing to get device ID.
+    ) -> tuple[str, int]:
+        """Perform initial pairing to get device ID and device type.
+
+        Returns:
+            Tuple of (dev_id, dev_type).
 
         Raises:
             BlancoUnitAuthenticationError: If PIN is wrong (error code 4).
@@ -483,7 +494,13 @@ class BlancoUnitBluetoothClient:
         dev_id = _extract_device_id(response)
         if dev_id is None:
             raise BlancoUnitConnectionError("No device ID in pairing response")
-        return dev_id
+
+        # Extract device type (default to 1 if not present)
+        dev_type = _extract_device_type(response)
+        if dev_type is None:
+            dev_type = 1
+
+        return dev_id, dev_type
 
     async def _execute_transaction(
         self,
@@ -498,6 +515,7 @@ class BlancoUnitBluetoothClient:
             client=session_data.client,
             pin=self._pin,
             dev_id=session_data.dev_id,
+            dev_type=session_data.dev_type,
             evt_type=evt_type,
             ctrl=ctrl,
             pars=pars,
@@ -753,6 +771,25 @@ def _extract_device_id(response: dict[str, Any]) -> str | None:
     return None
 
 
+def _extract_device_type(response: dict[str, Any]) -> int | None:
+    """Extract device type from a pairing response.
+
+    Args:
+        response: The response dictionary from a pairing request.
+
+    Returns:
+        The device type if found, None otherwise.
+    """
+    try:
+        body = response.get("body", {})
+        meta = body.get("meta", {})
+        if "dev_type" in meta:
+            return meta["dev_type"]
+    except (KeyError, TypeError):
+        pass
+    return None
+
+
 async def validate_pin(
     client: BleakClient, pin: str, protocol: _BlancoUnitProtocol | None = None
 ) -> tuple[bool, dict[str, Any]]:
@@ -815,4 +852,5 @@ class _BlancoUnitSessionData:
 
     client: BleakClient
     dev_id: str
+    dev_type: int
     protocol: _BlancoUnitProtocol
