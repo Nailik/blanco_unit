@@ -274,8 +274,8 @@ When using event type 7 with control code 3, you must specify a sub-event type i
 | -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | 2        | System information | Firmware versions (`sw_ver_comm_con`, `sw_ver_elec_con`, `sw_ver_main_con`), device name, reset count                     |
 | 4        | Error information  | Array of errors with `err_code` and `err_msg` (empty array if no errors)                                                  |
-| 5        | Device settings    | Calibration values, filter lifetime, post-flush quantity, temperature setpoint, water hardness                            |
-| 6        | Device status      | Tap state, filter/CO2 remaining percentage, water dispensing active, firmware update available, cleaning mode, error bits |
+| 5        | Device settings    | Calibration values, filter lifetime, post-flush quantity, temperature setpoint, water hardness. CHOICE.All adds: heating setpoint, hot water calibration, carbonation ratios |
+| 6        | Device status      | Tap state, filter/CO2 remaining percentage, water dispensing active, firmware update available, cleaning mode, error bits. CHOICE.All adds: boiler temperatures, compressor temperature, controller status values |
 
 ### Settings Parameters (evt_type=7, ctrl=5)
 
@@ -283,14 +283,62 @@ When setting device configuration, use event type 7 with control code 5 and one 
 
 | Setting                 | Parameter Format                                                           | Valid Values | Description                                             |
 | ----------------------- | -------------------------------------------------------------------------- | ------------ | ------------------------------------------------------- |
-| Cooling temperature     | `{"set_point_cooling": {"val": <temp>}, "set_point_heating": {"val": 65}}` | 4-10°C       | Set target cooling temperature (heating is always 65°C) |
+| Cooling temperature     | `{"set_point_cooling": {"val": <temp>}}`                                   | 4-10°C       | Set target cooling temperature                          |
 | Water hardness          | `{"wtr_hardness": {"val": <level>}}`                                       | 1-9          | Set water hardness level                                |
 | Still water calibration | `{"calib_still_wtr": {"val": <amount>}}`                                   | 1-10         | Calibrate still water flow                              |
 | Soda water calibration  | `{"calib_soda_wtr": {"val": <amount>}}`                                    | 1-10         | Calibrate carbonated water flow                         |
 
 ## Event Types (Blanco Choice.all)
 
-Yet to be defined.
+The Blanco CHOICE.All (device type `dev_type: 2`) uses the same event types, control codes, and message format as the Drink.soda (`dev_type: 1`). The key differences are additional parameters in responses and additional write operations.
+
+### Device Type Identification
+
+The device type is returned in the pairing response (`evt_type: 10`) in the `meta.dev_type` field:
+
+- `dev_type: 1` = Blanco Drink.soda
+- `dev_type: 2` = Blanco CHOICE.All
+
+### Additional Status Fields (evt_type=6)
+
+The CHOICE.All status response includes these additional fields alongside the standard Drink.soda fields:
+
+| Parameter                  | Type    | Description                                                                                     |
+| -------------------------- | ------- | ----------------------------------------------------------------------------------------------- |
+| `temp_boil_1`              | integer | Boiler temperature sensor 1 (°C)                                                                |
+| `temp_boil_2`              | integer | Boiler temperature sensor 2 (°C)                                                                |
+| `temp_comp`                | integer | Compressor/condenser temperature (°C) - idles at ~32-34°C, spikes to ~52-55°C when running      |
+| `main_controller_status`   | integer | Main controller status bitmask (see bit definitions below)                                      |
+| `conn_controller_status`   | integer | Connection controller status value                                                              |
+
+#### Main Controller Status Bitmask
+
+The `main_controller_status` field is a bitmask. Known bits:
+
+| Bit  | Hex Value | Description                                                            |
+| ---- | --------- | ---------------------------------------------------------------------- |
+| 8+16 | 0x10100   | Base state bits, always set when device is running (value: 65792)      |
+| 13   | 0x2000    | Boiler heater element active (heating water to setpoint)               |
+| 14   | 0x4000    | Cooling compressor active (compressor running to cool water)           |
+
+**Note:** Heater and compressor never run simultaneously (load management).
+
+### Additional Settings Fields (evt_type=5)
+
+The CHOICE.All settings response includes these additional fields:
+
+| Parameter              | Type  | Description                            |
+| ---------------------- | ----- | -------------------------------------- |
+| `set_point_heating`    | int   | Heating setpoint temperature (60-100°C)|
+| `calib_hot_wtr`        | int   | Hot water calibration value (mL)       |
+| `gbl_medium_wtr_ratio` | float | Medium carbonation water ratio        |
+| `gbl_classic_wtr_ratio`| float | Classic carbonation water ratio       |
+
+### Additional Settings Parameters (evt_type=7, ctrl=5)
+
+| Setting              | Parameter Format                            | Valid Values | Description                       |
+| -------------------- | ------------------------------------------- | ------------ | --------------------------------- |
+| Heating temperature  | `{"set_point_heating": {"val": <temp>}}`    | 60-100°C     | Set target heating temperature    |
 
 ## Request/Response Examples
 
@@ -1012,6 +1060,10 @@ Retrieve device configuration settings.
 - `post_flush_quantity`: Post-flush quantity in mL
 - `set_point_cooling`: Target cooling temperature (4-10°C)
 - `wtr_hardness`: Water hardness level (1-9)
+- `set_point_heating`: Heating setpoint temperature in °C (CHOICE.All only, 0 for drink.soda)
+- `calib_hot_wtr`: Hot water calibration in mL (CHOICE.All only)
+- `gbl_medium_wtr_ratio`: Medium carbonation water ratio (CHOICE.All only)
+- `gbl_classic_wtr_ratio`: Classic carbonation water ratio (CHOICE.All only)
 
 #### `get_status() -> BlancoUnitStatus`
 
@@ -1029,6 +1081,11 @@ Retrieve real-time device status.
 - `set_point_cooling`: Current temperature setting
 - `clean_mode_state`: Cleaning mode state
 - `err_bits`: Error code bits
+- `temp_boil_1`: Boiler temperature sensor 1 in °C (CHOICE.All only)
+- `temp_boil_2`: Boiler temperature sensor 2 in °C (CHOICE.All only)
+- `temp_comp`: Compressor/condenser temperature in °C (CHOICE.All only)
+- `main_controller_status`: Main controller status bitmask (CHOICE.All only)
+- `conn_controller_status`: Connection controller status (CHOICE.All only)
 
 #### `get_device_identity() -> BlancoUnitIdentity`
 
@@ -1070,6 +1127,18 @@ Set cooling temperature.
 **Parameters:**
 
 - `cooling_celsius`: Temperature in Celsius (4-10)
+
+**Returns:** True if successful
+
+#### `set_heating_temperature(heating_celsius: int) -> bool`
+
+Set heating/boiling temperature (CHOICE.All only).
+
+**Protocol:** Event type 7, control 5, pars `{"set_point_heating": {"val": <temp>}}`
+
+**Parameters:**
+
+- `heating_celsius`: Temperature in Celsius (60-100)
 
 **Returns:** True if successful
 
@@ -1161,6 +1230,11 @@ class BlancoUnitSettings:
     post_flush_quantity: int  # Post-flush quantity (mL)
     set_point_cooling: int    # Temperature setting (4-10°C)
     wtr_hardness: int         # Water hardness level (1-9)
+    # CHOICE.All specific fields (default to 0 for drink.soda)
+    set_point_heating: int = 0       # Heating setpoint (60-100°C)
+    calib_hot_wtr: int = 0           # Hot water calibration (mL)
+    gbl_medium_wtr_ratio: float = 0.0  # Medium carbonation water ratio
+    gbl_classic_wtr_ratio: float = 0.0 # Classic carbonation water ratio
 ```
 
 ### BlancoUnitStatus
@@ -1176,6 +1250,12 @@ class BlancoUnitStatus:
     set_point_cooling: int    # Current temperature
     clean_mode_state: int     # Cleaning mode state
     err_bits: int             # Error bits
+    # CHOICE.All specific fields (default to 0 for drink.soda)
+    temp_boil_1: int = 0              # Boiler temperature sensor 1 (°C)
+    temp_boil_2: int = 0              # Boiler temperature sensor 2 (°C)
+    temp_comp: int = 0                # Compressor/condenser temperature (°C)
+    main_controller_status: int = 0   # Main controller status bitmask
+    conn_controller_status: int = 0   # Connection controller status
 ```
 
 ### BlancoUnitIdentity

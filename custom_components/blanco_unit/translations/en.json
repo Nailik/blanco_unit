@@ -21,6 +21,9 @@
     "not_saved_temperature": {
       "message": "Temperature change was not saved on the device. Expected {expected}°C but device shows {actual}°C."
     },
+    "not_saved_heating_temperature": {
+      "message": "Heating temperature change was not saved on the device. Expected {expected}°C but device shows {actual}°C."
+    },
     "not_saved_water_hardness": {
       "message": "Water hardness change was not saved on the device. Expected level {expected} but device shows level {actual}."
     }
@@ -92,6 +95,12 @@
       },
       "cloud_connection": {
         "name": "Cloud Connection"
+      },
+      "heater_active": {
+        "name": "Heater Active"
+      },
+      "compressor_active": {
+        "name": "Compressor Active"
       }
     },
     "button": {
@@ -121,6 +130,21 @@
           "8": "8°C",
           "9": "9°C",
           "10": "10°C (warmest)"
+        }
+      },
+      "heating_temperature": {
+        "name": "Heating Temperature",
+        "state": {
+          "60": "60°C",
+          "65": "65°C",
+          "70": "70°C",
+          "75": "75°C",
+          "80": "80°C",
+          "85": "85°C",
+          "90": "90°C",
+          "95": "95°C",
+          "99": "99°C (recommended)",
+          "100": "100°C (boiling)"
         }
       },
       "water_hardness": {
@@ -154,11 +178,38 @@
       "error_bits": {
         "name": "Error Code"
       },
+      "boiler_temp_1": {
+        "name": "Boiler Temperature 1"
+      },
+      "boiler_temp_2": {
+        "name": "Boiler Temperature 2"
+      },
+      "cooling_temp": {
+        "name": "Compressor Temperature"
+      },
+      "main_controller_status": {
+        "name": "Main Controller Status"
+      },
+      "conn_controller_status": {
+        "name": "Connection Controller Status"
+      },
       "filter_lifetime": {
         "name": "Filter Lifetime"
       },
       "post_flush_quantity": {
         "name": "Post-Flush Quantity"
+      },
+      "heating_setpoint": {
+        "name": "Heating Setpoint"
+      },
+      "hot_water_calibration": {
+        "name": "Hot Water Calibration"
+      },
+      "medium_carbonation_ratio": {
+        "name": "Medium Carbonation Ratio"
+      },
+      "classic_carbonation_ratio": {
+        "name": "Classic Carbonation Ratio"
       },
       "firmware_main": {
         "name": "Main Controller Firmware"
@@ -177,6 +228,9 @@
       },
       "device_type": {
         "name": "Device Type"
+      },
+      "device_id": {
+        "name": "Device ID"
       },
       "serial_number": {
         "name": "Serial Number"

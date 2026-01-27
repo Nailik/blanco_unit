@@ -102,10 +102,22 @@ async def test_all_entities(
         )
 
 
+@pytest.mark.parametrize(
+    ("device_type", "expected_count"),
+    [
+        (1, 4),
+        (2, 6),
+    ],
+)
 async def test_async_setup_entry(
-    hass: HomeAssistant, mock_config_entry, mock_coordinator
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_coordinator,
+    device_type,
+    expected_count,
 ) -> None:
-    """Test async_setup_entry creates all binary sensors."""
+    """Test async_setup_entry creates correct binary sensors."""
+    mock_coordinator.data.device_type = device_type
     mock_config_entry.runtime_data = mock_coordinator
     entities_added = []
 
@@ -115,7 +127,7 @@ async def test_async_setup_entry(
     await async_setup_entry(hass, mock_config_entry, mock_add_entities)
 
     # Verify all 4 binary sensors were added
-    assert len(entities_added) == 4
+    assert len(entities_added) == expected_count
 
     # Verify sensor types
     sensor_types = [type(entity).__name__ for entity in entities_added]
@@ -123,6 +135,9 @@ async def test_async_setup_entry(
     assert "WaterDispensingBinarySensor" in sensor_types
     assert "FirmwareUpdateBinarySensor" in sensor_types
     assert "CloudConnectBinarySensor" in sensor_types
+    if device_type == 2:
+        assert "HeaterActiveBinarySensor" in sensor_types
+        assert "CompressorActiveBinarySensor" in sensor_types
 
 
 async def test_connection_binary_sensor(mock_coordinator) -> None:

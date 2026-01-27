@@ -22,6 +22,7 @@ from custom_components.blanco_unit.client import (
     _RequestEnvelope,
     _RequestMeta,
     _SetCalibrationPars,
+    _SetHeatingTemperaturePars,
     _SetTemperaturePars,
     _SetWaterHardnessPars,
     validate_pin,
@@ -132,9 +133,15 @@ def test_request_envelope_to_dict():
 
 def test_set_temperature_pars_to_pars():
     """Test _SetTemperaturePars.to_pars()."""
-    pars = _SetTemperaturePars(cooling_celsius=7, heating_celsius=65)
+    pars = _SetTemperaturePars(cooling_celsius=7)
     result = pars.to_pars()
     assert result["set_point_cooling"]["val"] == 7
+
+
+def test_set_heating_temperature_pars_to_pars():
+    """Test _SetHeatingTemperaturePars.to_pars()."""
+    pars = _SetHeatingTemperaturePars(heating_celsius=65)
+    result = pars.to_pars()
     assert result["set_point_heating"]["val"] == 65
 
 

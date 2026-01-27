@@ -121,15 +121,26 @@ class _RequestEnvelope:
 
 @dataclass
 class _SetTemperaturePars:
-    """Internal: Parameters for setting temperature."""
+    """Internal: Parameters for setting cooling temperature."""
 
     cooling_celsius: int
-    heating_celsius: int = 65
 
     def to_pars(self) -> dict[str, Any]:
         """Convert to parameters dictionary."""
         return {
             "set_point_cooling": {"val": self.cooling_celsius},
+        }
+
+
+@dataclass
+class _SetHeatingTemperaturePars:
+    """Internal: Parameters for setting heating temperature (CHOICE.All only)."""
+
+    heating_celsius: int
+
+    def to_pars(self) -> dict[str, Any]:
+        """Convert to parameters dictionary."""
+        return {
             "set_point_heating": {"val": self.heating_celsius},
         }
 
@@ -555,6 +566,11 @@ class BlancoUnitBluetoothClient:
             post_flush_quantity=pars.get("post_flush_quantity", {}).get("val", 0),
             set_point_cooling=pars.get("set_point_cooling", {}).get("val", 0),
             wtr_hardness=pars.get("wtr_hardness", {}).get("val", 0),
+            # CHOICE.All specific fields
+            set_point_heating=pars.get("set_point_heating", {}).get("val", 0),
+            calib_hot_wtr=pars.get("calib_hot_wtr", {}).get("val", 0),
+            gbl_medium_wtr_ratio=pars.get("gbl_medium_wtr_ratio", {}).get("val", 0.0),
+            gbl_classic_wtr_ratio=pars.get("gbl_classic_wtr_ratio", {}).get("val", 0.0),
         )
 
     async def get_status(self) -> BlancoUnitStatus:
@@ -570,6 +586,12 @@ class BlancoUnitBluetoothClient:
             set_point_cooling=pars.get("set_point_cooling", {}).get("val", 0),
             clean_mode_state=pars.get("clean_mode_state", {}).get("val", 0),
             err_bits=pars.get("err_bits", {}).get("val", 0),
+            # CHOICE.All specific fields
+            temp_boil_1=pars.get("temp_boil_1", {}).get("val", 0),
+            temp_boil_2=pars.get("temp_boil_2", {}).get("val", 0),
+            temp_comp=pars.get("temp_comp", {}).get("val", 0),
+            main_controller_status=pars.get("main_controller_status", {}).get("val", 0),
+            conn_controller_status=pars.get("conn_controller_status", {}).get("val", 0),
         )
 
     async def get_device_identity(self) -> BlancoUnitIdentity:
@@ -616,8 +638,28 @@ class BlancoUnitBluetoothClient:
         if not (4 <= cooling_celsius <= 10):
             raise ValueError("Temperature must be between 4 and 10°C")
 
-        _LOGGER.info("Setting temperature to %d°C", cooling_celsius)
+        _LOGGER.info("Setting cooling temperature to %d°C", cooling_celsius)
         req = _SetTemperaturePars(cooling_celsius=cooling_celsius)
+        resp = await self._execute_transaction(evt_type=7, ctrl=5, pars=req.to_pars())
+        return resp.get("type") == 2
+
+    async def set_heating_temperature(self, heating_celsius: int) -> bool:
+        """Set heating/boiling temperature (85-100°C, CHOICE.All only).
+
+        Args:
+            heating_celsius: Target heating temperature in Celsius (85-100).
+
+        Returns:
+            True if successful.
+
+        Raises:
+            ValueError: If temperature is out of range.
+        """
+        if not (60 <= heating_celsius <= 100):
+            raise ValueError("Heating temperature must be between 60 and 100°C")
+
+        _LOGGER.info("Setting heating temperature to %d°C", heating_celsius)
+        req = _SetHeatingTemperaturePars(heating_celsius=heating_celsius)
         resp = await self._execute_transaction(evt_type=7, ctrl=5, pars=req.to_pars())
         return resp.get("type") == 2
 

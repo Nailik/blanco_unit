@@ -19,12 +19,13 @@ async def async_setup_entry(
     """Set up the Selectors for temperature and water hardness."""
     coordinator: BlancoUnitCoordinator = config_entry.runtime_data
 
-    async_add_entities(
-        [
-            TemperatureSelect(coordinator),
-            WaterHardnessSelect(coordinator),
-        ]
-    )
+    entities = [
+        TemperatureSelect(coordinator),
+        WaterHardnessSelect(coordinator),
+    ]
+    if coordinator.data.device_type == 2:
+        entities.append(HeatingTemperatureSelect(coordinator))
+    async_add_entities(entities)
 
 
 class TemperatureSelect(BlancoUnitBaseEntity, SelectEntity):
@@ -55,6 +56,42 @@ class TemperatureSelect(BlancoUnitBaseEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         """Select a temperature option."""
         await self.coordinator.set_temperature(int(option))
+
+
+class HeatingTemperatureSelect(BlancoUnitBaseEntity, SelectEntity):
+    """Implementation of the Heating Temperature Selector (60-100°C, CHOICE.All only)."""
+
+    _attr_unique_id = "heating_temperature"
+    _attr_translation_key = _attr_unique_id
+    _attr_options = [str(t) for t in range(60, 101)]  # 60-100°C
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+    @property
+    def entity_registry_visible_default(self) -> bool:
+        """Return if the entity should be visible when first added."""
+        return self.coordinator.data.device_type == 2
+
+    @property
+    def available(self) -> bool:
+        """Set availability if settings are available and device supports heating."""
+        return (
+            super().available
+            and self.coordinator.data.settings is not None
+            and self.coordinator.data.settings.set_point_heating > 0
+        )
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current heating temperature setting."""
+        if self.coordinator.data.settings is None:
+            return None
+        return str(self.coordinator.data.settings.set_point_heating)
+
+    async def async_select_option(self, option: str) -> None:
+        """Select a heating temperature option."""
+        await self.coordinator.set_heating_temperature(int(option))
 
 
 class WaterHardnessSelect(BlancoUnitBaseEntity, SelectEntity):

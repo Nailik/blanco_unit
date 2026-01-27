@@ -143,6 +143,23 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
                 },
             )
 
+    async def set_heating_temperature(self, heating_celsius: int) -> None:
+        """Set target heating temperature (85-100°C, CHOICE.All only)."""
+        await self._call(self._client.set_heating_temperature, heating_celsius)
+        # Refresh settings to verify the change
+        settings = await self._call(self._client.get_settings)
+        if self.data is not None:
+            self.async_set_updated_data(replace(self.data, settings=settings))
+        if settings.set_point_heating != heating_celsius:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="not_saved_heating_temperature",
+                translation_placeholders={
+                    "expected": str(heating_celsius),
+                    "actual": str(settings.set_point_heating),
+                },
+            )
+
     async def set_water_hardness(self, level: int) -> None:
         """Set water hardness level (1-9)."""
         await self._call(self._client.set_water_hardness, level)

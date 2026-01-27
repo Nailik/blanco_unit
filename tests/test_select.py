@@ -85,10 +85,22 @@ async def test_all_entities(
         )
 
 
+@pytest.mark.parametrize(
+    ("device_type", "expected_count"),
+    [
+        (1, 2),
+        (2, 3),
+    ],
+)
 async def test_async_setup_entry(
-    hass: HomeAssistant, mock_config_entry, mock_coordinator
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_coordinator,
+    device_type,
+    expected_count,
 ) -> None:
-    """Test async_setup_entry creates all select entities."""
+    """Test async_setup_entry creates correct select entities per device type."""
+    mock_coordinator.data.device_type = device_type
     mock_config_entry.runtime_data = mock_coordinator
     entities_added = []
 
@@ -97,13 +109,13 @@ async def test_async_setup_entry(
 
     await async_setup_entry(hass, mock_config_entry, mock_add_entities)
 
-    # Verify both select entities were added
-    assert len(entities_added) == 2
+    assert len(entities_added) == expected_count
 
-    # Verify entity types
     entity_types = [type(entity).__name__ for entity in entities_added]
     assert "TemperatureSelect" in entity_types
     assert "WaterHardnessSelect" in entity_types
+    if device_type == 2:
+        assert "HeatingTemperatureSelect" in entity_types
 
 
 async def test_temperature_select(mock_coordinator) -> None:

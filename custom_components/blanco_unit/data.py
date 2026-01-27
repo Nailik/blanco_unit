@@ -26,6 +26,11 @@ class BlancoUnitSettings:
     post_flush_quantity: int
     set_point_cooling: int
     wtr_hardness: int
+    # CHOICE.All specific fields (defaults for drink.soda compatibility)
+    set_point_heating: int = 0
+    calib_hot_wtr: int = 0
+    gbl_medium_wtr_ratio: float = 0.0
+    gbl_classic_wtr_ratio: float = 0.0
 
 
 @dataclass
@@ -40,6 +45,12 @@ class BlancoUnitStatus:
     set_point_cooling: int
     clean_mode_state: int
     err_bits: int
+    # CHOICE.All specific fields (defaults for drink.soda compatibility)
+    temp_boil_1: int = 0
+    temp_boil_2: int = 0
+    temp_comp: int = 0
+    main_controller_status: int = 0
+    conn_controller_status: int = 0
 
 
 @dataclass
