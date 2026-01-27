@@ -91,7 +91,7 @@ The integration polls the device every **60 seconds** to update sensor values an
 
 Once configured, the integration creates the following entities:
 
-### Sensors (27 total)
+### Sensors (32 total)
 
 #### Status Sensors
 
@@ -105,6 +105,14 @@ Once configured, the integration creates the following entities:
 
 - **Filter Lifetime** - Configured filter lifetime in days
 - **Post-Flush Quantity** - Post-flush water quantity in mL
+
+#### CHOICE.All Status Sensors
+
+- **Boiler Temperature 1** - Boiler temperature sensor 1 (°C)
+- **Boiler Temperature 2** - Boiler temperature sensor 2 (°C)
+- **Cooling Temperature** - Compressor/condenser temperature (°C), idles at ~32-34°C, spikes to ~52-55°C when compressor is running
+- **Main Controller Status** - Raw main controller status value
+- **Connection Controller Status** - Raw connection controller status value
 
 #### Firmware Sensors
 
@@ -130,12 +138,17 @@ Once configured, the integration creates the following entities:
 - **Gateway MAC Address** - Gateway MAC address
 - **Subnet Mask** - Network subnet mask
 
-### Binary Sensors (4 total)
+### Binary Sensors (6 total)
 
 - **BLE Connection** - Bluetooth connection status
 - **Water Dispensing** - Whether water is currently being dispensed
 - **Firmware Update Available** - Whether a firmware update is available
 - **Cloud Connection** - Cloud service connection status
+
+#### CHOICE.All Binary Sensors
+
+- **Heater Active** - Whether the boiler heater element is currently active (decoded from main controller status bit 13)
+- **Compressor Active** - Whether the cooling compressor is currently running (decoded from main controller status bit 14)
 
 ### Buttons (2 total)
 
@@ -147,11 +160,15 @@ Once configured, the integration creates the following entities:
 - **Still Water Calibration** - Calibration value for still water (1-10 mL)
 - **Soda Water Calibration** - Calibration value for carbonated water (1-10 mL)
 
-### Select Entities (2 total)
+### Select Entities (3 total)
 
 - **Cooling Temperature** - Target water temperature (4-10°C)
   - Options: 4°C (coldest), 5°C, 6°C, 7°C (recommended), 8°C, 9°C, 10°C (warmest)
 - **Water Hardness Level** - Water hardness setting (1-9)
+
+#### CHOICE.All Select Entities
+
+- **Heating Temperature** - Target hot water temperature (60-100°C)
   - Level 1: <8°dH
   - Level 2: 8-10°dH
   - Level 3: 11-13°dH
