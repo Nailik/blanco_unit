@@ -95,6 +95,12 @@
       },
       "cloud_connection": {
         "name": "Cloud Connection"
+      },
+      "heater_active": {
+        "name": "Heater Active"
+      },
+      "compressor_active": {
+        "name": "Compressor Active"
       }
     },
     "button": {
