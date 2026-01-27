@@ -450,6 +450,7 @@ class BlancoUnitBluetoothClient:
                 device=self._device,
                 name=self._device.name or "Unknown Device",
                 disconnected_callback=self._handle_disconnect,
+                timeout=120,
             )
 
             # Create protocol instance for this session

@@ -144,7 +144,8 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
 
             # Check if device has randomized MAC address
             # BLEDevice.address can be random if device uses BLE privacy
-            has_random_mac = getattr(device.details, "address_type", "").lower() in (
+            address_type = getattr(device.details, "address_type", "").lower()
+            has_random_mac = address_type in (
                 "random",
                 "random_static",
                 "random_resolvable",
@@ -154,7 +155,9 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             )
 
             _LOGGER.debug(
-                "Device MAC: %s, Random: %s, Storing as: %s",
+                "Device name %s, address_type %s, MAC: %s, Random: %s, Storing as: %s",
+                device.name,
+                address_type,
                 device.address,
                 has_random_mac,
                 mac_to_store,
@@ -165,6 +168,7 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
                 client_class=BleakClientWithServiceCache,
                 device=device,
                 name=device.name or "Unknown Device",
+                timeout=120,
             )
 
             _LOGGER.debug("await validate_pin")
