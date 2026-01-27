@@ -8,7 +8,9 @@ MIN_HA_VERSION = "2025.6.0"
 CONF_MAC = "conf_mac"
 CONF_NAME = "conf_name"
 CONF_PIN = "conf_pin"
+CONF_DEV_ID = "conf_dev_id"
 CONF_ERROR = "base"
+RANDOM_MAC_PLACEHOLDER = "randomized:mac"
 BLE_CALLBACK = "unregister_ble_callback"
 
 # BLE Protocol Constants

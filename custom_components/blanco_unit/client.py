@@ -456,17 +456,13 @@ class BlancoUnitBluetoothClient:
             protocol = _BlancoUnitProtocol(mtu=MTU_SIZE)
 
             # Perform initial pairing
-            dev_id, dev_type = await self._perform_pairing(client, protocol)
+            result = await self._perform_pairing(client, protocol)
 
-            _LOGGER.debug(
-                "Connected and paired with device ID: %s, device type: %d",
-                dev_id,
-                dev_type,
-            )
+            _LOGGER.debug("Connected and paired with device ID: %s, device type: %d",  result.dev_id, result.dev_type,)
             self._session_data = _BlancoUnitSessionData(
                 client=client,
-                dev_id=dev_id,
-                dev_type=dev_type,
+                dev_id=result.dev_id,
+                dev_type=result.dev_type,
                 protocol=protocol,
             )
             self._connection_callback(self._session_data.client.is_connected)
@@ -480,7 +476,7 @@ class BlancoUnitBluetoothClient:
 
     async def _perform_pairing(
         self, client: BleakClient, protocol: _BlancoUnitProtocol
-    ) -> tuple[str, int]:
+    ) -> PinValidationResult:
         """Perform initial pairing to get device ID and device type.
 
         Returns:
@@ -491,21 +487,16 @@ class BlancoUnitBluetoothClient:
             BlancoUnitConnectionError: If device ID cannot be extracted.
         """
         # Validate PIN and get response
-        is_valid, response = await validate_pin(client, self._pin, protocol)
-        if not is_valid:
+        validation = await validate_pin(client, self._pin, protocol)
+        if not validation.is_valid:
             raise BlancoUnitAuthenticationError("Wrong PIN - Authentication failed")
 
-        # Extract device ID using shared helper
-        dev_id = _extract_device_id(response)
-        if dev_id is None:
+        if validation.dev_id is None:
             raise BlancoUnitConnectionError("No device ID in pairing response")
 
-        # Extract device type (default to 1 if not present)
-        dev_type = _extract_device_type(response)
-        if dev_type is None:
-            dev_type = 1
-
-        return dev_id, dev_type
+        if validation.dev_type is None:
+            raise BlancoUnitConnectionError("No device type in pairing response")
+        return validation
 
     async def _execute_transaction(
         self,
@@ -757,6 +748,15 @@ class BlancoUnitBluetoothClient:
 # -------------------------------
 
 
+@dataclass
+class PinValidationResult:
+    """Result of PIN validation."""
+
+    is_valid: bool
+    dev_id: str | None
+    dev_type: int | None
+
+
 def _extract_device_id(response: dict[str, Any]) -> str | None:
     """Extract device ID from a pairing response.
 
@@ -797,7 +797,7 @@ def _extract_device_type(response: dict[str, Any]) -> int | None:
 
 async def validate_pin(
     client: BleakClient, pin: str, protocol: _BlancoUnitProtocol | None = None
-) -> tuple[bool, dict[str, Any]]:
+) -> PinValidationResult:
     """Test if a PIN is valid by attempting to pair with the device.
 
     This is a standalone function that works with an existing BleakClient.
@@ -808,9 +808,10 @@ async def validate_pin(
         protocol: Optional protocol instance. If None, creates a new one.
 
     Returns:
-        Tuple of (is_valid, response_dict):
+        PinValidationResult containing:
             - is_valid: True if PIN is valid, False if wrong PIN (error code 4)
-            - response_dict: The full response from the pairing attempt
+            - response: The full response from the pairing attempt
+            - dev_id: The device ID if pairing was successful, None otherwise
 
     Raises:
         ValueError: If PIN format is invalid.
@@ -829,21 +830,22 @@ async def validate_pin(
     # Send pairing request and get response
     response = await protocol.send_pairing_request(client, pin)
 
+    dev_id = _extract_device_id(response)
+    dev_type = _extract_device_type(response)
+
     # Check for authentication error (error code 4)
     errors = protocol.extract_errors(response)
     for error in errors:
         if error.get("err_code") == 4:
             _LOGGER.debug("PIN validation failed: wrong PIN (error code 4)")
-            return (False, response)
+            return PinValidationResult(is_valid=False, dev_type=dev_type, dev_id=dev_id)
 
-    # Check if we got a device ID in results (successful pairing)
-    dev_id = _extract_device_id(response)
     if dev_id is not None:
-        _LOGGER.debug("PIN validation successful")
-        return (True, response)
+        _LOGGER.debug("PIN validation successful, dev_id: %s", dev_id)
+        return PinValidationResult(is_valid=True, dev_type=dev_type, dev_id=dev_id)
 
-    _LOGGER.debug("PIN validation failed: no device ID in response")
-    return (False, response)
+    _LOGGER.debug("PIN validation failed: no device ID or device type in response")
+    return PinValidationResult(is_valid=False, dev_type=dev_type, dev_id=dev_id)
 
 
 # -------------------------------

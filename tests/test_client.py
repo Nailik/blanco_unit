@@ -13,6 +13,7 @@ from custom_components.blanco_unit.client import (
     BlancoUnitBluetoothClient,
     BlancoUnitClientError,
     BlancoUnitConnectionError,
+    PinValidationResult,
     _BlancoUnitProtocol,
     _ChangePinPars,
     _DispensePars,
@@ -446,7 +447,7 @@ async def test_protocol_send_pairing_request():
     mock_client = AsyncMock()
 
     # Mock response
-    response_data = {"body": {"results": [{"pars": {"dev_id": "device123"}}]}}
+    response_data = {"body": {"results": [{"pars": {"dev_id": "device123", "dev_type": 1}}]}}
     json_str = json.dumps(response_data)
     response_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + json_str.encode("utf-8") + b"\x00\xff"
@@ -545,7 +546,7 @@ async def test_validate_pin_success_with_dev_id():
 
     # Mock successful pairing response
     response_data = {
-        "body": {"results": [{"pars": {}}], "meta": {"dev_id": "device123"}}
+        "body": {"results": [{"pars": {}}], "meta": {"dev_id": "device123", "dev_type": 1}}
     }
     json_str = json.dumps(response_data)
     response_packet = (
@@ -555,10 +556,11 @@ async def test_validate_pin_success_with_dev_id():
     mock_client.write_gatt_char = AsyncMock()
     mock_client.read_gatt_char = AsyncMock(return_value=response_packet)
 
-    is_valid, response = await validate_pin(mock_client, "12345")
+    validation = await validate_pin(mock_client, "12345")
 
-    assert is_valid is True
-    assert response["body"]["meta"]["dev_id"] == "device123"
+    assert validation.is_valid is True
+    assert validation.dev_id == "device123"
+    assert validation.dev_type == 1
 
 
 @pytest.mark.asyncio
@@ -576,9 +578,9 @@ async def test_validate_pin_wrong_pin_error_code():
     mock_client.write_gatt_char = AsyncMock()
     mock_client.read_gatt_char = AsyncMock(return_value=response_packet)
 
-    is_valid, response = await validate_pin(mock_client, "99999")
+    validation = await validate_pin(mock_client, "99999")
 
-    assert is_valid is False
+    assert validation.is_valid is False
 
 
 @pytest.mark.asyncio
@@ -596,9 +598,9 @@ async def test_validate_pin_no_device_id():
     mock_client.write_gatt_char = AsyncMock()
     mock_client.read_gatt_char = AsyncMock(return_value=response_packet)
 
-    is_valid, response = await validate_pin(mock_client, "12345")
+    validation = await validate_pin(mock_client, "12345")
 
-    assert is_valid is False
+    assert validation.is_valid is False
 
 
 @pytest.mark.asyncio
@@ -627,7 +629,7 @@ async def test_validate_pin_with_provided_protocol():
 
     # Mock successful pairing response
     response_data = {
-        "body": {"results": [{"pars": {}}], "meta": {"dev_id": "device789"}}
+        "body": {"results": [{"pars": {}}], "meta": {"dev_id": "device789", "dev_type": 2}}
     }
     json_str = json.dumps(response_data)
     response_packet = (
@@ -637,10 +639,11 @@ async def test_validate_pin_with_provided_protocol():
     mock_client.write_gatt_char = AsyncMock()
     mock_client.read_gatt_char = AsyncMock(return_value=response_packet)
 
-    is_valid, response = await validate_pin(mock_client, "12345", protocol=protocol)
+    validation = await validate_pin(mock_client, "12345", protocol=protocol)
 
-    assert is_valid is True
-    assert response["body"]["meta"]["dev_id"] == "device789"
+    assert validation.is_valid is True
+    assert validation.dev_id == "device789"
+    assert validation.dev_type == 2
 
 
 # -------------------------------
@@ -807,7 +810,7 @@ async def test_bluetooth_client_connect_first_time(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock pairing response
-    response_data = {"body": {"meta": {"dev_id": "device123"}}}
+    response_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     json_str = json.dumps(response_data)
     response_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + json_str.encode("utf-8") + b"\x00\xff"
@@ -905,10 +908,11 @@ async def test_bluetooth_client_perform_pairing_success():
     mock_ble_client.write_gatt_char = AsyncMock()
     mock_ble_client.read_gatt_char = AsyncMock(return_value=response_packet)
 
-    dev_id, dev_type = await client._perform_pairing(mock_ble_client, mock_protocol)
+    result = await client._perform_pairing(mock_ble_client, mock_protocol)
 
-    assert dev_id == "device456"
-    assert dev_type == 1
+    assert result.is_valid is True
+    assert result.dev_id == "device456"
+    assert result.dev_type == 1
 
 
 @pytest.mark.asyncio
@@ -953,10 +957,9 @@ async def test_bluetooth_client_perform_pairing_no_device_id(mock_validate_pin):
     mock_protocol = _BlancoUnitProtocol()
 
     # Mock validate_pin to return True but with a response that has no device ID
-    response_data = {"body": {"results": [{"pars": {}}], "meta": {}}}
-    mock_validate_pin.return_value = (True, response_data)
+    mock_validate_pin.return_value = PinValidationResult(True, None, 1)
 
-    with pytest.raises(BlancoUnitConnectionError, match="No device ID"):
+    with pytest.raises(BlancoUnitConnectionError, match="No device ID in pairing response"):
         await client._perform_pairing(mock_ble_client, mock_protocol)
 
 
@@ -977,7 +980,7 @@ async def test_bluetooth_client_execute_transaction_success(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock pairing response
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1029,7 +1032,7 @@ async def test_bluetooth_client_execute_transaction_auth_error(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock pairing response
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1080,7 +1083,7 @@ async def test_bluetooth_client_get_system_info(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1144,7 +1147,7 @@ async def test_bluetooth_client_get_settings(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1210,7 +1213,7 @@ async def test_bluetooth_client_get_status(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1277,7 +1280,7 @@ async def test_bluetooth_client_get_device_identity(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1326,7 +1329,7 @@ async def test_bluetooth_client_get_wifi_info(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1393,7 +1396,7 @@ async def test_bluetooth_client_set_temperature_success(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1467,7 +1470,7 @@ async def test_bluetooth_client_set_water_hardness_success(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1513,7 +1516,7 @@ async def test_bluetooth_client_change_pin_success(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1560,7 +1563,7 @@ async def test_bluetooth_client_change_pin_failure(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1607,7 +1610,7 @@ async def test_bluetooth_client_dispense_water_success(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1709,7 +1712,7 @@ async def test_bluetooth_client_set_calibration_still(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
@@ -1755,7 +1758,7 @@ async def test_bluetooth_client_set_calibration_soda(mock_establish):
     mock_establish.return_value = mock_ble_client
 
     # Mock responses
-    pairing_data = {"body": {"meta": {"dev_id": "device123"}}}
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
     pairing_json = json.dumps(pairing_data)
     pairing_packet = (
         bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
