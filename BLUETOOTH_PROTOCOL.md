@@ -252,7 +252,7 @@ Example:
 4. Split on `0x00` to extract JSON
 5. Parse JSON string
 
-## Event Types
+## Event Types (Blanco Drink.soda)
 
 ### Main Event Types
 
@@ -287,6 +287,10 @@ When setting device configuration, use event type 7 with control code 5 and one 
 | Water hardness         | `{"wtr_hardness": {"val": <level>}}`                        | 1-9                   | Set water hardness level       |
 | Still water calibration| `{"calib_still_wtr": {"val": <amount>}}`                    | 1-10                  | Calibrate still water flow     |
 | Soda water calibration | `{"calib_soda_wtr": {"val": <amount>}}`                     | 1-10                  | Calibrate carbonated water flow|
+
+## Event Types (Blanco Choice.all)
+
+Yet to be defined.
 
 ## Request/Response Examples
 
