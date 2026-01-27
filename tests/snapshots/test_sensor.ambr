@@ -48,6 +48,169 @@
     'state': 'AA:BB:CC:DD:EE:FF',
   })
 # ---
+# name: test_all_entities[sensor.test_blanco_unit_boiler_temperature_1-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': dict({
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.test_blanco_unit_boiler_temperature_1',
+    'has_entity_name': True,
+    'hidden_by': <RegistryEntryHider.INTEGRATION: 'integration'>,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 1,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.TEMPERATURE: 'temperature'>,
+    'original_icon': 'mdi:thermometer-water',
+    'original_name': 'Boiler Temperature 1',
+    'platform': 'blanco_unit',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'boiler_temp_1',
+    'unique_id': 'boiler_temp_1',
+    'unit_of_measurement': <UnitOfTemperature.CELSIUS: '°C'>,
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_boiler_temperature_1-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'device_class': 'temperature',
+      'friendly_name': 'Test Blanco Unit Boiler Temperature 1',
+      'icon': 'mdi:thermometer-water',
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+      'unit_of_measurement': <UnitOfTemperature.CELSIUS: '°C'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_blanco_unit_boiler_temperature_1',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_boiler_temperature_2-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': dict({
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.test_blanco_unit_boiler_temperature_2',
+    'has_entity_name': True,
+    'hidden_by': <RegistryEntryHider.INTEGRATION: 'integration'>,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 1,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.TEMPERATURE: 'temperature'>,
+    'original_icon': 'mdi:thermometer-water',
+    'original_name': 'Boiler Temperature 2',
+    'platform': 'blanco_unit',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'boiler_temp_2',
+    'unique_id': 'boiler_temp_2',
+    'unit_of_measurement': <UnitOfTemperature.CELSIUS: '°C'>,
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_boiler_temperature_2-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'device_class': 'temperature',
+      'friendly_name': 'Test Blanco Unit Boiler Temperature 2',
+      'icon': 'mdi:thermometer-water',
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+      'unit_of_measurement': <UnitOfTemperature.CELSIUS: '°C'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_blanco_unit_boiler_temperature_2',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_classic_carbonation_ratio-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.test_blanco_unit_classic_carbonation_ratio',
+    'has_entity_name': True,
+    'hidden_by': <RegistryEntryHider.INTEGRATION: 'integration'>,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': 'mdi:gas-cylinder',
+    'original_name': 'Classic Carbonation Ratio',
+    'platform': 'blanco_unit',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'classic_carbonation_ratio',
+    'unique_id': 'classic_carbonation_ratio',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_classic_carbonation_ratio-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'friendly_name': 'Test Blanco Unit Classic Carbonation Ratio',
+      'icon': 'mdi:gas-cylinder',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_blanco_unit_classic_carbonation_ratio',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0.0',
+  })
+# ---
 # name: test_all_entities[sensor.test_blanco_unit_cleaning_mode_state-entry]
   EntityRegistryEntrySnapshot({
     'aliases': set({
@@ -197,6 +360,161 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '1.0.0',
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_connection_controller_status-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.test_blanco_unit_connection_controller_status',
+    'has_entity_name': True,
+    'hidden_by': <RegistryEntryHider.INTEGRATION: 'integration'>,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': 'mdi:chip',
+    'original_name': 'Connection Controller Status',
+    'platform': 'blanco_unit',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'conn_controller_status',
+    'unique_id': 'conn_controller_status',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_connection_controller_status-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'friendly_name': 'Test Blanco Unit Connection Controller Status',
+      'icon': 'mdi:chip',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_blanco_unit_connection_controller_status',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_cooling_compartment_temperature-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': dict({
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.test_blanco_unit_cooling_compartment_temperature',
+    'has_entity_name': True,
+    'hidden_by': <RegistryEntryHider.INTEGRATION: 'integration'>,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 1,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.TEMPERATURE: 'temperature'>,
+    'original_icon': 'mdi:snowflake-thermometer',
+    'original_name': 'Cooling Compartment Temperature',
+    'platform': 'blanco_unit',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'cooling_temp',
+    'unique_id': 'cooling_temp',
+    'unit_of_measurement': <UnitOfTemperature.CELSIUS: '°C'>,
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_cooling_compartment_temperature-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'device_class': 'temperature',
+      'friendly_name': 'Test Blanco Unit Cooling Compartment Temperature',
+      'icon': 'mdi:snowflake-thermometer',
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+      'unit_of_measurement': <UnitOfTemperature.CELSIUS: '°C'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_blanco_unit_cooling_compartment_temperature',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_device_id-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.test_blanco_unit_device_id',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': 'mdi:information',
+    'original_name': 'Device ID',
+    'platform': 'blanco_unit',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'device_id',
+    'unique_id': 'device_id',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_device_id-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'friendly_name': 'Test Blanco Unit Device ID',
+      'icon': 'mdi:information',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_blanco_unit_device_id',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'test_device_id',
   })
 # ---
 # name: test_all_entities[sensor.test_blanco_unit_device_name-entry]
@@ -551,6 +869,114 @@
     'state': 'AA:BB:CC:DD:EE:00',
   })
 # ---
+# name: test_all_entities[sensor.test_blanco_unit_heating_setpoint-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.test_blanco_unit_heating_setpoint',
+    'has_entity_name': True,
+    'hidden_by': <RegistryEntryHider.INTEGRATION: 'integration'>,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 1,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.TEMPERATURE: 'temperature'>,
+    'original_icon': 'mdi:thermometer-high',
+    'original_name': 'Heating Setpoint',
+    'platform': 'blanco_unit',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'heating_setpoint',
+    'unique_id': 'heating_setpoint',
+    'unit_of_measurement': <UnitOfTemperature.CELSIUS: '°C'>,
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_heating_setpoint-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'device_class': 'temperature',
+      'friendly_name': 'Test Blanco Unit Heating Setpoint',
+      'icon': 'mdi:thermometer-high',
+      'unit_of_measurement': <UnitOfTemperature.CELSIUS: '°C'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_blanco_unit_heating_setpoint',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_hot_water_calibration-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.test_blanco_unit_hot_water_calibration',
+    'has_entity_name': True,
+    'hidden_by': <RegistryEntryHider.INTEGRATION: 'integration'>,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.VOLUME: 'volume'>,
+    'original_icon': 'mdi:water-thermometer',
+    'original_name': 'Hot Water Calibration',
+    'platform': 'blanco_unit',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'hot_water_calibration',
+    'unique_id': 'hot_water_calibration',
+    'unit_of_measurement': 'mL',
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_hot_water_calibration-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'device_class': 'volume',
+      'friendly_name': 'Test Blanco Unit Hot Water Calibration',
+      'icon': 'mdi:water-thermometer',
+      'unit_of_measurement': 'mL',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_blanco_unit_hot_water_calibration',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
 # name: test_all_entities[sensor.test_blanco_unit_ip_address-entry]
   EntityRegistryEntrySnapshot({
     'aliases': set({
@@ -649,6 +1075,104 @@
     'state': '1.0.0',
   })
 # ---
+# name: test_all_entities[sensor.test_blanco_unit_main_controller_status-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.test_blanco_unit_main_controller_status',
+    'has_entity_name': True,
+    'hidden_by': <RegistryEntryHider.INTEGRATION: 'integration'>,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': 'mdi:chip',
+    'original_name': 'Main Controller Status',
+    'platform': 'blanco_unit',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'main_controller_status',
+    'unique_id': 'main_controller_status',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_main_controller_status-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'friendly_name': 'Test Blanco Unit Main Controller Status',
+      'icon': 'mdi:chip',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_blanco_unit_main_controller_status',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_medium_carbonation_ratio-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.test_blanco_unit_medium_carbonation_ratio',
+    'has_entity_name': True,
+    'hidden_by': <RegistryEntryHider.INTEGRATION: 'integration'>,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': 'mdi:gas-cylinder',
+    'original_name': 'Medium Carbonation Ratio',
+    'platform': 'blanco_unit',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'medium_carbonation_ratio',
+    'unique_id': 'medium_carbonation_ratio',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_all_entities[sensor.test_blanco_unit_medium_carbonation_ratio-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'friendly_name': 'Test Blanco Unit Medium Carbonation Ratio',
+      'icon': 'mdi:gas-cylinder',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_blanco_unit_medium_carbonation_ratio',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0.0',
+  })
+# ---
 # name: test_all_entities[sensor.test_blanco_unit_network_gateway-entry]
   EntityRegistryEntrySnapshot({
     'aliases': set({
@@ -696,55 +1220,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '192.168.1.1',
-  })
-# ---
-# name: test_all_entities[sensor.test_blanco_unit_none-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': set({
-    }),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.test_blanco_unit_none',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': 'mdi:information',
-    'original_name': None,
-    'platform': 'blanco_unit',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'device_id',
-    'unique_id': 'device_id',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_all_entities[sensor.test_blanco_unit_none-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      'friendly_name': 'Test Blanco Unit None',
-      'icon': 'mdi:information',
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.test_blanco_unit_none',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': 'test_device_id',
   })
 # ---
 # name: test_all_entities[sensor.test_blanco_unit_post_flush_quantity-entry]

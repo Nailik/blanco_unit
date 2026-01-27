@@ -98,7 +98,7 @@ async def test_async_setup_entry(
     await async_setup_entry(hass, mock_config_entry, mock_add_entities)
 
     # Verify both select entities were added
-    assert len(entities_added) == 2
+    assert len(entities_added) == 3
 
     # Verify entity types
     entity_types = [type(entity).__name__ for entity in entities_added]
