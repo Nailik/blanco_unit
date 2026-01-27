@@ -256,37 +256,37 @@ Example:
 
 ### Main Event Types
 
-| Event Type | Control Code | Description                           | Parameters (`pars`)                                                                  |
-| ---------- | ------------ | ------------------------------------- | ------------------------------------------------------------------------------------ |
-| 7          | 2            | Get device identity                   | `{}` - Returns serial number and service code                                       |
-| 7          | 3            | Get device information                | `{"evt_type": <sub_evt_type>}` - See sub-event types below                          |
-| 7          | 5            | Set device settings                   | See settings parameters below                                                        |
-| 7          | 10           | Get WiFi information                  | `{}` - Returns WiFi SSID, signal, IP, MAC addresses, gateway, subnet                |
-| 7          | 13           | Change PIN                            | `{"new_pass": "<5_digit_pin>"}` - Changes device PIN (string)                       |
-| 7          | 1000         | Dispense water                        | `{"disp_amt": <amount_ml>, "co2_int": <intensity>}` - Amount: 100-1500ml (multiples of 100), Intensity: 1=still, 2=medium, 3=high |
-| 10         | N/A          | Initial pairing/authentication        | `{}` - Returns device ID on successful authentication                                |
+| Event Type | Control Code | Description                    | Parameters (`pars`)                                                                                                               |
+| ---------- | ------------ | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| 7          | 2            | Get device identity            | `{}` - Returns serial number and service code                                                                                     |
+| 7          | 3            | Get device information         | `{"evt_type": <sub_evt_type>}` - See sub-event types below                                                                        |
+| 7          | 5            | Set device settings            | See settings parameters below                                                                                                     |
+| 7          | 10           | Get WiFi information           | `{}` - Returns WiFi SSID, signal, IP, MAC addresses, gateway, subnet                                                              |
+| 7          | 13           | Change PIN                     | `{"new_pass": "<5_digit_pin>"}` - Changes device PIN (string)                                                                     |
+| 7          | 1000         | Dispense water                 | `{"disp_amt": <amount_ml>, "co2_int": <intensity>}` - Amount: 100-1500ml (multiples of 100), Intensity: 1=still, 2=medium, 3=high |
+| 10         | N/A          | Initial pairing/authentication | `{}` - Returns device ID on successful authentication                                                                             |
 
 ### Sub-Event Types (evt_type in pars for ctrl=3)
 
 When using event type 7 with control code 3, you must specify a sub-event type in the `pars` field:
 
-| evt_type | Description                     | Returns                                                                                                |
-| -------- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 2        | System information              | Firmware versions (`sw_ver_comm_con`, `sw_ver_elec_con`, `sw_ver_main_con`), device name, reset count |
-| 4        | Error information               | Array of errors with `err_code` and `err_msg` (empty array if no errors)                              |
-| 5        | Device settings                 | Calibration values, filter lifetime, post-flush quantity, temperature setpoint, water hardness         |
-| 6        | Device status                   | Tap state, filter/CO2 remaining percentage, water dispensing active, firmware update available, cleaning mode, error bits |
+| evt_type | Description        | Returns                                                                                                                   |
+| -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| 2        | System information | Firmware versions (`sw_ver_comm_con`, `sw_ver_elec_con`, `sw_ver_main_con`), device name, reset count                     |
+| 4        | Error information  | Array of errors with `err_code` and `err_msg` (empty array if no errors)                                                  |
+| 5        | Device settings    | Calibration values, filter lifetime, post-flush quantity, temperature setpoint, water hardness                            |
+| 6        | Device status      | Tap state, filter/CO2 remaining percentage, water dispensing active, firmware update available, cleaning mode, error bits |
 
 ### Settings Parameters (evt_type=7, ctrl=5)
 
 When setting device configuration, use event type 7 with control code 5 and one of these parameters:
 
-| Setting                | Parameter Format                                            | Valid Values          | Description                    |
-| ---------------------- | ----------------------------------------------------------- | --------------------- | ------------------------------ |
-| Cooling temperature    | `{"set_point_cooling": {"val": <temp>}, "set_point_heating": {"val": 65}}` | 4-10°C                | Set target cooling temperature (heating is always 65°C) |
-| Water hardness         | `{"wtr_hardness": {"val": <level>}}`                        | 1-9                   | Set water hardness level       |
-| Still water calibration| `{"calib_still_wtr": {"val": <amount>}}`                    | 1-10                  | Calibrate still water flow     |
-| Soda water calibration | `{"calib_soda_wtr": {"val": <amount>}}`                     | 1-10                  | Calibrate carbonated water flow|
+| Setting                 | Parameter Format                                                           | Valid Values | Description                                             |
+| ----------------------- | -------------------------------------------------------------------------- | ------------ | ------------------------------------------------------- |
+| Cooling temperature     | `{"set_point_cooling": {"val": <temp>}, "set_point_heating": {"val": 65}}` | 4-10°C       | Set target cooling temperature (heating is always 65°C) |
+| Water hardness          | `{"wtr_hardness": {"val": <level>}}`                                       | 1-9          | Set water hardness level                                |
+| Still water calibration | `{"calib_still_wtr": {"val": <amount>}}`                                   | 1-10         | Calibrate still water flow                              |
+| Soda water calibration  | `{"calib_soda_wtr": {"val": <amount>}}`                                    | 1-10         | Calibrate carbonated water flow                         |
 
 ## Event Types (Blanco Choice.all)
 
