@@ -208,6 +208,7 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
                 connected=self._client.is_connected,
                 available=True,
                 device_id=self._client.device_id or "",
+                device_type=self._client.device_type,
             )
         except BlancoUnitAuthenticationError as err:
             self._set_unavailable()

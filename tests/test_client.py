@@ -478,7 +478,7 @@ async def test_protocol_send_request_with_ctrl():
     mock_client.read_gatt_char = AsyncMock(return_value=response_packet)
 
     result = await protocol.send_request(
-        mock_client, "12345", "device123", evt_type=1, ctrl=2
+        mock_client, "12345", "device123", dev_type=1, evt_type=1, ctrl=2
     )
 
     assert result["body"]["results"][0]["pars"]["status"] == "ok"
@@ -502,7 +502,13 @@ async def test_protocol_send_request_without_ctrl():
     mock_client.read_gatt_char = AsyncMock(return_value=response_packet)
 
     result = await protocol.send_request(
-        mock_client, "12345", "device123", evt_type=1, ctrl=None, pars={"test": "data"}
+        mock_client,
+        "12345",
+        "device123",
+        1,
+        evt_type=1,
+        ctrl=None,
+        pars={"test": "data"},
     )
 
     assert result["body"]["results"][0]["pars"]["status"] == "ok"
@@ -706,7 +712,7 @@ def test_bluetooth_client_device_id_when_connected():
     mock_client = AsyncMock()
     mock_protocol = MagicMock()
     client._session_data = _BlancoUnitSessionData(
-        client=mock_client, dev_id="device123", protocol=mock_protocol
+        client=mock_client, dev_id="device123", dev_type=1, protocol=mock_protocol
     )
 
     assert client.device_id == "device123"
@@ -740,7 +746,7 @@ def test_bluetooth_client_is_connected_when_connected():
     mock_client.is_connected = True
     mock_protocol = MagicMock()
     client._session_data = _BlancoUnitSessionData(
-        client=mock_client, dev_id="device123", protocol=mock_protocol
+        client=mock_client, dev_id="device123", dev_type=1, protocol=mock_protocol
     )
 
     assert client.is_connected is True
@@ -762,7 +768,7 @@ async def test_bluetooth_client_disconnect_when_connected():
     mock_client = AsyncMock()
     mock_protocol = MagicMock()
     client._session_data = _BlancoUnitSessionData(
-        client=mock_client, dev_id="device123", protocol=mock_protocol
+        client=mock_client, dev_id="device123", dev_type=1, protocol=mock_protocol
     )
 
     await client.disconnect()
@@ -835,7 +841,7 @@ async def test_bluetooth_client_connect_already_connected(mock_establish):
     mock_ble_client = AsyncMock()
     mock_protocol = MagicMock()
     existing_session = _BlancoUnitSessionData(
-        client=mock_ble_client, dev_id="device123", protocol=mock_protocol
+        client=mock_ble_client, dev_id="device123", dev_type=1, protocol=mock_protocol
     )
     client._session_data = existing_session
 
@@ -861,7 +867,7 @@ def test_bluetooth_client_handle_disconnect():
     mock_ble_client = AsyncMock()
     mock_protocol = MagicMock()
     client._session_data = _BlancoUnitSessionData(
-        client=mock_ble_client, dev_id="device123", protocol=mock_protocol
+        client=mock_ble_client, dev_id="device123", dev_type=1, protocol=mock_protocol
     )
 
     # Trigger disconnect
@@ -886,7 +892,10 @@ async def test_bluetooth_client_perform_pairing_success():
 
     # Mock successful pairing response
     response_data = {
-        "body": {"results": [{"pars": {}}], "meta": {"dev_id": "device456"}}
+        "body": {
+            "results": [{"pars": {}}],
+            "meta": {"dev_id": "device456", "dev_type": 1},
+        }
     }
     json_str = json.dumps(response_data)
     response_packet = (
@@ -896,9 +905,10 @@ async def test_bluetooth_client_perform_pairing_success():
     mock_ble_client.write_gatt_char = AsyncMock()
     mock_ble_client.read_gatt_char = AsyncMock(return_value=response_packet)
 
-    dev_id = await client._perform_pairing(mock_ble_client, mock_protocol)
+    dev_id, dev_type = await client._perform_pairing(mock_ble_client, mock_protocol)
 
     assert dev_id == "device456"
+    assert dev_type == 1
 
 
 @pytest.mark.asyncio
