@@ -14,11 +14,9 @@ from .const import (
     DOMAIN,
     HA_SERVICE_ATTR_AMOUNT_ML,
     HA_SERVICE_ATTR_CO2_INTENSITY,
-    HA_SERVICE_ATTR_CTRL,
+    HA_SERVICE_ATTR_DATA,
     HA_SERVICE_ATTR_DEVICE_ID,
-    HA_SERVICE_ATTR_EVT_TYPE,
     HA_SERVICE_ATTR_NEW_PIN,
-    HA_SERVICE_ATTR_PARS_EVT_TYPE,
     HA_SERVICE_ATTR_UPDATE_CONFIG,
     HA_SERVICE_CHANGE_PIN,
     HA_SERVICE_DISPENSE_WATER,
@@ -65,15 +63,7 @@ SERVICE_CHANGE_PIN_SCHEMA = vol.Schema(
 SERVICE_SCAN_PROTOCOL_SCHEMA = vol.Schema(
     {
         vol.Required(HA_SERVICE_ATTR_DEVICE_ID): cv.string,
-        vol.Required(HA_SERVICE_ATTR_EVT_TYPE): vol.All(
-            vol.Coerce(int), vol.Range(min=0, max=255)
-        ),
-        vol.Optional(HA_SERVICE_ATTR_CTRL): vol.All(
-            vol.Coerce(int), vol.Range(min=0, max=255)
-        ),
-        vol.Optional(HA_SERVICE_ATTR_PARS_EVT_TYPE): vol.All(
-            vol.Coerce(int), vol.Range(min=0, max=255)
-        ),
+        vol.Required(HA_SERVICE_ATTR_DATA): dict,
     }
 )
 
@@ -130,44 +120,46 @@ def async_setup_services(hass: HomeAssistant) -> None:
         _LOGGER.debug("Scan protocol service called with data: %s", call.data)
         coordinator = _get_coordinator(hass, call)
 
-        evt_type = call.data[HA_SERVICE_ATTR_EVT_TYPE]
-        ctrl = call.data.get(HA_SERVICE_ATTR_CTRL)
-        pars_evt_type = call.data.get(HA_SERVICE_ATTR_PARS_EVT_TYPE)
+        # Extract parameters from the data object
+        data = call.data[HA_SERVICE_ATTR_DATA]
+        evt_type = data.get("evt_type", 7)
+        ctrl = data.get("ctrl")
+        pars = data.get("pars")
 
         _LOGGER.info(
-            "Testing protocol parameters: evt_type=%d, ctrl=%s, pars_evt_type=%s",
+            "Testing protocol parameters: evt_type=%d, ctrl=%s, pars=%s",
             evt_type,
             ctrl,
-            pars_evt_type,
+            pars,
         )
 
         # Test the specific parameter combination
         response = await coordinator.test_protocol_parameters(
-            evt_type, ctrl, pars_evt_type
+            evt_type, ctrl, pars
         )
 
         result = {
             "evt_type": evt_type,
             "ctrl": ctrl,
-            "pars_evt_type": pars_evt_type,
+            "pars": pars,
             "success": response is not None,
             "response": response if response else None,
         }
 
         if response:
             _LOGGER.info(
-                "✓ Found data: evt_type=%d, ctrl=%s, pars_evt_type=%s",
+                "Found data: evt_type=%d, ctrl=%s, pars=%s",
                 evt_type,
                 ctrl,
-                pars_evt_type,
+                pars,
             )
             _LOGGER.info("Response: %s", json.dumps(response, indent=2))
         else:
             _LOGGER.warning(
-                "✗ No data: evt_type=%d, ctrl=%s, pars_evt_type=%s",
+                "No data: evt_type=%d, ctrl=%s, pars=%s",
                 evt_type,
                 ctrl,
-                pars_evt_type,
+                pars,
             )
 
         return result

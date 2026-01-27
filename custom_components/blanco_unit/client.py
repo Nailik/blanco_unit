@@ -703,20 +703,19 @@ class BlancoUnitBluetoothClient:
     # -------------------------------
 
     async def test_protocol_parameters(
-        self, evt_type: int, ctrl: int | None = None, pars_evt_type: int | None = None
+        self, evt_type: int, ctrl: int | None = None, pars: dict[str, Any] | None = None
     ) -> dict[str, Any] | None:
         """Test protocol parameters and return response if it contains meaningful data.
 
         Args:
             evt_type: Event type to test.
             ctrl: Control parameter to test (optional).
-            pars_evt_type: Parameters event type to test (optional).
+            pars: Parameters dictionary to test (optional).
 
         Returns:
             Response dictionary if it contains meaningful data, None otherwise.
         """
         try:
-            pars = {"evt_type": pars_evt_type} if pars_evt_type is not None else None
             response = await self._execute_transaction(
                 evt_type=evt_type, ctrl=ctrl, pars=pars
             )
@@ -728,10 +727,10 @@ class BlancoUnitBluetoothClient:
             return response  # noqa: TRY300
         except Exception as e:  # noqa: BLE001
             _LOGGER.debug(
-                "Test failed for evt_type=%s, ctrl=%s, pars_evt_type=%s: %s",
+                "Test failed for evt_type=%s, ctrl=%s, pars=%s: %s",
                 evt_type,
                 ctrl,
-                pars_evt_type,
+                pars,
                 e,
             )
             return None

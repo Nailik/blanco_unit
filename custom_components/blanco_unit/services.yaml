@@ -68,7 +68,7 @@ change_pin:
 
 scan_protocol_parameters:
   name: Scan Protocol Parameters
-  description: Test a specific combination of protocol parameters (evt_type, ctrl, pars_evt_type). Results are returned and also logged to Home Assistant debug log. This is a diagnostic tool for discovering supported device commands.
+  description: Test protocol parameters by sending custom BLE commands. Results are returned and logged to debug. Use evt_type (required), ctrl (optional), and pars (optional) to construct the request.
   fields:
     device_id:
       name: Device
@@ -78,33 +78,19 @@ scan_protocol_parameters:
       selector:
         device:
           integration: blanco_unit
-    evt_type:
-      name: Event Type
-      description: The evt_type value to test.
+    data:
+      name: Data
+      description: JSON object with evt_type (required), ctrl (optional), and pars (optional) fields. Example to get system info - {"evt_type":7, "ctrl":3, "pars":{"evt_type":2}}.
       required: true
-      example: 5
+      default:
+        evt_type: 7
+        ctrl: 3
+        pars:
+          evt_type: 2
+      example:
+        evt_type: 7
+        ctrl: 3
+        pars:
+          evt_type: 6
       selector:
-        number:
-          min: 0
-          max: 255
-          mode: box
-    ctrl:
-      name: Control
-      description: The ctrl value to test (optional, leave empty to test without ctrl).
-      required: false
-      example: 1
-      selector:
-        number:
-          min: 0
-          max: 255
-          mode: box
-    pars_evt_type:
-      name: Parameter Event Type
-      description: The pars_evt_type value to test (optional, leave empty to test without pars_evt_type).
-      required: false
-      example: 2
-      selector:
-        number:
-          min: 0
-          max: 255
-          mode: box
+        object:

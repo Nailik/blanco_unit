@@ -185,11 +185,11 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
     # -------------------------------
 
     async def test_protocol_parameters(
-        self, evt_type: int, ctrl: int | None = None, pars_evt_type: int | None = None
+        self, evt_type: int, ctrl: int | None = None, pars: dict[str, Any] | None = None
     ) -> dict[str, Any] | None:
         """Test protocol parameters by sending a custom event."""
         return await self._call(
-            self._client.test_protocol_parameters, evt_type, ctrl, pars_evt_type
+            self._client.test_protocol_parameters, evt_type, ctrl, pars
         )
 
     # -------------------------------
