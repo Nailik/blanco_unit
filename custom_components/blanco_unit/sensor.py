@@ -9,6 +9,7 @@ from homeassistant.const import (
     PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     EntityCategory,
+    UnitOfTemperature,
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
@@ -35,17 +36,26 @@ async def async_setup_entry(
             TapStateSensor(coordinator),
             CleanModeStateSensor(coordinator),
             ErrorBitsSensor(coordinator),
+            # CHOICE.All status sensors
+            BoilerTemp1Sensor(coordinator),
+            BoilerTemp2Sensor(coordinator),
+            CoolingTempSensor(coordinator),
+            MainControllerStatusSensor(coordinator),
+            ConnControllerStatusSensor(coordinator),
             # Settings sensors
             FilterLifetimeSensor(coordinator),
             PostFlushQuantitySensor(coordinator),
+            # CHOICE.All settings sensors
+            HeatingSetpointSensor(coordinator),
+            HotWaterCalibrationSensor(coordinator),
+            MediumCarbonationRatioSensor(coordinator),
+            ClassicCarbonationRatioSensor(coordinator),
             # System info sensors
             FirmwareMainSensor(coordinator),
             FirmwareCommSensor(coordinator),
             FirmwareElecSensor(coordinator),
             DeviceNameSensor(coordinator),
             ResetCountSensor(coordinator),
-            DeviceTypeSensor(coordinator),
-            DeviceIdSensor(coordinator),
             # Identity sensors
             SerialNumberSensor(coordinator),
             ServiceCodeSensor(coordinator),
@@ -175,6 +185,122 @@ class ErrorBitsSensor(BlancoUnitBaseEntity, SensorEntity):
 
 
 # -------------------------------
+# CHOICE.All Status Sensors
+# -------------------------------
+
+
+class BoilerTemp1Sensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for boiler temperature 1 (CHOICE.All only)."""
+
+    _attr_unique_id = "boiler_temp_1"
+    _attr_translation_key = _attr_unique_id
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:thermometer-water"
+
+    @property
+    def available(self) -> bool:
+        """Set availability if status is available."""
+        return super().available and self.coordinator.data.status is not None
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the boiler temperature 1."""
+        if self.coordinator.data.status is None:
+            return None
+        return self.coordinator.data.status.temp_boil_1
+
+
+class BoilerTemp2Sensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for boiler temperature 2 (CHOICE.All only)."""
+
+    _attr_unique_id = "boiler_temp_2"
+    _attr_translation_key = _attr_unique_id
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:thermometer-water"
+
+    @property
+    def available(self) -> bool:
+        """Set availability if status is available."""
+        return super().available and self.coordinator.data.status is not None
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the boiler temperature 2."""
+        if self.coordinator.data.status is None:
+            return None
+        return self.coordinator.data.status.temp_boil_2
+
+
+class CoolingTempSensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for cooling compartment temperature (CHOICE.All only)."""
+
+    _attr_unique_id = "cooling_temp"
+    _attr_translation_key = _attr_unique_id
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:snowflake-thermometer"
+
+    @property
+    def available(self) -> bool:
+        """Set availability if status is available."""
+        return super().available and self.coordinator.data.status is not None
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the cooling compartment temperature."""
+        if self.coordinator.data.status is None:
+            return None
+        return self.coordinator.data.status.temp_comp
+
+
+class MainControllerStatusSensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for main controller status (CHOICE.All only)."""
+
+    _attr_unique_id = "main_controller_status"
+    _attr_translation_key = _attr_unique_id
+    _attr_icon = "mdi:chip"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def available(self) -> bool:
+        """Set availability if status is available."""
+        return super().available and self.coordinator.data.status is not None
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the main controller status."""
+        if self.coordinator.data.status is None:
+            return None
+        return self.coordinator.data.status.main_controller_status
+
+
+class ConnControllerStatusSensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for connection controller status (CHOICE.All only)."""
+
+    _attr_unique_id = "conn_controller_status"
+    _attr_translation_key = _attr_unique_id
+    _attr_icon = "mdi:chip"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def available(self) -> bool:
+        """Set availability if status is available."""
+        return super().available and self.coordinator.data.status is not None
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the connection controller status."""
+        if self.coordinator.data.status is None:
+            return None
+        return self.coordinator.data.status.conn_controller_status
+
+
+# -------------------------------
 # Settings Sensors
 # -------------------------------
 
@@ -223,6 +349,99 @@ class PostFlushQuantitySensor(BlancoUnitBaseEntity, SensorEntity):
         if self.coordinator.data.settings is None:
             return None
         return self.coordinator.data.settings.post_flush_quantity
+
+
+# -------------------------------
+# CHOICE.All Settings Sensors
+# -------------------------------
+
+
+class HeatingSetpointSensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for heating setpoint temperature (CHOICE.All only)."""
+
+    _attr_unique_id = "heating_setpoint"
+    _attr_translation_key = _attr_unique_id
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_icon = "mdi:thermometer-high"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def available(self) -> bool:
+        """Set availability if settings are available."""
+        return super().available and self.coordinator.data.settings is not None
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the heating setpoint temperature."""
+        if self.coordinator.data.settings is None:
+            return None
+        return self.coordinator.data.settings.set_point_heating
+
+
+class HotWaterCalibrationSensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for hot water calibration (CHOICE.All only)."""
+
+    _attr_unique_id = "hot_water_calibration"
+    _attr_translation_key = _attr_unique_id
+    _attr_device_class = SensorDeviceClass.VOLUME
+    _attr_icon = "mdi:water-thermometer"
+    _attr_native_unit_of_measurement = "mL"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def available(self) -> bool:
+        """Set availability if settings are available."""
+        return super().available and self.coordinator.data.settings is not None
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the hot water calibration."""
+        if self.coordinator.data.settings is None:
+            return None
+        return self.coordinator.data.settings.calib_hot_wtr
+
+
+class MediumCarbonationRatioSensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for medium carbonation water ratio (CHOICE.All only)."""
+
+    _attr_unique_id = "medium_carbonation_ratio"
+    _attr_translation_key = _attr_unique_id
+    _attr_icon = "mdi:gas-cylinder"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def available(self) -> bool:
+        """Set availability if settings are available."""
+        return super().available and self.coordinator.data.settings is not None
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the medium carbonation water ratio."""
+        if self.coordinator.data.settings is None:
+            return None
+        return self.coordinator.data.settings.gbl_medium_wtr_ratio
+
+
+class ClassicCarbonationRatioSensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for classic carbonation water ratio (CHOICE.All only)."""
+
+    _attr_unique_id = "classic_carbonation_ratio"
+    _attr_translation_key = _attr_unique_id
+    _attr_icon = "mdi:gas-cylinder"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def available(self) -> bool:
+        """Set availability if settings are available."""
+        return super().available and self.coordinator.data.settings is not None
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the classic carbonation water ratio."""
+        if self.coordinator.data.settings is None:
+            return None
+        return self.coordinator.data.settings.gbl_classic_wtr_ratio
 
 
 # -------------------------------
@@ -334,34 +553,6 @@ class ResetCountSensor(BlancoUnitBaseEntity, SensorEntity):
         if self.coordinator.data.system_info is None:
             return None
         return self.coordinator.data.system_info.reset_cnt
-
-
-class DeviceTypeSensor(BlancoUnitBaseEntity, SensorEntity):
-    """Sensor for device type."""
-
-    _attr_unique_id = "device_type"
-    _attr_translation_key = _attr_unique_id
-    _attr_icon = "mdi:information"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    @property
-    def native_value(self) -> int | None:
-        """Return the device type."""
-        return self.coordinator.data.device_type
-
-
-class DeviceIdSensor(BlancoUnitBaseEntity, SensorEntity):
-    """Sensor for device id."""
-
-    _attr_unique_id = "device_id"
-    _attr_translation_key = _attr_unique_id
-    _attr_icon = "mdi:information"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    @property
-    def native_value(self) -> int | None:
-        """Return the device id."""
-        return self.coordinator.data.device_id
 
 
 # -------------------------------
