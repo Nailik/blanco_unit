@@ -12,7 +12,6 @@ from . import BlancoUnitConfigEntry
 from .base import BlancoUnitBaseEntity
 from .coordinator import BlancoUnitCoordinator
 
-
 # Main controller status bitmask constants (CHOICE.All)
 # Base state (bits 8 + 16) = 65792 is always set when device is running
 STATUS_BIT_HEATER = 0x2000  # Bit 13 (8192) - Boiler heater element active
@@ -26,17 +25,21 @@ async def async_setup_entry(
 ) -> None:
     """Set up the binary sensors."""
     coordinator: BlancoUnitCoordinator = config_entry.runtime_data
-    async_add_entities(
-        [
+    entities = [
             ConnectionBinarySensor(coordinator),
             WaterDispensingBinarySensor(coordinator),
             FirmwareUpdateBinarySensor(coordinator),
             CloudConnectBinarySensor(coordinator),
-            # CHOICE.All status binary sensors (decoded from main_controller_status)
-            HeaterActiveBinarySensor(coordinator),
-            CompressorActiveBinarySensor(coordinator),
-        ]
-    )
+    ]
+
+    # CHOICE.All binary sensors (decoded from main_controller_status)
+    entitiesExtended = [
+        HeaterActiveBinarySensor(coordinator),
+        CompressorActiveBinarySensor(coordinator),
+    ]
+    if coordinator.data.device_type == 2:
+        entities.extend(entitiesExtended)
+    async_add_entities(entities)
 
 
 class ConnectionBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
@@ -144,11 +147,6 @@ class HeaterActiveBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
     _attr_icon = "mdi:fire"
 
     @property
-    def entity_registry_visible_default(self) -> bool:
-        """Return if the entity should be visible when first added."""
-        return self.coordinator.data.device_type == 2
-
-    @property
     def available(self) -> bool:
         """Set availability if status is available."""
         return super().available and self.coordinator.data.status is not None
@@ -175,11 +173,6 @@ class CompressorActiveBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
     _attr_translation_key = _attr_unique_id
     _attr_device_class = BinarySensorDeviceClass.RUNNING
     _attr_icon = "mdi:snowflake"
-
-    @property
-    def entity_registry_visible_default(self) -> bool:
-        """Return if the entity should be visible when first added."""
-        return self.coordinator.data.device_type == 2
 
     @property
     def available(self) -> bool:
