@@ -209,7 +209,7 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
         self, discovery_info: BluetoothServiceInfoBleak
     ) -> ConfigFlowResult:
         """Handle a bluetooth device being discovered."""
-        _LOGGER.debug("async_step_bluetooth called with %s and advertisment %s", discovery_info, discovery_info.advertisement)
+        _LOGGER.debug("async_step_bluetooth called with %s and advertisement %s", discovery_info, discovery_info.advertisement)
         # Check if the device already exists.
         await self._async_handle_discovery_without_unique_id()
         self._abort_if_unique_id_configured()
@@ -232,8 +232,11 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             result = await self.validate_input(user_input)
             if not result.errors:
                 # Validation was successful, create a unique id and create the config entry.
-                # Use dev_id as unique_id for reliable identification
-                await self.async_set_unique_id(result.dev_id)
+                # Use MAC as unique_id for static MAC, dev_id for random MAC
+                if result.mac_address == RANDOM_MAC_PLACEHOLDER:
+                    await self.async_set_unique_id(result.dev_id)
+                else:
+                    await self.async_set_unique_id(result.mac_address)
                 self._abort_if_unique_id_configured()
 
                 # Store MAC address and dev_id in config
@@ -266,8 +269,11 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             result = await self.validate_input(user_input)
             if not result.errors:
-                # Verify this is the same device by checking dev_id
-                await self.async_set_unique_id(result.dev_id)
+                # Verify this is the same device
+                if result.mac_address == RANDOM_MAC_PLACEHOLDER:
+                    await self.async_set_unique_id(result.dev_id)
+                else:
+                    await self.async_set_unique_id(result.mac_address)
                 self._abort_if_unique_id_mismatch(reason="wrong_device")
 
                 # Update config with new PIN and potentially updated MAC
@@ -302,8 +308,11 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             result = await self.validate_input(user_input)
             if not result.errors:
-                # Verify this is the same device by checking dev_id
-                await self.async_set_unique_id(result.dev_id)
+                # Verify this is the same device
+                if result.mac_address == RANDOM_MAC_PLACEHOLDER:
+                    await self.async_set_unique_id(result.dev_id)
+                else:
+                    await self.async_set_unique_id(result.mac_address)
                 self._abort_if_unique_id_mismatch(reason="wrong_device")
 
                 # Update config with potentially updated MAC and dev_id

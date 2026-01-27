@@ -508,10 +508,12 @@ async def test_find_device_by_scanning_match_found(hass: HomeAssistant) -> None:
     dev_close, adv_close = _make_discovered_device("11:22:33:44:55:66", rssi=-30)
     dev_far, adv_far = _make_discovered_device("AA:BB:CC:DD:EE:FF", rssi=-80)
 
-    scanner = _make_scanner({
-        "AA:BB:CC:DD:EE:FF": (dev_far, adv_far),
-        "11:22:33:44:55:66": (dev_close, adv_close),
-    })
+    scanner = _make_scanner(
+        {
+            "AA:BB:CC:DD:EE:FF": (dev_far, adv_far),
+            "11:22:33:44:55:66": (dev_close, adv_close),
+        }
+    )
 
     mock_client = AsyncMock()
     mock_client.is_connected = True
@@ -563,10 +565,12 @@ async def test_find_device_by_scanning_filters_by_uuid(hass: HomeAssistant) -> N
     adv_other.service_uuids = ["00001800-0000-1000-8000-00805f9b34fb"]
     adv_other.rssi = -20
 
-    scanner = _make_scanner({
-        "11:22:33:44:55:66": (dev_match, adv_match),
-        "AA:BB:CC:DD:EE:FF": (dev_other, adv_other),
-    })
+    scanner = _make_scanner(
+        {
+            "11:22:33:44:55:66": (dev_match, adv_match),
+            "AA:BB:CC:DD:EE:FF": (dev_other, adv_other),
+        }
+    )
 
     mock_client = AsyncMock()
     mock_client.is_connected = True
@@ -662,10 +666,12 @@ async def test_find_device_by_scanning_connection_failure_skipped(
     dev_fail, adv_fail = _make_discovered_device("11:22:33:44:55:66", rssi=-20)
     dev_ok, adv_ok = _make_discovered_device("AA:BB:CC:DD:EE:FF", rssi=-50)
 
-    scanner = _make_scanner({
-        "11:22:33:44:55:66": (dev_fail, adv_fail),
-        "AA:BB:CC:DD:EE:FF": (dev_ok, adv_ok),
-    })
+    scanner = _make_scanner(
+        {
+            "11:22:33:44:55:66": (dev_fail, adv_fail),
+            "AA:BB:CC:DD:EE:FF": (dev_ok, adv_ok),
+        }
+    )
 
     mock_client_ok = AsyncMock()
     mock_client_ok.is_connected = True
@@ -708,11 +714,13 @@ async def test_find_device_by_scanning_sorts_by_rssi(hass: HomeAssistant) -> Non
     dev_close, adv_close = _make_discovered_device("11:22:33:44:55:66", rssi=-20)
     dev_medium, adv_medium = _make_discovered_device("22:33:44:55:66:77", rssi=-50)
 
-    scanner = _make_scanner({
-        "AA:BB:CC:DD:EE:FF": (dev_far, adv_far),
-        "11:22:33:44:55:66": (dev_close, adv_close),
-        "22:33:44:55:66:77": (dev_medium, adv_medium),
-    })
+    scanner = _make_scanner(
+        {
+            "AA:BB:CC:DD:EE:FF": (dev_far, adv_far),
+            "11:22:33:44:55:66": (dev_close, adv_close),
+            "22:33:44:55:66:77": (dev_medium, adv_medium),
+        }
+    )
 
     mock_client = AsyncMock()
     mock_client.is_connected = True
@@ -845,9 +853,7 @@ async def test_async_setup_entry_random_mac_not_found(hass: HomeAssistant) -> No
     with (
         patch(
             "custom_components.blanco_unit._find_device_by_scanning",
-            side_effect=ConfigEntryNotReady(
-                translation_key="error_device_not_found"
-            ),
+            side_effect=ConfigEntryNotReady(translation_key="error_device_not_found"),
         ),
         patch(
             "custom_components.blanco_unit.bluetooth.async_register_callback",

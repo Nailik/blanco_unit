@@ -1,7 +1,7 @@
 """Tests for the Blanco Unit config flow."""
 
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -110,7 +110,7 @@ async def test_user_flow_already_configured(hass: HomeAssistant) -> None:
     """Test user flow aborts when device is already configured."""
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id=MOCKED_CONF_DEV_ID,
+        unique_id=MOCKED_CONF_MAC,
         data=MOCKED_CONFIG,
     )
     entry.add_to_hass(hass)
@@ -316,7 +316,7 @@ async def test_reauth_flow_success(
 
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id=MOCKED_CONF_DEV_ID,
+        unique_id=MOCKED_CONF_MAC,
         data=MOCKED_CONFIG,
     )
     entry.add_to_hass(hass)
@@ -347,17 +347,24 @@ async def test_reauth_flow_wrong_device(
     mock_establish_connection: AsyncMock,
     mock_validate_pin: AsyncMock,
     hass: HomeAssistant,
-    mock_bluetooth_device,
     mock_bleak_client,
 ) -> None:
-    """Test reauth flow with wrong device MAC."""
-    mock_device_from_address.return_value = mock_bluetooth_device
+    """Test reauth flow with wrong device (random MAC, dev_id mismatch)."""
+    # Create a mock device with random MAC so dev_id is used as unique_id
+    mock_device = AsyncMock()
+    mock_device.address = MOCKED_CONF_MAC
+    mock_device.name = MOCKED_CONF_NAME
+    mock_device.details = MagicMock()
+    mock_device.details.address_type = "random"
+
+    mock_device_from_address.return_value = mock_device
     mock_establish_connection.return_value = mock_bleak_client
-    mock_validate_pin.return_value = PinValidationResult(True, "devId", 2)
+    # Return a different dev_id than the one stored in the entry
+    mock_validate_pin.return_value = PinValidationResult(True, "different_dev_id", 2)
 
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id=MOCKED_CONF_MAC,
+        unique_id=MOCKED_CONF_DEV_ID,
         data=MOCKED_CONFIG,
     )
     entry.add_to_hass(hass)
@@ -369,7 +376,7 @@ async def test_reauth_flow_wrong_device(
 
     configure_result = await hass.config_entries.flow.async_configure(
         flow_result["flow_id"],
-        {**MOCKED_CONFIG, CONF_MAC: "11:22:33:44:55:66"},
+        MOCKED_CONFIG,
     )
 
     assert configure_result["type"] is FlowResultType.ABORT
@@ -401,7 +408,7 @@ async def test_reconfigure_flow_success(
 
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id=MOCKED_CONF_DEV_ID,
+        unique_id=MOCKED_CONF_MAC,
         data=MOCKED_CONFIG,
     )
     entry.add_to_hass(hass)

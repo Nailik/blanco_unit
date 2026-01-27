@@ -21,7 +21,13 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ServiceValidationErr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .client import BlancoUnitAuthenticationError, BlancoUnitBluetoothClient
-from .const import CHARACTERISTIC_UUID, CONF_MAC, CONF_PIN, DOMAIN, RANDOM_MAC_PLACEHOLDER
+from .const import (
+    CHARACTERISTIC_UUID,
+    CONF_MAC,
+    CONF_PIN,
+    DOMAIN,
+    RANDOM_MAC_PLACEHOLDER,
+)
 from .data import BlancoUnitData
 
 _LOGGER = logging.getLogger(__name__)
