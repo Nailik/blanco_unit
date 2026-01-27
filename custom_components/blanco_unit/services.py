@@ -146,22 +146,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             "response": response if response else None,
         }
 
-        if response:
-            _LOGGER.info(
-                "Found data: evt_type=%d, ctrl=%s, pars=%s",
-                evt_type,
-                ctrl,
-                pars,
-            )
-            _LOGGER.info("Response: %s", json.dumps(response, indent=2))
-        else:
-            _LOGGER.warning(
-                "No data: evt_type=%d, ctrl=%s, pars=%s",
-                evt_type,
-                ctrl,
-                pars,
-            )
-
+        _LOGGER.info("Response: %s", json.dumps(response, indent=2))
         return result
 
     hass.services.async_register(

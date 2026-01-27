@@ -704,7 +704,7 @@ class BlancoUnitBluetoothClient:
 
     async def test_protocol_parameters(
         self, evt_type: int, ctrl: int | None = None, pars: dict[str, Any] | None = None
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any]:
         """Test protocol parameters and return response if it contains meaningful data.
 
         Args:
@@ -716,15 +716,9 @@ class BlancoUnitBluetoothClient:
             Response dictionary if it contains meaningful data, None otherwise.
         """
         try:
-            response = await self._execute_transaction(
+            return await self._execute_transaction(
                 evt_type=evt_type, ctrl=ctrl, pars=pars
             )
-
-            # Check if response contains meaningful data
-            if self._is_response_empty(response):
-                return None
-
-            return response  # noqa: TRY300
         except Exception as e:  # noqa: BLE001
             _LOGGER.debug(
                 "Test failed for evt_type=%s, ctrl=%s, pars=%s: %s",
@@ -734,22 +728,6 @@ class BlancoUnitBluetoothClient:
                 e,
             )
             return None
-
-    def _is_response_empty(self, response: dict[str, Any]) -> bool:
-        """Check if a response contains meaningful data.
-
-        Args:
-            response: Response dictionary to check.
-
-        Returns:
-            True if response is empty or contains only empty structures.
-        """
-        if not response:
-            return True
-
-        # Check if body exists
-        body = response.get("body", {})
-        return not body
 
 # -------------------------------
 # region Standalone Functions
