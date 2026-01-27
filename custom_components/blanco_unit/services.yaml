@@ -65,3 +65,32 @@ change_pin:
       default: false
       selector:
         boolean:
+
+scan_protocol_parameters:
+  name: Scan Protocol Parameters
+  description: Test protocol parameters by sending custom BLE commands. Results are returned and logged to debug. Use evt_type (required), ctrl (optional), and pars (optional) to construct the request.
+  fields:
+    device_id:
+      name: Device
+      description: The Blanco Unit device to test.
+      required: true
+      example: "a1b2c3d4e5f6"
+      selector:
+        device:
+          integration: blanco_unit
+    data:
+      name: Data
+      description: JSON object with evt_type (required), ctrl (optional), and pars (optional) fields. Example to get system info - {"evt_type":7, "ctrl":3, "pars":{"evt_type":2}}.
+      required: true
+      default:
+        evt_type: 7
+        ctrl: 3
+        pars:
+          evt_type: 2
+      example:
+        evt_type: 7
+        ctrl: 3
+        pars:
+          evt_type: 6
+      selector:
+        object:

@@ -181,6 +181,18 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
             self.async_set_updated_data(replace(self.data, connected=connected))
 
     # -------------------------------
+    # region Testing
+    # -------------------------------
+
+    async def test_protocol_parameters(
+        self, evt_type: int, ctrl: int | None = None, pars: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
+        """Test protocol parameters by sending a custom event."""
+        return await self._call(
+            self._client.test_protocol_parameters, evt_type, ctrl, pars
+        )
+
+    # -------------------------------
     # region internal
     # -------------------------------
 

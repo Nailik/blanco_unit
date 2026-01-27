@@ -519,9 +519,8 @@ class BlancoUnitBluetoothClient:
 
     async def get_system_info(self) -> BlancoUnitSystemInfo:
         """Read and return system information (firmware versions, device name, reset count)."""
-        session_data = await self._connect()
         resp = await self._execute_transaction(evt_type=7, ctrl=3, pars={"evt_type": 2})
-        pars = session_data.protocol.extract_pars(resp)
+        pars = self._session_data.protocol.extract_pars(resp)
         return BlancoUnitSystemInfo(
             sw_ver_comm_con=pars.get("sw_ver_comm_con", {}).get("val", "Unknown"),
             sw_ver_elec_con=pars.get("sw_ver_elec_con", {}).get("val", "Unknown"),
@@ -532,9 +531,8 @@ class BlancoUnitBluetoothClient:
 
     async def get_settings(self) -> BlancoUnitSettings:
         """Read and return device configuration settings."""
-        session_data = await self._connect()
         resp = await self._execute_transaction(evt_type=7, ctrl=3, pars={"evt_type": 5})
-        pars = session_data.protocol.extract_pars(resp)
+        pars = self._session_data.protocol.extract_pars(resp)
         return BlancoUnitSettings(
             calib_still_wtr=pars.get("calib_still_wtr", {}).get("val", 0),
             calib_soda_wtr=pars.get("calib_soda_wtr", {}).get("val", 0),
@@ -546,9 +544,8 @@ class BlancoUnitBluetoothClient:
 
     async def get_status(self) -> BlancoUnitStatus:
         """Read and return real-time device status."""
-        session_data = await self._connect()
         resp = await self._execute_transaction(evt_type=7, ctrl=3, pars={"evt_type": 6})
-        pars = session_data.protocol.extract_pars(resp)
+        pars = self._session_data.protocol.extract_pars(resp)
         return BlancoUnitStatus(
             tap_state=pars.get("tap_state", {}).get("val", 0),
             filter_rest=pars.get("filter_rest", {}).get("val", 0),
@@ -562,9 +559,8 @@ class BlancoUnitBluetoothClient:
 
     async def get_device_identity(self) -> BlancoUnitIdentity:
         """Read and return device identity (serial number, service code)."""
-        session_data = await self._connect()
         resp = await self._execute_transaction(evt_type=7, ctrl=2, pars={})
-        pars = session_data.protocol.extract_pars(resp)
+        pars = self._session_data.protocol.extract_pars(resp)
         return BlancoUnitIdentity(
             serial_no=pars.get("ser_no", "Unknown"),
             service_code=pars.get("serv_code", "Unknown"),
@@ -572,9 +568,8 @@ class BlancoUnitBluetoothClient:
 
     async def get_wifi_info(self) -> BlancoUnitWifiInfo:
         """Read and return WiFi and network information."""
-        session_data = await self._connect()
         resp = await self._execute_transaction(evt_type=7, ctrl=10, pars={})
-        pars = session_data.protocol.extract_pars(resp)
+        pars = self._session_data.protocol.extract_pars(resp)
         return BlancoUnitWifiInfo(
             cloud_connect=pars.get("cloud_connect", {}).get("val", False),
             ssid=pars.get("ssid", {}).get("val", ""),
@@ -703,6 +698,58 @@ class BlancoUnitBluetoothClient:
         resp = await self._execute_transaction(evt_type=7, ctrl=5, pars=req.to_pars())
         return resp.get("type") == 2
 
+    # -------------------------------
+    # region Protocol Discovery
+    # -------------------------------
+
+    async def test_protocol_parameters(
+        self, evt_type: int, ctrl: int | None = None, pars: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
+        """Test protocol parameters and return response if it contains meaningful data.
+
+        Args:
+            evt_type: Event type to test.
+            ctrl: Control parameter to test (optional).
+            pars: Parameters dictionary to test (optional).
+
+        Returns:
+            Response dictionary if it contains meaningful data, None otherwise.
+        """
+        try:
+            response = await self._execute_transaction(
+                evt_type=evt_type, ctrl=ctrl, pars=pars
+            )
+
+            # Check if response contains meaningful data
+            if self._is_response_empty(response):
+                return None
+
+            return response  # noqa: TRY300
+        except Exception as e:  # noqa: BLE001
+            _LOGGER.debug(
+                "Test failed for evt_type=%s, ctrl=%s, pars=%s: %s",
+                evt_type,
+                ctrl,
+                pars,
+                e,
+            )
+            return None
+
+    def _is_response_empty(self, response: dict[str, Any]) -> bool:
+        """Check if a response contains meaningful data.
+
+        Args:
+            response: Response dictionary to check.
+
+        Returns:
+            True if response is empty or contains only empty structures.
+        """
+        if not response:
+            return True
+
+        # Check if body exists
+        body = response.get("body", {})
+        return not body
 
 # -------------------------------
 # region Standalone Functions

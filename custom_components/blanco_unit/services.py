@@ -1,10 +1,11 @@
 """Home Assistant services provided by the Blanco Unit integration."""
 
+import json
 import logging
 
 import voluptuous as vol
 
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 
@@ -13,11 +14,13 @@ from .const import (
     DOMAIN,
     HA_SERVICE_ATTR_AMOUNT_ML,
     HA_SERVICE_ATTR_CO2_INTENSITY,
+    HA_SERVICE_ATTR_DATA,
     HA_SERVICE_ATTR_DEVICE_ID,
     HA_SERVICE_ATTR_NEW_PIN,
     HA_SERVICE_ATTR_UPDATE_CONFIG,
     HA_SERVICE_CHANGE_PIN,
     HA_SERVICE_DISPENSE_WATER,
+    HA_SERVICE_SCAN_PROTOCOL,
 )
 from .coordinator import BlancoUnitCoordinator
 
@@ -54,6 +57,13 @@ SERVICE_CHANGE_PIN_SCHEMA = vol.Schema(
             vol.Match(r"^\d{5}$"),
         ),
         vol.Optional(HA_SERVICE_ATTR_UPDATE_CONFIG, default=False): cv.boolean,
+    }
+)
+
+SERVICE_SCAN_PROTOCOL_SCHEMA = vol.Schema(
+    {
+        vol.Required(HA_SERVICE_ATTR_DEVICE_ID): cv.string,
+        vol.Required(HA_SERVICE_ATTR_DATA): dict,
     }
 )
 
@@ -104,6 +114,56 @@ def async_setup_services(hass: HomeAssistant) -> None:
                     # Reload the config entry to reconnect with new PIN
                     await hass.config_entries.async_reload(entry_id)
 
+    async def handle_scan_protocol(call: ServiceCall) -> dict:
+        """Handle the scan_protocol_parameters service call."""
+
+        _LOGGER.debug("Scan protocol service called with data: %s", call.data)
+        coordinator = _get_coordinator(hass, call)
+
+        # Extract parameters from the data object
+        data = call.data[HA_SERVICE_ATTR_DATA]
+        evt_type = data.get("evt_type", 7)
+        ctrl = data.get("ctrl")
+        pars = data.get("pars")
+
+        _LOGGER.info(
+            "Testing protocol parameters: evt_type=%d, ctrl=%s, pars=%s",
+            evt_type,
+            ctrl,
+            pars,
+        )
+
+        # Test the specific parameter combination
+        response = await coordinator.test_protocol_parameters(
+            evt_type, ctrl, pars
+        )
+
+        result = {
+            "evt_type": evt_type,
+            "ctrl": ctrl,
+            "pars": pars,
+            "success": response is not None,
+            "response": response if response else None,
+        }
+
+        if response:
+            _LOGGER.info(
+                "Found data: evt_type=%d, ctrl=%s, pars=%s",
+                evt_type,
+                ctrl,
+                pars,
+            )
+            _LOGGER.info("Response: %s", json.dumps(response, indent=2))
+        else:
+            _LOGGER.warning(
+                "No data: evt_type=%d, ctrl=%s, pars=%s",
+                evt_type,
+                ctrl,
+                pars,
+            )
+
+        return result
+
     hass.services.async_register(
         DOMAIN,
         HA_SERVICE_DISPENSE_WATER,
@@ -116,6 +176,14 @@ def async_setup_services(hass: HomeAssistant) -> None:
         HA_SERVICE_CHANGE_PIN,
         handle_change_pin,
         schema=SERVICE_CHANGE_PIN_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        HA_SERVICE_SCAN_PROTOCOL,
+        handle_scan_protocol,
+        schema=SERVICE_SCAN_PROTOCOL_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
     )
 
 

@@ -207,6 +207,60 @@ data:
   update_config: true
 ```
 
+### blanco_unit.scan_protocol_parameters
+
+Test protocol parameters by sending custom BLE commands to the device. This is a diagnostic tool for developers and advanced users to discover supported device commands or test protocol behavior. Results are returned in the service response and logged to the debug log.
+
+**Parameters:**
+
+- `device_id` (required): The Blanco Unit device to test
+- `data` (required): JSON object containing the protocol parameters
+  - `evt_type` (required): Event type value (0-255)
+  - `ctrl` (optional): Control code value (0-255)
+  - `pars` (optional): Parameters dictionary to send with the request
+
+**Example - Get System Information for Blanco Drink.soda:**
+
+See [Event Types](BLUETOOTH_PROTOCOL.md#event-types-blanco-drinksoda) in the protocol documentation for complete details.
+
+```yaml
+service: blanco_unit.scan_protocol_parameters
+data:
+  device_id: abc123def456
+  data:
+    evt_type: 7
+    ctrl: 3
+    pars:
+      evt_type: 2
+response_variable: result
+```
+
+**Example - Get Device Status:**
+
+```yaml
+service: blanco_unit.scan_protocol_parameters
+data:
+  device_id: abc123def456
+  data:
+    evt_type: 7
+    ctrl: 3
+    pars:
+      evt_type: 6
+response_variable: status
+```
+
+The service returns a response with the following structure:
+
+```yaml
+evt_type: 7
+ctrl: 3
+pars:
+  evt_type: 2
+success: true
+response:
+  # Device response data
+```
+
 ## Example Automations
 
 ### Low Filter Notification

@@ -18,6 +18,7 @@ MTU_SIZE = 200
 # Service Names
 HA_SERVICE_DISPENSE_WATER = "dispense_water"
 HA_SERVICE_CHANGE_PIN = "change_pin"
+HA_SERVICE_SCAN_PROTOCOL = "scan_protocol_parameters"
 
 # Service Attributes
 HA_SERVICE_ATTR_DEVICE_ID = "device_id"
@@ -25,3 +26,4 @@ HA_SERVICE_ATTR_AMOUNT_ML = "amount_ml"
 HA_SERVICE_ATTR_CO2_INTENSITY = "co2_intensity"
 HA_SERVICE_ATTR_NEW_PIN = "new_pin"
 HA_SERVICE_ATTR_UPDATE_CONFIG = "update_config"
+HA_SERVICE_ATTR_DATA = "data"
