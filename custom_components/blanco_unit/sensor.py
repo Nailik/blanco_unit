@@ -56,6 +56,8 @@ async def async_setup_entry(
             FirmwareElecSensor(coordinator),
             DeviceNameSensor(coordinator),
             ResetCountSensor(coordinator),
+            DeviceTypeSensor(coordinator),
+            DeviceIdSensor(coordinator),
             # Identity sensors
             SerialNumberSensor(coordinator),
             ServiceCodeSensor(coordinator),
@@ -200,6 +202,11 @@ class BoilerTemp1Sensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_icon = "mdi:thermometer-water"
 
     @property
+    def entity_registry_visible_default(self) -> bool:
+        """Return if the entity should be visible when first added."""
+        return self.coordinator.data.device_type == 2
+
+    @property
     def available(self) -> bool:
         """Set availability if status is available."""
         return super().available and self.coordinator.data.status is not None
@@ -221,6 +228,11 @@ class BoilerTemp2Sensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:thermometer-water"
+
+    @property
+    def entity_registry_visible_default(self) -> bool:
+        """Return if the entity should be visible when first added."""
+        return self.coordinator.data.device_type == 2
 
     @property
     def available(self) -> bool:
@@ -246,6 +258,11 @@ class CoolingTempSensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_icon = "mdi:snowflake-thermometer"
 
     @property
+    def entity_registry_visible_default(self) -> bool:
+        """Return if the entity should be visible when first added."""
+        return self.coordinator.data.device_type == 2
+
+    @property
     def available(self) -> bool:
         """Set availability if status is available."""
         return super().available and self.coordinator.data.status is not None
@@ -267,6 +284,11 @@ class MainControllerStatusSensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
+    def entity_registry_visible_default(self) -> bool:
+        """Return if the entity should be visible when first added."""
+        return self.coordinator.data.device_type == 2
+
+    @property
     def available(self) -> bool:
         """Set availability if status is available."""
         return super().available and self.coordinator.data.status is not None
@@ -286,6 +308,11 @@ class ConnControllerStatusSensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_translation_key = _attr_unique_id
     _attr_icon = "mdi:chip"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def entity_registry_visible_default(self) -> bool:
+        """Return if the entity should be visible when first added."""
+        return self.coordinator.data.device_type == 2
 
     @property
     def available(self) -> bool:
@@ -367,6 +394,11 @@ class HeatingSetpointSensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
+    def entity_registry_visible_default(self) -> bool:
+        """Return if the entity should be visible when first added."""
+        return self.coordinator.data.device_type == 2
+
+    @property
     def available(self) -> bool:
         """Set availability if settings are available."""
         return super().available and self.coordinator.data.settings is not None
@@ -390,6 +422,11 @@ class HotWaterCalibrationSensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
+    def entity_registry_visible_default(self) -> bool:
+        """Return if the entity should be visible when first added."""
+        return self.coordinator.data.device_type == 2
+
+    @property
     def available(self) -> bool:
         """Set availability if settings are available."""
         return super().available and self.coordinator.data.settings is not None
@@ -411,6 +448,11 @@ class MediumCarbonationRatioSensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
+    def entity_registry_visible_default(self) -> bool:
+        """Return if the entity should be visible when first added."""
+        return self.coordinator.data.device_type == 2
+
+    @property
     def available(self) -> bool:
         """Set availability if settings are available."""
         return super().available and self.coordinator.data.settings is not None
@@ -430,6 +472,11 @@ class ClassicCarbonationRatioSensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_translation_key = _attr_unique_id
     _attr_icon = "mdi:gas-cylinder"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def entity_registry_visible_default(self) -> bool:
+        """Return if the entity should be visible when first added."""
+        return self.coordinator.data.device_type == 2
 
     @property
     def available(self) -> bool:
@@ -553,6 +600,34 @@ class ResetCountSensor(BlancoUnitBaseEntity, SensorEntity):
         if self.coordinator.data.system_info is None:
             return None
         return self.coordinator.data.system_info.reset_cnt
+
+
+class DeviceTypeSensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for device type."""
+
+    _attr_unique_id = "device_type"
+    _attr_translation_key = _attr_unique_id
+    _attr_icon = "mdi:information"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the device type."""
+        return self.coordinator.data.device_type
+
+
+class DeviceIdSensor(BlancoUnitBaseEntity, SensorEntity):
+    """Sensor for device id."""
+
+    _attr_unique_id = "device_id"
+    _attr_translation_key = _attr_unique_id
+    _attr_icon = "mdi:information"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the device id."""
+        return self.coordinator.data.device_id
 
 
 # -------------------------------

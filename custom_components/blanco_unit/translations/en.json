@@ -220,6 +220,12 @@
       "reset_count": {
         "name": "Reset Count"
       },
+      "device_type": {
+        "name": "Device Type"
+      },
+      "device_id": {
+        "name": "Device ID"
+      },
       "serial_number": {
         "name": "Serial Number"
       },

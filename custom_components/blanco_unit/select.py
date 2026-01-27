@@ -69,6 +69,11 @@ class HeatingTemperatureSelect(BlancoUnitBaseEntity, SelectEntity):
     _attr_unit_of_measurement = UnitOfTemperature.CELSIUS
 
     @property
+    def entity_registry_visible_default(self) -> bool:
+        """Return if the entity should be visible when first added."""
+        return self.coordinator.data.device_type == 2
+
+    @property
     def available(self) -> bool:
         """Set availability if settings are available and device supports heating."""
         return (
