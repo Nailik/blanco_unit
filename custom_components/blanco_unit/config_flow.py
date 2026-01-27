@@ -117,12 +117,20 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
 
         client = None
         try:
-            _LOGGER.debug("await async_ble_device_from_address")
-            device = bluetooth.async_ble_device_from_address(
-                hass=self.hass,
-                address=user_input[CONF_MAC],
-                connectable=True,
-            )
+            # Use device from discovery_info if available and matches the MAC
+            if (
+                self._discovery_info is not None
+                and self._discovery_info.address == user_input[CONF_MAC]
+            ):
+                _LOGGER.debug("Using device from discovery_info")
+                device = self._discovery_info.device
+            else:
+                _LOGGER.debug("await async_ble_device_from_address")
+                device = bluetooth.async_ble_device_from_address(
+                    hass=self.hass,
+                    address=user_input[CONF_MAC],
+                    connectable=True,
+                )
 
             if device is None:
                 return ValidationResult({CONF_ERROR: "error_device_not_found"})
@@ -190,6 +198,8 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(user_input[CONF_MAC])
                 self._abort_if_unique_id_configured()
                 _LOGGER.debug("Create entry with %s", user_input)
+                # Clean up discovery_info after successful validation
+                self._discovery_info = None
                 return self.async_create_entry(
                     title=user_input[CONF_NAME],
                     data=user_input,
@@ -214,6 +224,8 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             if not result.errors:
                 await self.async_set_unique_id(user_input[CONF_MAC])
                 self._abort_if_unique_id_mismatch(reason="wrong_device")
+                # Clean up discovery_info after successful validation
+                self._discovery_info = None
                 return self.async_update_reload_and_abort(
                     entry=self._get_reauth_entry(),
                     data_updates=user_input,
@@ -241,6 +253,8 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             if not result.errors:
                 await self.async_set_unique_id(user_input[CONF_MAC])
                 self._abort_if_unique_id_mismatch(reason="wrong_device")
+                # Clean up discovery_info after successful validation
+                self._discovery_info = None
                 return self.async_update_reload_and_abort(
                     entry=self._get_reconfigure_entry(),
                     data_updates=user_input,
