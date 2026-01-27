@@ -15,9 +15,6 @@ from homeassistant.components import bluetooth
 from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.helpers.selector import (
-    NumberSelector,
-    NumberSelectorConfig,
-    NumberSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,

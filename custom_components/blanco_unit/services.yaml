@@ -68,53 +68,43 @@ change_pin:
 
 scan_protocol_parameters:
   name: Scan Protocol Parameters
-  description: Scan for valid protocol parameters (evt_type, ctrl, pars evt_type). Results are logged to Home Assistant debug log and optionally saved to a file. This is a diagnostic tool for discovering supported device commands.
+  description: Test a specific combination of protocol parameters (evt_type, ctrl, pars_evt_type). Results are returned and also logged to Home Assistant debug log. This is a diagnostic tool for discovering supported device commands.
   fields:
     device_id:
       name: Device
-      description: The Blanco Unit device to scan.
+      description: The Blanco Unit device to test.
       required: true
       example: "a1b2c3d4e5f6"
       selector:
         device:
           integration: blanco_unit
-    evt_type_max:
-      name: Max evt_type
-      description: Maximum evt_type value to test (0 to this value).
-      required: false
-      default: 10
-      example: 10
+    evt_type:
+      name: Event Type
+      description: The evt_type value to test.
+      required: true
+      example: 5
       selector:
         number:
           min: 0
           max: 255
           mode: box
-    ctrl_max:
-      name: Max ctrl
-      description: Maximum ctrl value to test (0 to this value).
+    ctrl:
+      name: Control
+      description: The ctrl value to test (optional, leave empty to test without ctrl).
       required: false
-      default: 10
-      example: 10
+      example: 1
       selector:
         number:
           min: 0
           max: 255
           mode: box
-    pars_evt_type_max:
-      name: Max pars evt_type
-      description: Maximum pars evt_type value to test (0 to this value).
+    pars_evt_type:
+      name: Parameter Event Type
+      description: The pars_evt_type value to test (optional, leave empty to test without pars_evt_type).
       required: false
-      default: 10
-      example: 10
+      example: 2
       selector:
         number:
           min: 0
           max: 255
           mode: box
-    save_to_file:
-      name: Save to file
-      description: If enabled, saves the scan results to a JSON file in the Home Assistant config directory (protocol_scan_TIMESTAMP.json).
-      required: false
-      default: false
-      selector:
-        boolean:

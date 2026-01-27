@@ -1,10 +1,11 @@
 """Home Assistant services provided by the Blanco Unit integration."""
 
+import json
 import logging
 
 import voluptuous as vol
 
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 
@@ -13,12 +14,11 @@ from .const import (
     DOMAIN,
     HA_SERVICE_ATTR_AMOUNT_ML,
     HA_SERVICE_ATTR_CO2_INTENSITY,
-    HA_SERVICE_ATTR_CTRL_MAX,
+    HA_SERVICE_ATTR_CTRL,
     HA_SERVICE_ATTR_DEVICE_ID,
-    HA_SERVICE_ATTR_EVT_TYPE_MAX,
+    HA_SERVICE_ATTR_EVT_TYPE,
     HA_SERVICE_ATTR_NEW_PIN,
-    HA_SERVICE_ATTR_PARS_EVT_TYPE_MAX,
-    HA_SERVICE_ATTR_SAVE_TO_FILE,
+    HA_SERVICE_ATTR_PARS_EVT_TYPE,
     HA_SERVICE_ATTR_UPDATE_CONFIG,
     HA_SERVICE_CHANGE_PIN,
     HA_SERVICE_DISPENSE_WATER,
@@ -65,16 +65,15 @@ SERVICE_CHANGE_PIN_SCHEMA = vol.Schema(
 SERVICE_SCAN_PROTOCOL_SCHEMA = vol.Schema(
     {
         vol.Required(HA_SERVICE_ATTR_DEVICE_ID): cv.string,
-        vol.Optional(HA_SERVICE_ATTR_EVT_TYPE_MAX, default=10): vol.All(
+        vol.Required(HA_SERVICE_ATTR_EVT_TYPE): vol.All(
             vol.Coerce(int), vol.Range(min=0, max=255)
         ),
-        vol.Optional(HA_SERVICE_ATTR_CTRL_MAX, default=10): vol.All(
+        vol.Optional(HA_SERVICE_ATTR_CTRL): vol.All(
             vol.Coerce(int), vol.Range(min=0, max=255)
         ),
-        vol.Optional(HA_SERVICE_ATTR_PARS_EVT_TYPE_MAX, default=10): vol.All(
+        vol.Optional(HA_SERVICE_ATTR_PARS_EVT_TYPE): vol.All(
             vol.Coerce(int), vol.Range(min=0, max=255)
         ),
-        vol.Optional(HA_SERVICE_ATTR_SAVE_TO_FILE, default=False): cv.boolean,
     }
 )
 
@@ -125,142 +124,53 @@ def async_setup_services(hass: HomeAssistant) -> None:
                     # Reload the config entry to reconnect with new PIN
                     await hass.config_entries.async_reload(entry_id)
 
-    async def handle_scan_protocol(call: ServiceCall) -> None:
+    async def handle_scan_protocol(call: ServiceCall) -> dict:
         """Handle the scan_protocol_parameters service call."""
-        import json
-        from datetime import datetime
 
         _LOGGER.debug("Scan protocol service called with data: %s", call.data)
         coordinator = _get_coordinator(hass, call)
 
-        evt_type_max = call.data[HA_SERVICE_ATTR_EVT_TYPE_MAX]
-        ctrl_max = call.data[HA_SERVICE_ATTR_CTRL_MAX]
-        pars_evt_type_max = call.data[HA_SERVICE_ATTR_PARS_EVT_TYPE_MAX]
-        save_to_file = call.data[HA_SERVICE_ATTR_SAVE_TO_FILE]
+        evt_type = call.data[HA_SERVICE_ATTR_EVT_TYPE]
+        ctrl = call.data.get(HA_SERVICE_ATTR_CTRL)
+        pars_evt_type = call.data.get(HA_SERVICE_ATTR_PARS_EVT_TYPE)
 
         _LOGGER.info(
-            "Starting protocol scan: evt_type=0-%d, ctrl=0-%d, pars_evt_type=0-%d",
-            evt_type_max,
-            ctrl_max,
-            pars_evt_type_max,
+            "Testing protocol parameters: evt_type=%d, ctrl=%s, pars_evt_type=%s",
+            evt_type,
+            ctrl,
+            pars_evt_type,
         )
 
-        results = []
-        total_tests = 0
-        successful_tests = 0
+        # Test the specific parameter combination
+        response = await coordinator.test_protocol_parameters(
+            evt_type, ctrl, pars_evt_type
+        )
 
-        # Scan evt_type values
-        for evt_type in range(evt_type_max + 1):
-            # Test without ctrl
-            total_tests += 1
-            response = await coordinator.client.test_protocol_parameters(
-                evt_type, None, None
+        result = {
+            "evt_type": evt_type,
+            "ctrl": ctrl,
+            "pars_evt_type": pars_evt_type,
+            "success": response is not None,
+            "response": response if response else None,
+        }
+
+        if response:
+            _LOGGER.info(
+                "✓ Found data: evt_type=%d, ctrl=%s, pars_evt_type=%s",
+                evt_type,
+                ctrl,
+                pars_evt_type,
             )
-            if response:
-                successful_tests += 1
-                results.append({
-                    "evt_type": evt_type,
-                    "ctrl": None,
-                    "pars_evt_type": None,
-                    "response": response,
-                })
-                _LOGGER.info(
-                    "✓ Found data: evt_type=%d, ctrl=None, pars_evt_type=None",
-                    evt_type,
-                )
-
-            # Test with ctrl values
-            for ctrl in range(ctrl_max + 1):
-                # Without pars evt_type
-                total_tests += 1
-                response = await coordinator.client.test_protocol_parameters(
-                    evt_type, ctrl, None
-                )
-                if response:
-                    successful_tests += 1
-                    results.append({
-                        "evt_type": evt_type,
-                        "ctrl": ctrl,
-                        "pars_evt_type": None,
-                        "response": response,
-                    })
-                    _LOGGER.info(
-                        "✓ Found data: evt_type=%d, ctrl=%d, pars_evt_type=None",
-                        evt_type,
-                        ctrl,
-                    )
-
-                # With pars evt_type values
-                for pars_evt_type in range(pars_evt_type_max + 1):
-                    total_tests += 1
-                    response = await coordinator.client.test_protocol_parameters(
-                        evt_type, ctrl, pars_evt_type
-                    )
-                    if response:
-                        successful_tests += 1
-                        results.append({
-                            "evt_type": evt_type,
-                            "ctrl": ctrl,
-                            "pars_evt_type": pars_evt_type,
-                            "response": response,
-                        })
-                        _LOGGER.info(
-                            "✓ Found data: evt_type=%d, ctrl=%d, pars_evt_type=%d",
-                            evt_type,
-                            ctrl,
-                            pars_evt_type,
-                        )
-
-        _LOGGER.info(
-            "Protocol scan complete: %d/%d tests returned data", successful_tests, total_tests
-        )
-
-        # Log all results in formatted JSON
-        if results:
-            _LOGGER.info("=" * 70)
-            _LOGGER.info("PROTOCOL SCAN RESULTS")
-            _LOGGER.info("=" * 70)
-            for i, result in enumerate(results, 1):
-                _LOGGER.info(
-                    "Result %d: evt_type=%s, ctrl=%s, pars_evt_type=%s",
-                    i,
-                    result["evt_type"],
-                    result["ctrl"],
-                    result["pars_evt_type"],
-                )
-                _LOGGER.info("Response: %s", json.dumps(result["response"], indent=2))
-            _LOGGER.info("=" * 70)
+            _LOGGER.info("Response: %s", json.dumps(response, indent=2))
         else:
-            _LOGGER.warning("No meaningful data found in protocol scan")
+            _LOGGER.warning(
+                "✗ No data: evt_type=%d, ctrl=%s, pars_evt_type=%s",
+                evt_type,
+                ctrl,
+                pars_evt_type,
+            )
 
-        # Save to file if requested
-        if save_to_file and results:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"protocol_scan_{timestamp}.json"
-            filepath = hass.config.path(filename)
-
-            try:
-                with open(filepath, "w") as f:
-                    json.dump(
-                        {
-                            "timestamp": timestamp,
-                            "scan_parameters": {
-                                "evt_type_max": evt_type_max,
-                                "ctrl_max": ctrl_max,
-                                "pars_evt_type_max": pars_evt_type_max,
-                            },
-                            "summary": {
-                                "total_tests": total_tests,
-                                "successful_tests": successful_tests,
-                            },
-                            "results": results,
-                        },
-                        f,
-                        indent=2,
-                    )
-                _LOGGER.info("Protocol scan results saved to: %s", filepath)
-            except Exception as e:  # noqa: BLE001
-                _LOGGER.error("Failed to save protocol scan results: %s", e)
+        return result
 
     hass.services.async_register(
         DOMAIN,
@@ -281,6 +191,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         HA_SERVICE_SCAN_PROTOCOL,
         handle_scan_protocol,
         schema=SERVICE_SCAN_PROTOCOL_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
     )
 
 

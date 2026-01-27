@@ -4,18 +4,18 @@
 from __future__ import annotations
 
 import asyncio
-import sys
-from typing import Any
-
-import bleak
-from bleak import BleakScanner
-from bleak.backends.device import BLEDevice
-from bleak.backends import get_default_backend
-
 
 # Import client with workaround for relative imports
 import importlib.util
 import os
+import sys
+import traceback
+import types
+
+import bleak
+from bleak import BleakScanner
+from bleak.backends import get_default_backend
+from bleak.backends.device import BLEDevice
 
 # Create a proper package structure in sys.modules to support relative imports
 sys.path.insert(0, "custom_components")
@@ -35,7 +35,8 @@ sys.modules["blanco_unit.data"] = data_module
 data_spec.loader.exec_module(data_module)
 
 # Create a fake package module for blanco_unit
-import types
+
+
 blanco_unit_package = types.ModuleType("blanco_unit")
 blanco_unit_package.__path__ = [os.path.join("custom_components", "blanco_unit")]
 blanco_unit_package.__package__ = "blanco_unit"
@@ -43,8 +44,11 @@ sys.modules["blanco_unit"] = blanco_unit_package
 
 # Load client module with package context
 client_path = os.path.join("custom_components", "blanco_unit", "client.py")
-client_spec = importlib.util.spec_from_file_location("blanco_unit.client", client_path,
-                                                       submodule_search_locations=[os.path.join("custom_components", "blanco_unit")])
+client_spec = importlib.util.spec_from_file_location(
+    "blanco_unit.client",
+    client_path,
+    submodule_search_locations=[os.path.join("custom_components", "blanco_unit")],
+)
 client_module = importlib.util.module_from_spec(client_spec)
 client_module.__package__ = "blanco_unit"
 sys.modules["blanco_unit.client"] = client_module
@@ -75,6 +79,7 @@ class BlancoUnitCLI:
         except AttributeError:
             try:
                 import importlib.metadata
+
                 bleak_version = importlib.metadata.version("bleak")
             except Exception:  # noqa: BLE001
                 bleak_version = "Unknown"
@@ -139,7 +144,10 @@ class BlancoUnitCLI:
             print(f"   Address: {device.address}")
 
             # Get RSSI from advertisement data if available
-            if hasattr(self, 'devices_with_advdata') and device.address in self.devices_with_advdata:
+            if (
+                hasattr(self, "devices_with_advdata")
+                and device.address in self.devices_with_advdata
+            ):
                 _, adv_data = self.devices_with_advdata[device.address]
                 rssi = adv_data.rssi
                 print(f"   RSSI: {rssi} dBm")
@@ -151,7 +159,7 @@ class BlancoUnitCLI:
         while True:
             try:
                 choice = input("Select device number (or 'q' to quit): ").strip()
-                if choice.lower() == 'q':
+                if choice.lower() == "q":
                     return None
 
                 idx = int(choice) - 1
@@ -184,7 +192,9 @@ class BlancoUnitCLI:
             print("Error: Device or PIN not set")
             return False
 
-        print(f"\nConnecting to {self.device.name or 'Unknown'} ({self.device.address})...")
+        print(
+            f"\nConnecting to {self.device.name or 'Unknown'} ({self.device.address})..."
+        )
 
         try:
             self.client = BlancoUnitBluetoothClient(
@@ -236,9 +246,6 @@ class BlancoUnitCLI:
             print(" 10. Set Soda Water Calibration")
             print(" 11. Change PIN")
             print()
-            print("Testing:")
-            print(" 12. Scan Protocol Parameters")
-            print()
             print("Other:")
             print("  0. Disconnect and Exit")
             print("=" * 70)
@@ -248,7 +255,7 @@ class BlancoUnitCLI:
             try:
                 if choice == "0":
                     break
-                elif choice == "1":
+                if choice == "1":
                     await self.test_get_system_info()
                 elif choice == "2":
                     await self.test_get_settings()
@@ -270,13 +277,12 @@ class BlancoUnitCLI:
                     await self.test_set_calibration_soda()
                 elif choice == "11":
                     await self.test_change_pin()
-                elif choice == "12":
-                    await self.test_scan_protocol_parameters()
                 else:
                     print("Invalid option. Please try again.")
             except Exception as e:
                 print(f"\n✗ Error: {e}")
                 import traceback
+
                 traceback.print_exc()
 
     # Test methods for each function
@@ -353,8 +359,7 @@ class BlancoUnitCLI:
                     else:
                         print("✗ Failed to set temperature")
                     break
-                else:
-                    print("Temperature must be between 4 and 10°C")
+                print("Temperature must be between 4 and 10°C")
             except ValueError:
                 print("Please enter a valid number")
 
@@ -375,8 +380,7 @@ class BlancoUnitCLI:
                     else:
                         print("✗ Failed to set water hardness")
                     break
-                else:
-                    print("Hardness level must be between 1 and 9")
+                print("Hardness level must be between 1 and 9")
             except ValueError:
                 print("Please enter a valid number")
 
@@ -402,11 +406,15 @@ class BlancoUnitCLI:
                     print("CO2 intensity must be 1, 2, or 3")
                     continue
 
-                confirm = input(f"Dispense {amount_int}ml with CO2 level {co2_int}? (y/n): ").strip().lower()
-                if confirm == 'y':
+                confirm = (
+                    input(f"Dispense {amount_int}ml with CO2 level {co2_int}? (y/n): ")
+                    .strip()
+                    .lower()
+                )
+                if confirm == "y":
                     result = await self.client.dispense_water(amount_int, co2_int)
                     if result:
-                        print(f"✓ Dispensing started successfully")
+                        print("✓ Dispensing started successfully")
                     else:
                         print("✗ Failed to start dispensing")
                 break
@@ -452,7 +460,9 @@ class BlancoUnitCLI:
         print("⚠️  WARNING: This will change the device PIN!")
         print("⚠️  Make sure you remember the new PIN!")
 
-        confirm = input("Are you sure you want to change the PIN? (yes/no): ").strip().lower()
+        confirm = (
+            input("Are you sure you want to change the PIN? (yes/no): ").strip().lower()
+        )
         if confirm != "yes":
             print("PIN change cancelled")
             return
@@ -470,102 +480,9 @@ class BlancoUnitCLI:
                     else:
                         print("✗ Failed to change PIN")
                     break
-                else:
-                    print("PINs don't match. Please try again.")
+                print("PINs don't match. Please try again.")
             else:
                 print("PIN must be exactly 5 digits. Please try again.")
-
-    async def test_scan_protocol_parameters(self) -> None:
-        """Scan for valid protocol parameters."""
-        print("\n--- Scan Protocol Parameters ---")
-        print("This will test evt_type 0-10, ctrl 0-10, and pars evt_type 0-10")
-        print("Only responses with meaningful data will be shown.")
-        print()
-
-        confirm = input("This may take a few minutes. Continue? (y/n): ").strip().lower()
-        if confirm != 'y':
-            print("Scan cancelled")
-            return
-
-        results = []
-        total_tests = 0
-        successful_tests = 0
-
-        print("\nScanning...")
-
-        # Test evt_type 0-10
-        for evt_type in range(11):
-            # Test without ctrl
-            print(f"  Testing evt_type={evt_type}, ctrl=None, pars_evt_type=None...")
-            total_tests += 1
-            response = await self.client.test_protocol_parameters(evt_type, None, None)
-            if response:
-                successful_tests += 1
-                results.append({
-                    "evt_type": evt_type,
-                    "ctrl": None,
-                    "pars_evt_type": None,
-                    "response": response
-                })
-
-            # Test with ctrl 0-10
-            for ctrl in range(11):
-                # Without pars evt_type
-                print(f"  Testing evt_type={evt_type}, ctrl={ctrl}, pars_evt_type=None...")
-                total_tests += 1
-                response = await self.client.test_protocol_parameters(evt_type, ctrl, None)
-                if response:
-                    successful_tests += 1
-                    results.append({
-                        "evt_type": evt_type,
-                        "ctrl": ctrl,
-                        "pars_evt_type": None,
-                        "response": response
-                    })
-
-                # With pars evt_type 0-10
-                for pars_evt_type in range(11):
-                    print(f"  Testing evt_type={evt_type}, ctrl={ctrl}, pars_evt_type={pars_evt_type}...")
-                    total_tests += 1
-                    response = await self.client.test_protocol_parameters(evt_type, ctrl, pars_evt_type)
-                    if response:
-                        successful_tests += 1
-                        results.append({
-                            "evt_type": evt_type,
-                            "ctrl": ctrl,
-                            "pars_evt_type": pars_evt_type,
-                            "response": response
-                        })
-
-        print("\n" + "=" * 70)
-        print(f"Scan Complete: {successful_tests}/{total_tests} tests returned data")
-        print("=" * 70)
-
-        if results:
-            print("\nResults with meaningful data:\n")
-            for i, result in enumerate(results, 1):
-                print(f"\n--- Result {i} ---")
-                print(f"evt_type: {result['evt_type']}")
-                print(f"ctrl: {result['ctrl']}")
-                print(f"pars_evt_type: {result['pars_evt_type']}")
-                print(f"Response:")
-                import json
-                print(json.dumps(result['response'], indent=2))
-        else:
-            print("\nNo meaningful data found in any test.")
-
-        # Offer to save results
-        if results:
-            save = input("\nSave results to file? (y/n): ").strip().lower()
-            if save == 'y':
-                filename = input("Enter filename (default: protocol_scan_results.json): ").strip()
-                if not filename:
-                    filename = "protocol_scan_results.json"
-
-                import json
-                with open(filename, 'w') as f:
-                    json.dump(results, f, indent=2)
-                print(f"✓ Results saved to {filename}")
 
     async def cleanup(self) -> None:
         """Clean up resources."""
@@ -594,7 +511,9 @@ class BlancoUnitCLI:
                 print("No device selected. Exiting.")
                 return
 
-            print(f"\nSelected: {self.device.name or 'Unknown'} ({self.device.address})")
+            print(
+                f"\nSelected: {self.device.name or 'Unknown'} ({self.device.address})"
+            )
 
             # Get PIN
             self.pin = self.get_pin()
@@ -606,9 +525,9 @@ class BlancoUnitCLI:
 
         except KeyboardInterrupt:
             print("\n\nInterrupted by user")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"\n✗ Unexpected error: {e}")
-            import traceback
+
             traceback.print_exc()
         finally:
             await self.cleanup()
