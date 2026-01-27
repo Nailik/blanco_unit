@@ -219,16 +219,9 @@ Test protocol parameters by sending custom BLE commands to the device. This is a
   - `ctrl` (optional): Control code value (0-255)
   - `pars` (optional): Parameters dictionary to send with the request
 
-**Common Protocol Combinations:**
+**Example - Get System Information for Blanco Drink.soda:**
 
 See [Event Types](BLUETOOTH_PROTOCOL.md#event-types-blanco-drinksoda) in the protocol documentation for complete details.
-
-- **Get System Information**: `{"evt_type": 7, "ctrl": 3, "pars": {"evt_type": 2}}`
-- **Get Device Status**: `{"evt_type": 7, "ctrl": 3, "pars": {"evt_type": 6}}`
-- **Get Device Settings**: `{"evt_type": 7, "ctrl": 3, "pars": {"evt_type": 5}}`
-- **Get Error Information**: `{"evt_type": 7, "ctrl": 3, "pars": {"evt_type": 4}}`
-
-**Example - Get System Information:**
 
 ```yaml
 service: blanco_unit.scan_protocol_parameters
@@ -267,8 +260,6 @@ success: true
 response:
   # Device response data
 ```
-
-For detailed protocol information including all event types, control codes, and parameter formats, see the [Bluetooth Protocol Documentation](BLUETOOTH_PROTOCOL.md).
 
 ## Example Automations
 
