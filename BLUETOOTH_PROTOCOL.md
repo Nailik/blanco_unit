@@ -270,23 +270,23 @@ Example:
 
 When using event type 7 with control code 3, you must specify a sub-event type in the `pars` field:
 
-| evt_type | Description        | Returns                                                                                                                   |
-| -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| 2        | System information | Firmware versions (`sw_ver_comm_con`, `sw_ver_elec_con`, `sw_ver_main_con`), device name, reset count                     |
-| 4        | Error information  | Array of errors with `err_code` and `err_msg` (empty array if no errors)                                                  |
-| 5        | Device settings    | Calibration values, filter lifetime, post-flush quantity, temperature setpoint, water hardness. CHOICE.All adds: heating setpoint, hot water calibration, carbonation ratios |
+| evt_type | Description        | Returns                                                                                                                                                                                                           |
+| -------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2        | System information | Firmware versions (`sw_ver_comm_con`, `sw_ver_elec_con`, `sw_ver_main_con`), device name, reset count                                                                                                             |
+| 4        | Error information  | Array of errors with `err_code` and `err_msg` (empty array if no errors)                                                                                                                                          |
+| 5        | Device settings    | Calibration values, filter lifetime, post-flush quantity, temperature setpoint, water hardness. CHOICE.All adds: heating setpoint, hot water calibration, carbonation ratios                                      |
 | 6        | Device status      | Tap state, filter/CO2 remaining percentage, water dispensing active, firmware update available, cleaning mode, error bits. CHOICE.All adds: boiler temperatures, compressor temperature, controller status values |
 
 ### Settings Parameters (evt_type=7, ctrl=5)
 
 When setting device configuration, use event type 7 with control code 5 and one of these parameters:
 
-| Setting                 | Parameter Format                                                           | Valid Values | Description                                             |
-| ----------------------- | -------------------------------------------------------------------------- | ------------ | ------------------------------------------------------- |
-| Cooling temperature     | `{"set_point_cooling": {"val": <temp>}}`                                   | 4-10°C       | Set target cooling temperature                          |
-| Water hardness          | `{"wtr_hardness": {"val": <level>}}`                                       | 1-9          | Set water hardness level                                |
-| Still water calibration | `{"calib_still_wtr": {"val": <amount>}}`                                   | 1-10         | Calibrate still water flow                              |
-| Soda water calibration  | `{"calib_soda_wtr": {"val": <amount>}}`                                    | 1-10         | Calibrate carbonated water flow                         |
+| Setting                 | Parameter Format                         | Valid Values | Description                     |
+| ----------------------- | ---------------------------------------- | ------------ | ------------------------------- |
+| Cooling temperature     | `{"set_point_cooling": {"val": <temp>}}` | 4-10°C       | Set target cooling temperature  |
+| Water hardness          | `{"wtr_hardness": {"val": <level>}}`     | 1-9          | Set water hardness level        |
+| Still water calibration | `{"calib_still_wtr": {"val": <amount>}}` | 1-10         | Calibrate still water flow      |
+| Soda water calibration  | `{"calib_soda_wtr": {"val": <amount>}}`  | 1-10         | Calibrate carbonated water flow |
 
 ## Event Types (Blanco Choice.all)
 
@@ -303,23 +303,23 @@ The device type is returned in the pairing response (`evt_type: 10`) in the `met
 
 The CHOICE.All status response includes these additional fields alongside the standard Drink.soda fields:
 
-| Parameter                  | Type    | Description                                                                                     |
-| -------------------------- | ------- | ----------------------------------------------------------------------------------------------- |
-| `temp_boil_1`              | integer | Boiler temperature sensor 1 (°C)                                                                |
-| `temp_boil_2`              | integer | Boiler temperature sensor 2 (°C)                                                                |
-| `temp_comp`                | integer | Compressor/condenser temperature (°C) - idles at ~32-34°C, spikes to ~52-55°C when running      |
-| `main_controller_status`   | integer | Main controller status bitmask (see bit definitions below)                                      |
-| `conn_controller_status`   | integer | Connection controller status value                                                              |
+| Parameter                | Type    | Description                                                                                |
+| ------------------------ | ------- | ------------------------------------------------------------------------------------------ |
+| `temp_boil_1`            | integer | Boiler temperature sensor 1 (°C)                                                           |
+| `temp_boil_2`            | integer | Boiler temperature sensor 2 (°C)                                                           |
+| `temp_comp`              | integer | Compressor/condenser temperature (°C) - idles at ~32-34°C, spikes to ~52-55°C when running |
+| `main_controller_status` | integer | Main controller status bitmask (see bit definitions below)                                 |
+| `conn_controller_status` | integer | Connection controller status value                                                         |
 
 #### Main Controller Status Bitmask
 
 The `main_controller_status` field is a bitmask. Known bits:
 
-| Bit  | Hex Value | Description                                                            |
-| ---- | --------- | ---------------------------------------------------------------------- |
-| 8+16 | 0x10100   | Base state bits, always set when device is running (value: 65792)      |
-| 13   | 0x2000    | Boiler heater element active (heating water to setpoint)               |
-| 14   | 0x4000    | Cooling compressor active (compressor running to cool water)           |
+| Bit  | Hex Value | Description                                                       |
+| ---- | --------- | ----------------------------------------------------------------- |
+| 8+16 | 0x10100   | Base state bits, always set when device is running (value: 65792) |
+| 13   | 0x2000    | Boiler heater element active (heating water to setpoint)          |
+| 14   | 0x4000    | Cooling compressor active (compressor running to cool water)      |
 
 **Note:** Heater and compressor never run simultaneously (load management).
 
@@ -327,18 +327,18 @@ The `main_controller_status` field is a bitmask. Known bits:
 
 The CHOICE.All settings response includes these additional fields:
 
-| Parameter              | Type  | Description                            |
-| ---------------------- | ----- | -------------------------------------- |
-| `set_point_heating`    | int   | Heating setpoint temperature (60-100°C)|
-| `calib_hot_wtr`        | int   | Hot water calibration value (mL)       |
-| `gbl_medium_wtr_ratio` | float | Medium carbonation water ratio        |
-| `gbl_classic_wtr_ratio`| float | Classic carbonation water ratio       |
+| Parameter               | Type  | Description                             |
+| ----------------------- | ----- | --------------------------------------- |
+| `set_point_heating`     | int   | Heating setpoint temperature (60-100°C) |
+| `calib_hot_wtr`         | int   | Hot water calibration value (mL)        |
+| `gbl_medium_wtr_ratio`  | float | Medium carbonation water ratio          |
+| `gbl_classic_wtr_ratio` | float | Classic carbonation water ratio         |
 
 ### Additional Settings Parameters (evt_type=7, ctrl=5)
 
-| Setting              | Parameter Format                            | Valid Values | Description                       |
-| -------------------- | ------------------------------------------- | ------------ | --------------------------------- |
-| Heating temperature  | `{"set_point_heating": {"val": <temp>}}`    | 60-100°C     | Set target heating temperature    |
+| Setting             | Parameter Format                         | Valid Values | Description                    |
+| ------------------- | ---------------------------------------- | ------------ | ------------------------------ |
+| Heating temperature | `{"set_point_heating": {"val": <temp>}}` | 60-100°C     | Set target heating temperature |
 
 ## Request/Response Examples
 

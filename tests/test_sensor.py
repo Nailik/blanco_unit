@@ -147,7 +147,7 @@ async def test_all_entities(
 @pytest.mark.parametrize(
     ("device_type", "expected_count"),
     [
-        (1, 28),
+        (1, 24),
         (2, 33),
     ],
 )
@@ -202,6 +202,10 @@ async def test_async_setup_entry(
         assert "CoolingTempSensor" in sensor_types
         assert "MainControllerStatusSensor" in sensor_types
         assert "ConnControllerStatusSensor" in sensor_types
+        assert "MediumCarbonationRatioSensor" in sensor_types
+        assert "ClassicCarbonationRatioSensor" in sensor_types
+        assert "HeatingSetpointSensor" in sensor_types
+        assert "HotWaterCalibrationSensor" in sensor_types
 
 
 async def test_filter_remaining_sensor(mock_coordinator) -> None:

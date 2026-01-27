@@ -38,11 +38,6 @@ async def async_setup_entry(
             # Settings sensors
             FilterLifetimeSensor(coordinator),
             PostFlushQuantitySensor(coordinator),
-            # CHOICE.All settings sensors
-            HeatingSetpointSensor(coordinator),
-            HotWaterCalibrationSensor(coordinator),
-            MediumCarbonationRatioSensor(coordinator),
-            ClassicCarbonationRatioSensor(coordinator),
             # System info sensors
             FirmwareMainSensor(coordinator),
             FirmwareCommSensor(coordinator),
@@ -71,6 +66,10 @@ async def async_setup_entry(
         CoolingTempSensor(coordinator),
         MainControllerStatusSensor(coordinator),
         ConnControllerStatusSensor(coordinator),
+        MediumCarbonationRatioSensor(coordinator),
+        ClassicCarbonationRatioSensor(coordinator),
+        HeatingSetpointSensor(coordinator),
+        HotWaterCalibrationSensor(coordinator),
     ]
     if coordinator.data.device_type == 2:
         entities.extend(entitiesExtended)
