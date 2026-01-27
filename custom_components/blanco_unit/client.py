@@ -64,15 +64,17 @@ class _RequestMeta:
 
     evt_type: int
     dev_id: str | None = None
-    dev_type: int = 1
+    dev_type: int | None = None
     evt_ver: int = 1
     evt_ts: int = field(default_factory=lambda: int(time.time() * 1000))
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary, omitting None dev_id."""
+        """Convert to dictionary, omitting None dev_id and dev_type."""
         data = asdict(self)
         if self.dev_id is None:
             del data["dev_id"]
+        if self.dev_type is None:
+            del data["dev_type"]
         return data
 
 
@@ -302,7 +304,7 @@ class _BlancoUnitProtocol:
         self, client: BleakClient, pin: str
     ) -> dict[str, Any]:
         """Send pairing request and return parsed response."""
-        meta = _RequestMeta(evt_type=10, dev_id=None)
+        meta = _RequestMeta(evt_type=10, dev_id=None, dev_type=None)
         body = _RequestBody(meta=meta, pars={})
 
         req_id = random.randint(1000000, 9999999)
@@ -319,7 +321,7 @@ class _BlancoUnitProtocol:
         request_dict = envelope.to_dict()
         packets = self.create_packets(request_dict, self.msg_id_counter)
 
-        _LOGGER.debug("Sending pairing data: %s", envelope)
+        _LOGGER.debug("Sending pairing data: %s", request_dict)
         _LOGGER.debug("Sending pairing request (ReqID: %s)", req_id)
 
         # Send packets
@@ -335,12 +337,13 @@ class _BlancoUnitProtocol:
         client: BleakClient,
         pin: str,
         dev_id: str,
+        dev_type: int,
         evt_type: int,
         ctrl: int | None = None,
         pars: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Send a general request and return parsed response."""
-        meta = _RequestMeta(evt_type=evt_type, dev_id=dev_id)
+        meta = _RequestMeta(evt_type=evt_type, dev_id=dev_id, dev_type=dev_type)
         opts_dict: dict[str, int] | None = {"ctrl": ctrl} if ctrl is not None else None
         body = _RequestBody(meta=meta, opts=opts_dict, pars=pars)
 
@@ -362,7 +365,7 @@ class _BlancoUnitProtocol:
         request_dict = envelope.to_dict()
         packets = self.create_packets(request_dict, self.msg_id_counter)
 
-        _LOGGER.debug("Sending data: %s", envelope)
+        _LOGGER.debug("Sending data: %s", request_dict)
         _LOGGER.debug("Sending request (ReqID: %s, %d packets)", req_id, len(packets))
 
         # Send packets
@@ -413,6 +416,11 @@ class BlancoUnitBluetoothClient:
         return self._session_data.dev_id if self._session_data else None
 
     @property
+    def device_type(self) -> int | None:
+        """Return the device type from the current session, or None if not connected."""
+        return self._session_data.dev_type if self._session_data else None
+
+    @property
     def is_connected(self) -> bool:
         """Return True if the BLE client is currently connected."""
         return (
@@ -448,12 +456,13 @@ class BlancoUnitBluetoothClient:
             protocol = _BlancoUnitProtocol(mtu=MTU_SIZE)
 
             # Perform initial pairing
-            dev_id = await self._perform_pairing(client, protocol)
+            result = await self._perform_pairing(client, protocol)
 
-            _LOGGER.debug("Connected and paired with device ID: %s", dev_id)
+            _LOGGER.debug("Connected and paired with device ID: %s, device type: %d",  result.dev_id, result.dev_type,)
             self._session_data = _BlancoUnitSessionData(
                 client=client,
-                dev_id=dev_id,
+                dev_id=result.dev_id,
+                dev_type=result.dev_type,
                 protocol=protocol,
             )
             self._connection_callback(self._session_data.client.is_connected)
@@ -467,23 +476,27 @@ class BlancoUnitBluetoothClient:
 
     async def _perform_pairing(
         self, client: BleakClient, protocol: _BlancoUnitProtocol
-    ) -> str:
-        """Perform initial pairing to get device ID.
+    ) -> PinValidationResult:
+        """Perform initial pairing to get device ID and device type.
+
+        Returns:
+            Tuple of (dev_id, dev_type).
 
         Raises:
             BlancoUnitAuthenticationError: If PIN is wrong (error code 4).
             BlancoUnitConnectionError: If device ID cannot be extracted.
         """
         # Validate PIN and get response
-        is_valid, response = await validate_pin(client, self._pin, protocol)
-        if not is_valid:
+        validation = await validate_pin(client, self._pin, protocol)
+        if not validation.is_valid:
             raise BlancoUnitAuthenticationError("Wrong PIN - Authentication failed")
 
-        # Extract device ID using shared helper
-        dev_id = _extract_device_id(response)
-        if dev_id is None:
+        if validation.dev_id is None:
             raise BlancoUnitConnectionError("No device ID in pairing response")
-        return dev_id
+
+        if validation.dev_type is None:
+            raise BlancoUnitConnectionError("No device type in pairing response")
+        return validation
 
     async def _execute_transaction(
         self,
@@ -498,6 +511,7 @@ class BlancoUnitBluetoothClient:
             client=session_data.client,
             pin=self._pin,
             dev_id=session_data.dev_id,
+            dev_type=session_data.dev_type,
             evt_type=evt_type,
             ctrl=ctrl,
             pars=pars,
@@ -704,7 +718,7 @@ class BlancoUnitBluetoothClient:
 
     async def test_protocol_parameters(
         self, evt_type: int, ctrl: int | None = None, pars: dict[str, Any] | None = None
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any]:
         """Test protocol parameters and return response if it contains meaningful data.
 
         Args:
@@ -716,15 +730,9 @@ class BlancoUnitBluetoothClient:
             Response dictionary if it contains meaningful data, None otherwise.
         """
         try:
-            response = await self._execute_transaction(
+            return await self._execute_transaction(
                 evt_type=evt_type, ctrl=ctrl, pars=pars
             )
-
-            # Check if response contains meaningful data
-            if self._is_response_empty(response):
-                return None
-
-            return response  # noqa: TRY300
         except Exception as e:  # noqa: BLE001
             _LOGGER.debug(
                 "Test failed for evt_type=%s, ctrl=%s, pars=%s: %s",
@@ -735,25 +743,18 @@ class BlancoUnitBluetoothClient:
             )
             return None
 
-    def _is_response_empty(self, response: dict[str, Any]) -> bool:
-        """Check if a response contains meaningful data.
-
-        Args:
-            response: Response dictionary to check.
-
-        Returns:
-            True if response is empty or contains only empty structures.
-        """
-        if not response:
-            return True
-
-        # Check if body exists
-        body = response.get("body", {})
-        return not body
-
 # -------------------------------
 # region Standalone Functions
 # -------------------------------
+
+
+@dataclass
+class PinValidationResult:
+    """Result of PIN validation."""
+
+    is_valid: bool
+    dev_id: str | None
+    dev_type: int | None
 
 
 def _extract_device_id(response: dict[str, Any]) -> str | None:
@@ -775,9 +776,28 @@ def _extract_device_id(response: dict[str, Any]) -> str | None:
     return None
 
 
+def _extract_device_type(response: dict[str, Any]) -> int | None:
+    """Extract device type from a pairing response.
+
+    Args:
+        response: The response dictionary from a pairing request.
+
+    Returns:
+        The device type if found, None otherwise.
+    """
+    try:
+        body = response.get("body", {})
+        meta = body.get("meta", {})
+        if "dev_type" in meta:
+            return meta["dev_type"]
+    except (KeyError, TypeError):
+        pass
+    return None
+
+
 async def validate_pin(
     client: BleakClient, pin: str, protocol: _BlancoUnitProtocol | None = None
-) -> tuple[bool, dict[str, Any]]:
+) -> PinValidationResult:
     """Test if a PIN is valid by attempting to pair with the device.
 
     This is a standalone function that works with an existing BleakClient.
@@ -788,9 +808,10 @@ async def validate_pin(
         protocol: Optional protocol instance. If None, creates a new one.
 
     Returns:
-        Tuple of (is_valid, response_dict):
+        PinValidationResult containing:
             - is_valid: True if PIN is valid, False if wrong PIN (error code 4)
-            - response_dict: The full response from the pairing attempt
+            - response: The full response from the pairing attempt
+            - dev_id: The device ID if pairing was successful, None otherwise
 
     Raises:
         ValueError: If PIN format is invalid.
@@ -809,21 +830,22 @@ async def validate_pin(
     # Send pairing request and get response
     response = await protocol.send_pairing_request(client, pin)
 
+    dev_id = _extract_device_id(response)
+    dev_type = _extract_device_type(response)
+
     # Check for authentication error (error code 4)
     errors = protocol.extract_errors(response)
     for error in errors:
         if error.get("err_code") == 4:
             _LOGGER.debug("PIN validation failed: wrong PIN (error code 4)")
-            return (False, response)
+            return PinValidationResult(is_valid=False, dev_type=dev_type, dev_id=dev_id)
 
-    # Check if we got a device ID in results (successful pairing)
-    dev_id = _extract_device_id(response)
     if dev_id is not None:
-        _LOGGER.debug("PIN validation successful")
-        return (True, response)
+        _LOGGER.debug("PIN validation successful, dev_id: %s", dev_id)
+        return PinValidationResult(is_valid=True, dev_type=dev_type, dev_id=dev_id)
 
-    _LOGGER.debug("PIN validation failed: no device ID in response")
-    return (False, response)
+    _LOGGER.debug("PIN validation failed: no device ID or device type in response")
+    return PinValidationResult(is_valid=False, dev_type=dev_type, dev_id=dev_id)
 
 
 # -------------------------------
@@ -837,4 +859,5 @@ class _BlancoUnitSessionData:
 
     client: BleakClient
     dev_id: str
+    dev_type: int
     protocol: _BlancoUnitProtocol

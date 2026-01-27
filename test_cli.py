@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# ruff: noqa: PGH004
+# ruff: noqa
 """CLI tool for testing Blanco Unit Bluetooth client functionality."""
 
 from __future__ import annotations

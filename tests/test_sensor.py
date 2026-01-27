@@ -23,6 +23,7 @@ from custom_components.blanco_unit.sensor import (
     CleanModeStateSensor,
     CO2RemainingSensor,
     DeviceNameSensor,
+    DeviceTypeSensor,
     ErrorBitsSensor,
     FilterLifetimeSensor,
     FilterRemainingSensor,
@@ -58,6 +59,7 @@ def mock_coordinator():
         connected=True,
         available=True,
         device_id="test_device_id",
+        device_type=1,
         status=BlancoUnitStatus(
             tap_state=1,
             filter_rest=85,
@@ -154,8 +156,8 @@ async def test_async_setup_entry(
 
     await async_setup_entry(hass, mock_config_entry, mock_add_entities)
 
-    # Verify all 22 sensors were added
-    assert len(entities_added) == 22
+    # Verify all 24 sensors were added
+    assert len(entities_added) == 24
 
     # Verify sensor types
     sensor_types = [type(entity).__name__ for entity in entities_added]
@@ -171,6 +173,7 @@ async def test_async_setup_entry(
     assert "FirmwareElecSensor" in sensor_types
     assert "DeviceNameSensor" in sensor_types
     assert "ResetCountSensor" in sensor_types
+    assert "DeviceTypeSensor" in sensor_types
     assert "SerialNumberSensor" in sensor_types
     assert "ServiceCodeSensor" in sensor_types
     assert "WiFiSSIDSensor" in sensor_types
@@ -396,6 +399,22 @@ async def test_reset_count_sensor_unavailable(mock_coordinator) -> None:
     sensor = ResetCountSensor(mock_coordinator)
 
     assert sensor.available is False
+    assert sensor.native_value is None
+
+
+async def test_device_type_sensor(mock_coordinator) -> None:
+    """Test DeviceTypeSensor."""
+    sensor = DeviceTypeSensor(mock_coordinator)
+
+    assert sensor.native_value == 1
+    assert sensor.unique_id == "device_type"
+
+
+async def test_device_type_sensor_none(mock_coordinator) -> None:
+    """Test DeviceTypeSensor when device_type is None."""
+    mock_coordinator.data.device_type = None
+    sensor = DeviceTypeSensor(mock_coordinator)
+
     assert sensor.native_value is None
 
 

@@ -21,7 +21,15 @@ from homeassistant.helpers.selector import (
 )
 
 from .client import validate_pin
-from .const import CONF_ERROR, CONF_MAC, CONF_NAME, CONF_PIN, DOMAIN
+from .const import (
+    CONF_DEV_ID,
+    CONF_ERROR,
+    CONF_MAC,
+    CONF_NAME,
+    CONF_PIN,
+    DOMAIN,
+    RANDOM_MAC_PLACEHOLDER,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +39,8 @@ class ValidationResult:
     """Result of the validation, errors is empty if successful."""
 
     errors: dict[str, str]
+    dev_id: str | None = None
+    mac_address: str | None = None
     description_placeholders: dict[str, Any] | None = None
 
 
@@ -117,15 +127,38 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
 
         client = None
         try:
-            _LOGGER.debug("await async_ble_device_from_address")
-            device = bluetooth.async_ble_device_from_address(
-                hass=self.hass,
-                address=user_input[CONF_MAC],
-                connectable=True,
-            )
+            # Use device from discovery_info if available
+            if self._discovery_info is not None:
+                _LOGGER.debug("Using device from discovery_info")
+                device = self._discovery_info.device
+            else:
+                _LOGGER.debug("await async_ble_device_from_address")
+                device = bluetooth.async_ble_device_from_address(
+                    hass=self.hass,
+                    address=user_input[CONF_MAC],
+                    connectable=True,
+                )
 
             if device is None:
                 return ValidationResult({CONF_ERROR: "error_device_not_found"})
+
+            # Check if device has randomized MAC address
+            # BLEDevice.address can be random if device uses BLE privacy
+            has_random_mac = getattr(device.details, "address_type", "").lower() in (
+                "random",
+                "random_static",
+                "random_resolvable",
+            )
+            mac_to_store = (
+                RANDOM_MAC_PLACEHOLDER if has_random_mac else device.address
+            )
+
+            _LOGGER.debug(
+                "Device MAC: %s, Random: %s, Storing as: %s",
+                device.address,
+                has_random_mac,
+                mac_to_store,
+            )
 
             _LOGGER.debug("await establish_connection")
             client = await establish_connection(
@@ -135,15 +168,28 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             )
 
             _LOGGER.debug("await validate_pin")
-            is_valid, _ = await validate_pin(client, pin_str)
-            _LOGGER.debug("validate_pin returned %s", is_valid)
+            validation = await validate_pin(client, pin_str)
+            _LOGGER.debug(
+                "validate_pin returned %s, dev_id: %s, dev_type: %s",
+                validation.is_valid,
+                validation.dev_id,
+                validation.dev_type,
+            )
 
-            if not is_valid:
+            if not validation.is_valid:
                 return ValidationResult({CONF_ERROR: "error_invalid_authentication"})
 
+            if validation.dev_id is None or validation.dev_type is None:
+                return ValidationResult({CONF_ERROR: "error_device_not_found"})
+
             _LOGGER.debug(
-                "Successfully tested connection to %s",
-                user_input[CONF_MAC],
+                "Successfully tested connection to %s (dev_id: %s, dev_type: %s)",
+                mac_to_store,
+                validation.dev_id,
+                validation.dev_type,
+            )
+            return ValidationResult(
+                {}, dev_id=validation.dev_id, mac_address=mac_to_store
             )
         except ValueError as err:
             _LOGGER.error("Validation error: %s", err)
@@ -159,14 +205,13 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             if client is not None and client.is_connected:
                 await client.disconnect()
 
-        return ValidationResult({})
-
     async def async_step_bluetooth(
         self, discovery_info: BluetoothServiceInfoBleak
     ) -> ConfigFlowResult:
         """Handle a bluetooth device being discovered."""
+        _LOGGER.debug("async_step_bluetooth called with %s and advertisement %s", discovery_info, discovery_info.advertisement)
         # Check if the device already exists.
-        await self.async_set_unique_id(discovery_info.address)
+        await self._async_handle_discovery_without_unique_id()
         self._abort_if_unique_id_configured()
 
         _LOGGER.debug("async_step_bluetooth %s", discovery_info)
@@ -187,12 +232,24 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             result = await self.validate_input(user_input)
             if not result.errors:
                 # Validation was successful, create a unique id and create the config entry.
-                await self.async_set_unique_id(user_input[CONF_MAC])
+                # Use MAC as unique_id for static MAC, dev_id for random MAC
+                if result.mac_address == RANDOM_MAC_PLACEHOLDER:
+                    await self.async_set_unique_id(result.dev_id)
+                else:
+                    await self.async_set_unique_id(result.mac_address)
                 self._abort_if_unique_id_configured()
-                _LOGGER.debug("Create entry with %s", user_input)
+
+                # Store MAC address and dev_id in config
+                config_data = user_input.copy()
+                config_data[CONF_MAC] = result.mac_address
+                config_data[CONF_DEV_ID] = result.dev_id
+
+                _LOGGER.debug("Create entry with %s", config_data)
+                # Clean up discovery_info after successful validation
+                self._discovery_info = None
                 return self.async_create_entry(
                     title=user_input[CONF_NAME],
-                    data=user_input,
+                    data=config_data,
                 )
 
         return self.async_show_form(
@@ -212,11 +269,23 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             result = await self.validate_input(user_input)
             if not result.errors:
-                await self.async_set_unique_id(user_input[CONF_MAC])
+                # Verify this is the same device
+                if result.mac_address == RANDOM_MAC_PLACEHOLDER:
+                    await self.async_set_unique_id(result.dev_id)
+                else:
+                    await self.async_set_unique_id(result.mac_address)
                 self._abort_if_unique_id_mismatch(reason="wrong_device")
+
+                # Update config with new PIN and potentially updated MAC
+                data_updates = user_input.copy()
+                data_updates[CONF_MAC] = result.mac_address
+                data_updates[CONF_DEV_ID] = result.dev_id
+
+                # Clean up discovery_info after successful validation
+                self._discovery_info = None
                 return self.async_update_reload_and_abort(
                     entry=self._get_reauth_entry(),
-                    data_updates=user_input,
+                    data_updates=data_updates,
                 )
         return self.async_show_form(
             step_id="reauth",
@@ -239,11 +308,23 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             result = await self.validate_input(user_input)
             if not result.errors:
-                await self.async_set_unique_id(user_input[CONF_MAC])
+                # Verify this is the same device
+                if result.mac_address == RANDOM_MAC_PLACEHOLDER:
+                    await self.async_set_unique_id(result.dev_id)
+                else:
+                    await self.async_set_unique_id(result.mac_address)
                 self._abort_if_unique_id_mismatch(reason="wrong_device")
+
+                # Update config with potentially updated MAC and dev_id
+                data_updates = user_input.copy()
+                data_updates[CONF_MAC] = result.mac_address
+                data_updates[CONF_DEV_ID] = result.dev_id
+
+                # Clean up discovery_info after successful validation
+                self._discovery_info = None
                 return self.async_update_reload_and_abort(
                     entry=self._get_reconfigure_entry(),
-                    data_updates=user_input,
+                    data_updates=data_updates,
                 )
         return self.async_show_form(
             step_id="reconfigure",

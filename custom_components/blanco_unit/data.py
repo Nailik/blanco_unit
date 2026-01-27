@@ -72,6 +72,7 @@ class BlancoUnitData:
     connected: bool
     available: bool
     device_id: str
+    device_type: int | None = None
     system_info: BlancoUnitSystemInfo | None = None
     settings: BlancoUnitSettings | None = None
     status: BlancoUnitStatus | None = None

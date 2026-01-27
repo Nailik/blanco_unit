@@ -1,11 +1,12 @@
 """Tests for the Blanco Unit config flow."""
 
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.blanco_unit.client import PinValidationResult
 from custom_components.blanco_unit.const import (
     CONF_ERROR,
     CONF_MAC,
@@ -25,6 +26,7 @@ from homeassistant.data_entry_flow import FlowResultType
 MOCKED_CONF_MAC = "AA:BB:CC:DD:EE:FF"
 MOCKED_CONF_NAME = "Test Blanco Unit"
 MOCKED_CONF_PIN = "01234"
+MOCKED_CONF_DEV_ID = "test_device_id"
 
 MOCKED_CONFIG: dict[str, Any] = {
     CONF_MAC: MOCKED_CONF_MAC,
@@ -81,7 +83,7 @@ async def test_user_flow_success(
     """Test successful user configuration flow."""
     mock_device_from_address.return_value = mock_bluetooth_device
     mock_establish_connection.return_value = mock_bleak_client
-    mock_validate_pin.return_value = (True, None)
+    mock_validate_pin.return_value = PinValidationResult(True, "test_device_id", 2)
 
     # Initialize flow
     flow_result = await hass.config_entries.flow.async_init(
@@ -116,7 +118,7 @@ async def test_user_flow_already_configured(hass: HomeAssistant) -> None:
     with (
         patch(
             "custom_components.blanco_unit.config_flow.validate_pin",
-            return_value=(True, None),
+            return_value=PinValidationResult(True, MOCKED_CONF_DEV_ID, 2),
         ),
         patch(
             "custom_components.blanco_unit.config_flow.establish_connection",
@@ -209,7 +211,7 @@ async def test_user_flow_invalid_authentication(
     """Test user flow with invalid authentication."""
     mock_device_from_address.return_value = mock_bluetooth_device
     mock_establish_connection.return_value = mock_bleak_client
-    mock_validate_pin.return_value = (False, None)
+    mock_validate_pin.return_value = PinValidationResult(False, "devId", 2)
 
     flow_result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}
@@ -310,7 +312,7 @@ async def test_reauth_flow_success(
     """Test successful reauth flow."""
     mock_device_from_address.return_value = mock_bluetooth_device
     mock_establish_connection.return_value = mock_bleak_client
-    mock_validate_pin.return_value = (True, None)
+    mock_validate_pin.return_value = PinValidationResult(True, MOCKED_CONF_DEV_ID, 2)
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -345,17 +347,24 @@ async def test_reauth_flow_wrong_device(
     mock_establish_connection: AsyncMock,
     mock_validate_pin: AsyncMock,
     hass: HomeAssistant,
-    mock_bluetooth_device,
     mock_bleak_client,
 ) -> None:
-    """Test reauth flow with wrong device MAC."""
-    mock_device_from_address.return_value = mock_bluetooth_device
+    """Test reauth flow with wrong device (random MAC, dev_id mismatch)."""
+    # Create a mock device with random MAC so dev_id is used as unique_id
+    mock_device = AsyncMock()
+    mock_device.address = MOCKED_CONF_MAC
+    mock_device.name = MOCKED_CONF_NAME
+    mock_device.details = MagicMock()
+    mock_device.details.address_type = "random"
+
+    mock_device_from_address.return_value = mock_device
     mock_establish_connection.return_value = mock_bleak_client
-    mock_validate_pin.return_value = (True, None)
+    # Return a different dev_id than the one stored in the entry
+    mock_validate_pin.return_value = PinValidationResult(True, "different_dev_id", 2)
 
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id=MOCKED_CONF_MAC,
+        unique_id=MOCKED_CONF_DEV_ID,
         data=MOCKED_CONFIG,
     )
     entry.add_to_hass(hass)
@@ -367,7 +376,7 @@ async def test_reauth_flow_wrong_device(
 
     configure_result = await hass.config_entries.flow.async_configure(
         flow_result["flow_id"],
-        {**MOCKED_CONFIG, CONF_MAC: "11:22:33:44:55:66"},
+        MOCKED_CONFIG,
     )
 
     assert configure_result["type"] is FlowResultType.ABORT
@@ -395,7 +404,7 @@ async def test_reconfigure_flow_success(
     """Test successful reconfigure flow."""
     mock_device_from_address.return_value = mock_bluetooth_device
     mock_establish_connection.return_value = mock_bleak_client
-    mock_validate_pin.return_value = (True, None)
+    mock_validate_pin.return_value = PinValidationResult(True, MOCKED_CONF_DEV_ID, 2)
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -443,7 +452,7 @@ async def test_validate_input_success(
 
     mock_device_from_address.return_value = mock_bluetooth_device
     mock_establish_connection.return_value = mock_bleak_client
-    mock_validate_pin.return_value = (True, None)
+    mock_validate_pin.return_value = PinValidationResult(True, "test_device_id", 2)
 
     flow = BlancoUnitConfigFlow()
     flow.hass = hass
