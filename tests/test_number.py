@@ -165,7 +165,7 @@ async def test_calibration_still_number_min_max_values(mock_coordinator) -> None
     number = CalibrationStillNumber(mock_coordinator)
 
     assert number.native_min_value == 1
-    assert number.native_max_value == 10
+    assert number.native_max_value == 1000
     assert number.native_step == 1
 
 
@@ -174,7 +174,7 @@ async def test_calibration_soda_number_min_max_values(mock_coordinator) -> None:
     number = CalibrationSodaNumber(mock_coordinator)
 
     assert number.native_min_value == 1
-    assert number.native_max_value == 10
+    assert number.native_max_value == 1000
     assert number.native_step == 1
 
 
