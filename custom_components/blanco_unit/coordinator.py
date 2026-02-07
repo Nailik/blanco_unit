@@ -28,7 +28,7 @@ from .const import (
     DOMAIN,
     RANDOM_MAC_PLACEHOLDER,
 )
-from .data import BlancoUnitData
+from .data import BlancoUnitData, BlancoUnitWifiNetwork
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -212,6 +212,33 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
     def _connection_changed(self, connected: bool) -> None:
         if self.data is not None:
             self.async_set_updated_data(replace(self.data, connected=connected))
+
+    # -------------------------------
+    # region WiFi & Device Management
+    # -------------------------------
+
+    async def scan_wifi_networks(self) -> list[BlancoUnitWifiNetwork]:
+        """Scan for available WiFi networks."""
+        return await self._call(self._client.scan_wifi_networks)
+
+    async def connect_wifi(self, ssid: str, password: str) -> None:
+        """Connect the device to a WiFi network."""
+        await self._call(self._client.connect_wifi, ssid, password)
+        # device will disconnect automatically, and trigger refresh on reconnection, so no need to manually refresh here
+
+    async def disconnect_wifi(self) -> None:
+        """Disconnect the device from WiFi."""
+        await self._call(self._client.disconnect_wifi)
+        # device will disconnect automatically, and trigger refresh on reconnection, so no need to manually refresh here
+
+    async def allow_cloud_services(self, rca_id: str = "") -> None:
+        """Allow cloud services (Freigabe)."""
+        await self._call(self._client.allow_cloud_services, rca_id)
+
+    async def factory_reset(self) -> None:
+        """Perform a full software reset of the device."""
+        await self._call(self._client.factory_reset)
+        await self.refresh_data()
 
     # -------------------------------
     # region Testing

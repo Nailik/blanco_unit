@@ -8,17 +8,29 @@ import voluptuous as vol
 from custom_components.blanco_unit.const import (
     CONF_PIN,
     DOMAIN,
+    HA_SERVICE_ALLOW_CLOUD,
     HA_SERVICE_ATTR_AMOUNT_ML,
     HA_SERVICE_ATTR_CO2_INTENSITY,
     HA_SERVICE_ATTR_DEVICE_ID,
     HA_SERVICE_ATTR_NEW_PIN,
+    HA_SERVICE_ATTR_PASSWORD,
+    HA_SERVICE_ATTR_RCA_ID,
+    HA_SERVICE_ATTR_SSID,
     HA_SERVICE_ATTR_UPDATE_CONFIG,
     HA_SERVICE_CHANGE_PIN,
+    HA_SERVICE_CONNECT_WIFI,
+    HA_SERVICE_DISCONNECT_WIFI,
     HA_SERVICE_DISPENSE_WATER,
+    HA_SERVICE_FACTORY_RESET,
+    HA_SERVICE_SCAN_WIFI,
 )
 from custom_components.blanco_unit.coordinator import BlancoUnitCoordinator
+from custom_components.blanco_unit.data import BlancoUnitWifiNetwork
 from custom_components.blanco_unit.services import (
+    SERVICE_ALLOW_CLOUD_SCHEMA,
     SERVICE_CHANGE_PIN_SCHEMA,
+    SERVICE_CONNECT_WIFI_SCHEMA,
+    SERVICE_DEVICE_ONLY_SCHEMA,
     SERVICE_DISPENSE_WATER_SCHEMA,
     _get_coordinator,
     _validate_amount_ml,
@@ -387,3 +399,304 @@ async def test_get_coordinator_success(hass: HomeAssistant) -> None:
     ):
         result = _get_coordinator(hass, call)
         assert result == mock_coordinator
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Schema validation tests for WiFi / device management services
+# ──────────────────────────────────────────────────────────────────────
+
+
+def test_connect_wifi_schema_valid():
+    """Test SERVICE_CONNECT_WIFI_SCHEMA with valid data."""
+    valid_data = {
+        HA_SERVICE_ATTR_DEVICE_ID: "test_device_id",
+        HA_SERVICE_ATTR_SSID: "TestSSID",
+        HA_SERVICE_ATTR_PASSWORD: "password123",
+    }
+    result = SERVICE_CONNECT_WIFI_SCHEMA(valid_data)
+    assert result[HA_SERVICE_ATTR_SSID] == "TestSSID"
+    assert result[HA_SERVICE_ATTR_PASSWORD] == "password123"
+
+
+def test_connect_wifi_schema_missing_ssid():
+    """Test SERVICE_CONNECT_WIFI_SCHEMA with missing ssid raises vol.Invalid."""
+    with pytest.raises(vol.Invalid):
+        SERVICE_CONNECT_WIFI_SCHEMA(
+            {
+                HA_SERVICE_ATTR_DEVICE_ID: "test_device_id",
+                HA_SERVICE_ATTR_PASSWORD: "password123",
+            }
+        )
+
+
+def test_connect_wifi_schema_missing_password():
+    """Test SERVICE_CONNECT_WIFI_SCHEMA with missing password raises vol.Invalid."""
+    with pytest.raises(vol.Invalid):
+        SERVICE_CONNECT_WIFI_SCHEMA(
+            {
+                HA_SERVICE_ATTR_DEVICE_ID: "test_device_id",
+                HA_SERVICE_ATTR_SSID: "TestSSID",
+            }
+        )
+
+
+def test_device_only_schema_valid():
+    """Test SERVICE_DEVICE_ONLY_SCHEMA with valid device_id."""
+    valid_data = {
+        HA_SERVICE_ATTR_DEVICE_ID: "test_device_id",
+    }
+    result = SERVICE_DEVICE_ONLY_SCHEMA(valid_data)
+    assert result[HA_SERVICE_ATTR_DEVICE_ID] == "test_device_id"
+
+
+def test_allow_cloud_schema_valid():
+    """Test SERVICE_ALLOW_CLOUD_SCHEMA with device_id and rca_id."""
+    valid_data = {
+        HA_SERVICE_ATTR_DEVICE_ID: "test_device_id",
+        HA_SERVICE_ATTR_RCA_ID: "test_rca_id",
+    }
+    result = SERVICE_ALLOW_CLOUD_SCHEMA(valid_data)
+    assert result[HA_SERVICE_ATTR_DEVICE_ID] == "test_device_id"
+    assert result[HA_SERVICE_ATTR_RCA_ID] == "test_rca_id"
+
+
+def test_allow_cloud_schema_default_rca_id():
+    """Test SERVICE_ALLOW_CLOUD_SCHEMA without rca_id defaults to empty string."""
+    data = {
+        HA_SERVICE_ATTR_DEVICE_ID: "test_device_id",
+    }
+    result = SERVICE_ALLOW_CLOUD_SCHEMA(data)
+    assert result[HA_SERVICE_ATTR_RCA_ID] == ""
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Service handler tests for WiFi / device management services
+# ──────────────────────────────────────────────────────────────────────
+
+
+async def test_handle_scan_wifi_networks(hass: HomeAssistant) -> None:
+    """Test scan WiFi networks service handler."""
+    mock_coordinator = MagicMock(spec=BlancoUnitCoordinator)
+    mock_coordinator.scan_wifi_networks = AsyncMock(
+        return_value=[BlancoUnitWifiNetwork(ssid="TestWiFi", signal=66, auth_mode=3)]
+    )
+
+    mock_device_registry = MagicMock()
+    mock_device = MagicMock()
+    mock_device.config_entries = {"test_entry_id"}
+    mock_device_registry.async_get.return_value = mock_device
+
+    mock_entry = MagicMock()
+    mock_entry.runtime_data = mock_coordinator
+
+    with (
+        patch(
+            "custom_components.blanco_unit.services.dr.async_get",
+            return_value=mock_device_registry,
+        ),
+        patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry),
+    ):
+        async_setup_services(hass)
+
+        response = await hass.services.async_call(
+            DOMAIN,
+            HA_SERVICE_SCAN_WIFI,
+            {HA_SERVICE_ATTR_DEVICE_ID: "test_device_id"},
+            blocking=True,
+            return_response=True,
+        )
+
+        mock_coordinator.scan_wifi_networks.assert_called_once()
+        assert "networks" in response
+        assert len(response["networks"]) == 1
+        assert response["networks"][0]["ssid"] == "TestWiFi"
+        assert response["networks"][0]["signal"] == 66
+        assert response["networks"][0]["auth_mode"] == 3
+
+
+async def test_handle_connect_wifi(hass: HomeAssistant) -> None:
+    """Test connect WiFi service handler."""
+    mock_coordinator = MagicMock(spec=BlancoUnitCoordinator)
+    mock_coordinator.connect_wifi = AsyncMock()
+
+    mock_device_registry = MagicMock()
+    mock_device = MagicMock()
+    mock_device.config_entries = {"test_entry_id"}
+    mock_device_registry.async_get.return_value = mock_device
+
+    mock_entry = MagicMock()
+    mock_entry.runtime_data = mock_coordinator
+
+    with (
+        patch(
+            "custom_components.blanco_unit.services.dr.async_get",
+            return_value=mock_device_registry,
+        ),
+        patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry),
+    ):
+        async_setup_services(hass)
+
+        await hass.services.async_call(
+            DOMAIN,
+            HA_SERVICE_CONNECT_WIFI,
+            {
+                HA_SERVICE_ATTR_DEVICE_ID: "test_device_id",
+                HA_SERVICE_ATTR_SSID: "TestSSID",
+                HA_SERVICE_ATTR_PASSWORD: "password123",
+            },
+            blocking=True,
+        )
+
+        mock_coordinator.connect_wifi.assert_called_once_with("TestSSID", "password123")
+
+
+async def test_handle_disconnect_wifi(hass: HomeAssistant) -> None:
+    """Test disconnect WiFi service handler."""
+    mock_coordinator = MagicMock(spec=BlancoUnitCoordinator)
+    mock_coordinator.disconnect_wifi = AsyncMock()
+
+    mock_device_registry = MagicMock()
+    mock_device = MagicMock()
+    mock_device.config_entries = {"test_entry_id"}
+    mock_device_registry.async_get.return_value = mock_device
+
+    mock_entry = MagicMock()
+    mock_entry.runtime_data = mock_coordinator
+
+    with (
+        patch(
+            "custom_components.blanco_unit.services.dr.async_get",
+            return_value=mock_device_registry,
+        ),
+        patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry),
+    ):
+        async_setup_services(hass)
+
+        await hass.services.async_call(
+            DOMAIN,
+            HA_SERVICE_DISCONNECT_WIFI,
+            {HA_SERVICE_ATTR_DEVICE_ID: "test_device_id"},
+            blocking=True,
+        )
+
+        mock_coordinator.disconnect_wifi.assert_called_once()
+
+
+async def test_handle_allow_cloud_services(hass: HomeAssistant) -> None:
+    """Test allow cloud services handler with rca_id."""
+    mock_coordinator = MagicMock(spec=BlancoUnitCoordinator)
+    mock_coordinator.allow_cloud_services = AsyncMock()
+
+    mock_device_registry = MagicMock()
+    mock_device = MagicMock()
+    mock_device.config_entries = {"test_entry_id"}
+    mock_device_registry.async_get.return_value = mock_device
+
+    mock_entry = MagicMock()
+    mock_entry.runtime_data = mock_coordinator
+
+    with (
+        patch(
+            "custom_components.blanco_unit.services.dr.async_get",
+            return_value=mock_device_registry,
+        ),
+        patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry),
+    ):
+        async_setup_services(hass)
+
+        await hass.services.async_call(
+            DOMAIN,
+            HA_SERVICE_ALLOW_CLOUD,
+            {
+                HA_SERVICE_ATTR_DEVICE_ID: "test_device_id",
+                HA_SERVICE_ATTR_RCA_ID: "test_rca_id",
+            },
+            blocking=True,
+        )
+
+        mock_coordinator.allow_cloud_services.assert_called_once_with("test_rca_id")
+
+
+async def test_handle_allow_cloud_services_default_rca_id(
+    hass: HomeAssistant,
+) -> None:
+    """Test allow cloud services handler with default (empty) rca_id."""
+    mock_coordinator = MagicMock(spec=BlancoUnitCoordinator)
+    mock_coordinator.allow_cloud_services = AsyncMock()
+
+    mock_device_registry = MagicMock()
+    mock_device = MagicMock()
+    mock_device.config_entries = {"test_entry_id"}
+    mock_device_registry.async_get.return_value = mock_device
+
+    mock_entry = MagicMock()
+    mock_entry.runtime_data = mock_coordinator
+
+    with (
+        patch(
+            "custom_components.blanco_unit.services.dr.async_get",
+            return_value=mock_device_registry,
+        ),
+        patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry),
+    ):
+        async_setup_services(hass)
+
+        await hass.services.async_call(
+            DOMAIN,
+            HA_SERVICE_ALLOW_CLOUD,
+            {HA_SERVICE_ATTR_DEVICE_ID: "test_device_id"},
+            blocking=True,
+        )
+
+        mock_coordinator.allow_cloud_services.assert_called_once_with("")
+
+
+async def test_handle_factory_reset(hass: HomeAssistant) -> None:
+    """Test factory reset service handler."""
+    mock_coordinator = MagicMock(spec=BlancoUnitCoordinator)
+    mock_coordinator.factory_reset = AsyncMock()
+
+    mock_device_registry = MagicMock()
+    mock_device = MagicMock()
+    mock_device.config_entries = {"test_entry_id"}
+    mock_device_registry.async_get.return_value = mock_device
+
+    mock_entry = MagicMock()
+    mock_entry.runtime_data = mock_coordinator
+
+    with (
+        patch(
+            "custom_components.blanco_unit.services.dr.async_get",
+            return_value=mock_device_registry,
+        ),
+        patch.object(hass.config_entries, "async_get_entry", return_value=mock_entry),
+    ):
+        async_setup_services(hass)
+
+        await hass.services.async_call(
+            DOMAIN,
+            HA_SERVICE_FACTORY_RESET,
+            {HA_SERVICE_ATTR_DEVICE_ID: "test_device_id"},
+            blocking=True,
+        )
+
+        mock_coordinator.factory_reset.assert_called_once()
+
+
+async def test_async_setup_services_registers_new_services(
+    hass: HomeAssistant,
+) -> None:
+    """Test that all new WiFi and device management services are registered."""
+    assert not hass.services.has_service(DOMAIN, HA_SERVICE_SCAN_WIFI)
+    assert not hass.services.has_service(DOMAIN, HA_SERVICE_CONNECT_WIFI)
+    assert not hass.services.has_service(DOMAIN, HA_SERVICE_DISCONNECT_WIFI)
+    assert not hass.services.has_service(DOMAIN, HA_SERVICE_ALLOW_CLOUD)
+    assert not hass.services.has_service(DOMAIN, HA_SERVICE_FACTORY_RESET)
+
+    async_setup_services(hass)
+
+    assert hass.services.has_service(DOMAIN, HA_SERVICE_SCAN_WIFI)
+    assert hass.services.has_service(DOMAIN, HA_SERVICE_CONNECT_WIFI)
+    assert hass.services.has_service(DOMAIN, HA_SERVICE_DISCONNECT_WIFI)
+    assert hass.services.has_service(DOMAIN, HA_SERVICE_ALLOW_CLOUD)
+    assert hass.services.has_service(DOMAIN, HA_SERVICE_FACTORY_RESET)

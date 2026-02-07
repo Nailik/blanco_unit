@@ -77,6 +77,15 @@ class BlancoUnitWifiInfo:
 
 
 @dataclass
+class BlancoUnitWifiNetwork:
+    """A discovered WiFi access point."""
+
+    ssid: str
+    signal: int
+    auth_mode: int
+
+
+@dataclass
 class BlancoUnitData:
     """Holds the data of the device."""
 

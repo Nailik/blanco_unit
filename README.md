@@ -278,6 +278,105 @@ response:
   # Device response data
 ```
 
+### blanco_unit.scan_wifi_networks
+
+Scan for available WiFi networks near the device. Returns a list of discovered access points.
+
+**Parameters:**
+
+- `device_id` (required): The Blanco Unit device to scan with
+
+**Example:**
+
+```yaml
+service: blanco_unit.scan_wifi_networks
+data:
+  device_id: abc123def456
+response_variable: wifi_networks
+```
+
+The service returns:
+
+```yaml
+networks:
+  - ssid: "MyWiFi"
+    signal: 66
+    auth_mode: 3
+  - ssid: "OtherNetwork"
+    signal: 40
+    auth_mode: 3
+```
+
+### blanco_unit.connect_wifi
+
+Connect the device to a WiFi network.
+
+**Parameters:**
+
+- `device_id` (required): The Blanco Unit device to connect
+- `ssid` (required): The WiFi network name
+- `password` (required): The WiFi network password
+
+**Example:**
+
+```yaml
+service: blanco_unit.connect_wifi
+data:
+  device_id: abc123def456
+  ssid: "MyWiFi"
+  password: "mypassword"
+```
+
+### blanco_unit.disconnect_wifi
+
+Disconnect the device from the current WiFi network.
+
+**Parameters:**
+
+- `device_id` (required): The Blanco Unit device to disconnect from WiFi
+
+**Example:**
+
+```yaml
+service: blanco_unit.disconnect_wifi
+data:
+  device_id: abc123def456
+```
+
+### blanco_unit.allow_cloud_services
+
+Allow cloud services on the device (Freigabe). This permits the manufacturer's cloud services to communicate with the device.
+
+**Parameters:**
+
+- `device_id` (required): The Blanco Unit device
+- `rca_id` (optional, default: ""): Remote cloud access ID. Leave empty to allow all.
+
+**Example:**
+
+```yaml
+service: blanco_unit.allow_cloud_services
+data:
+  device_id: abc123def456
+  rca_id: ""
+```
+
+### blanco_unit.factory_reset
+
+Perform a full software reset of the device. **WARNING:** This will reset all device settings to factory defaults.
+
+**Parameters:**
+
+- `device_id` (required): The Blanco Unit device to reset
+
+**Example:**
+
+```yaml
+service: blanco_unit.factory_reset
+data:
+  device_id: abc123def456
+```
+
 ## Example Automations
 
 ### Low Filter Notification

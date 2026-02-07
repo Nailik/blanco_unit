@@ -300,6 +300,68 @@
           "description": "When enabled, the integration configuration will be updated with the new PIN and the device will reconnect automatically. When disabled, you will need to manually reconfigure the integration with the new PIN."
         }
       }
+    },
+    "scan_wifi_networks": {
+      "name": "Scan WiFi Networks",
+      "description": "Scan for available WiFi networks near the device.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Blanco Unit device to scan with."
+        }
+      }
+    },
+    "connect_wifi": {
+      "name": "Connect to WiFi",
+      "description": "Connect the device to a WiFi network.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Blanco Unit device to connect."
+        },
+        "ssid": {
+          "name": "SSID",
+          "description": "The WiFi network name to connect to."
+        },
+        "password": {
+          "name": "Password",
+          "description": "The WiFi network password."
+        }
+      }
+    },
+    "disconnect_wifi": {
+      "name": "Disconnect from WiFi",
+      "description": "Disconnect the device from the current WiFi network.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Blanco Unit device to disconnect from WiFi."
+        }
+      }
+    },
+    "allow_cloud_services": {
+      "name": "Allow Cloud Services",
+      "description": "Allow cloud services on the device (Freigabe). This permits the manufacturer's cloud services to communicate with the device.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Blanco Unit device to allow cloud services on."
+        },
+        "rca_id": {
+          "name": "RCA ID",
+          "description": "Remote cloud access ID. Leave empty to allow all cloud services."
+        }
+      }
+    },
+    "factory_reset": {
+      "name": "Factory Reset",
+      "description": "Perform a full software reset of the device. This will reset all device settings to factory defaults.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Blanco Unit device to factory reset."
+        }
+      }
     }
   }
 }

@@ -5,7 +5,7 @@
     }),
     'area_id': None,
     'capabilities': dict({
-      'max': 10,
+      'max': 1000,
       'min': 1,
       'mode': <NumberMode.BOX: 'box'>,
       'step': 1,
@@ -44,7 +44,7 @@
     'attributes': ReadOnlyDict({
       'friendly_name': 'Test Blanco Unit Soda Water Calibration',
       'icon': 'mdi:cup-water',
-      'max': 10,
+      'max': 1000,
       'min': 1,
       'mode': <NumberMode.BOX: 'box'>,
       'step': 1,
@@ -64,7 +64,7 @@
     }),
     'area_id': None,
     'capabilities': dict({
-      'max': 10,
+      'max': 1000,
       'min': 1,
       'mode': <NumberMode.BOX: 'box'>,
       'step': 1,
@@ -103,7 +103,7 @@
     'attributes': ReadOnlyDict({
       'friendly_name': 'Test Blanco Unit Still Water Calibration',
       'icon': 'mdi:water',
-      'max': 10,
+      'max': 1000,
       'min': 1,
       'mode': <NumberMode.BOX: 'box'>,
       'step': 1,

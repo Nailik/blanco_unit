@@ -263,6 +263,10 @@ Example:
 | 7          | 5            | Set device settings            | See settings parameters below                                                                                                     |
 | 7          | 10           | Get WiFi information           | `{}` - Returns WiFi SSID, signal, IP, MAC addresses, gateway, subnet                                                              |
 | 7          | 13           | Change PIN                     | `{"new_pass": "<5_digit_pin>"}` - Changes device PIN (string)                                                                     |
+| 7          | 7            | Connect/disconnect WiFi        | `{"ssid":{"val":"<ssid>"},"password":{"val":"<password>"}}` - Empty strings to disconnect                                         |
+| 7          | 12           | Scan available WiFi networks   | `{}` - Returns list of access points with SSID, signal, auth_mode                                                                 |
+| 7          | 14           | Allow cloud services           | `{"rca_id":"<id>"}` - Empty string to allow all                                                                                   |
+| 7          | 15           | Factory reset                  | `{}` - Performs full software reset                                                                                               |
 | 7          | 1000         | Dispense water                 | `{"disp_amt": <amount_ml>, "co2_int": <intensity>}` - Amount: 100-1500ml (multiples of 100), Intensity: 1=still, 2=medium, 3=high |
 | 10         | N/A          | Initial pairing/authentication | `{}` - Returns device ID on successful authentication                                                                             |
 
@@ -1007,6 +1011,249 @@ The CHOICE.All settings response includes these additional fields:
 }
 ```
 
+### 13. Scan WiFi Networks
+
+**Request:**
+
+```json
+{
+  "session": 1234567,
+  "id": 9876555,
+  "type": 1,
+  "token": "klm789...",
+  "salt": "12345679876555",
+  "body": {
+    "meta": {
+      "evt_type": 7,
+      "dev_id": "ABC123DEF456",
+      "dev_type": 1,
+      "evt_ver": 1,
+      "evt_ts": 1704123457900
+    },
+    "opts": {
+      "ctrl": 12
+    },
+    "pars": {}
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "session": 1234567,
+  "id": 9876555,
+  "type": 2,
+  "body": {
+    "meta": {
+      "evt_type": 7,
+      "dev_id": "ABC123DEF456",
+      "dev_type": 1,
+      "evt_ver": 1,
+      "evt_ts": 1704123457901
+    },
+    "results": [
+      {
+        "pars": {
+          "aps": [{ "ssid": "xxx", "signal": 66, "auth_mode": 3 }]
+        }
+      }
+    ]
+  }
+}
+```
+
+### 14. Connect to WiFi
+
+**Request:**
+
+```json
+{
+  "session": 1234567,
+  "id": 9876556,
+  "type": 1,
+  "token": "nop012...",
+  "salt": "12345679876556",
+  "body": {
+    "meta": {
+      "evt_type": 7,
+      "dev_id": "ABC123DEF456",
+      "dev_type": 1,
+      "evt_ver": 1,
+      "evt_ts": 1704123458000
+    },
+    "opts": {
+      "ctrl": 7
+    },
+    "pars": {
+      "ssid": { "val": "Wifi" },
+      "password": { "val": "mypassword" }
+    }
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "session": 1234567,
+  "id": 9876556,
+  "type": 2,
+  "body": {
+    "meta": {
+      "evt_type": 7,
+      "dev_id": "ABC123DEF456",
+      "dev_type": 1,
+      "evt_ver": 1,
+      "evt_ts": 1704123458001
+    },
+    "results": [
+      {
+        "pars": {}
+      }
+    ]
+  }
+}
+```
+
+### 15. Disconnect from WiFi
+
+**Request:**
+
+```json
+{
+  "session": 1234567,
+  "id": 9876557,
+  "type": 1,
+  "token": "qrs345...",
+  "salt": "12345679876557",
+  "body": {
+    "meta": {
+      "evt_type": 7,
+      "dev_id": "ABC123DEF456",
+      "dev_type": 1,
+      "evt_ver": 1,
+      "evt_ts": 1704123458100
+    },
+    "opts": {
+      "ctrl": 7
+    },
+    "pars": {
+      "ssid": { "val": "" },
+      "password": { "val": "" }
+    }
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "session": 1234567,
+  "id": 9876557,
+  "type": 2,
+  "body": {
+    "meta": {
+      "evt_type": 7,
+      "dev_id": "ABC123DEF456",
+      "dev_type": 1,
+      "evt_ver": 1,
+      "evt_ts": 1704123458101
+    },
+    "results": [
+      {
+        "pars": {}
+      }
+    ]
+  }
+}
+```
+
+### 16. Allow Cloud Services
+
+**Request:**
+
+```json
+{
+  "session": 1234567,
+  "id": 9876558,
+  "type": 1,
+  "token": "tuv678...",
+  "salt": "12345679876558",
+  "body": {
+    "meta": {
+      "evt_type": 7,
+      "dev_id": "ABC123DEF456",
+      "dev_type": 1,
+      "evt_ver": 1,
+      "evt_ts": 1704123458200
+    },
+    "opts": {
+      "ctrl": 14
+    },
+    "pars": {
+      "rca_id": ""
+    }
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "session": 1234567,
+  "id": 9876558,
+  "type": 2,
+  "body": {
+    "meta": {
+      "evt_type": 7,
+      "dev_id": "ABC123DEF456",
+      "dev_type": 1,
+      "evt_ver": 1,
+      "evt_ts": 1704123458201
+    },
+    "results": [
+      {
+        "pars": {}
+      }
+    ]
+  }
+}
+```
+
+### 17. Factory Reset
+
+**Request:**
+
+```json
+{
+  "session": 1234567,
+  "id": 9876559,
+  "type": 1,
+  "token": "wxy901...",
+  "salt": "12345679876559",
+  "body": {
+    "meta": {
+      "evt_type": 7,
+      "dev_id": "ABC123DEF456",
+      "dev_type": 1,
+      "evt_ver": 1,
+      "evt_ts": 1704123458300
+    },
+    "opts": {
+      "ctrl": 15
+    },
+    "pars": {}
+  }
+}
+```
+
+**Response:** Device resets, no response expected.
+
 ## API Reference
 
 ### Authentication
@@ -1205,6 +1452,57 @@ Set calibration for soda water.
 
 **Returns:** True if successful
 
+#### `scan_wifi_networks() -> list[BlancoUnitWifiNetwork]`
+
+Scan for available WiFi networks.
+
+**Protocol:** Event type 7, control 12, pars `{}`
+
+**Returns:** List of `BlancoUnitWifiNetwork` with ssid, signal, auth_mode
+
+#### `connect_wifi(ssid: str, password: str) -> bool`
+
+Connect the device to a WiFi network.
+
+**Protocol:** Event type 7, control 7, pars `{"ssid":{"val":"<ssid>"},"password":{"val":"<password>"}}`
+
+**Parameters:**
+
+- `ssid`: WiFi network name
+- `password`: WiFi password
+
+**Returns:** True if successful
+
+#### `disconnect_wifi() -> bool`
+
+Disconnect the device from WiFi.
+
+**Protocol:** Event type 7, control 7, pars `{"ssid":{"val":""},"password":{"val":""}}`
+
+**Returns:** True if successful
+
+#### `allow_cloud_services(rca_id: str = "") -> bool`
+
+Allow cloud services.
+
+**Protocol:** Event type 7, control 14, pars `{"rca_id":"<rca_id>"}`
+
+**Parameters:**
+
+- `rca_id`: RCA identifier (empty string to allow all)
+
+**Returns:** True if successful
+
+#### `factory_reset() -> bool`
+
+Perform full software reset.
+
+**Protocol:** Event type 7, control 15, pars `{}`
+
+**Returns:** True if successful
+
+**Note:** Device will reset after this command. No response is expected. Reconnection will be required.
+
 ## Data Structures
 
 ### BlancoUnitSystemInfo
@@ -1281,6 +1579,16 @@ class BlancoUnitWifiInfo:
     gateway: str              # Gateway IP
     gateway_mac: str          # Gateway MAC address
     subnet: str               # Subnet mask
+```
+
+### BlancoUnitWifiNetwork
+
+```python
+@dataclass
+class BlancoUnitWifiNetwork:
+    ssid: str        # WiFi network name
+    signal: int      # Signal strength (0-100)
+    auth_mode: int   # Authentication mode (3 = WPA/WPA2)
 ```
 
 ## Error Handling

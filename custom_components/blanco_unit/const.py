@@ -21,6 +21,11 @@ MTU_SIZE = 200
 HA_SERVICE_DISPENSE_WATER = "dispense_water"
 HA_SERVICE_CHANGE_PIN = "change_pin"
 HA_SERVICE_SCAN_PROTOCOL = "scan_protocol_parameters"
+HA_SERVICE_SCAN_WIFI = "scan_wifi_networks"
+HA_SERVICE_CONNECT_WIFI = "connect_wifi"
+HA_SERVICE_DISCONNECT_WIFI = "disconnect_wifi"
+HA_SERVICE_ALLOW_CLOUD = "allow_cloud_services"
+HA_SERVICE_FACTORY_RESET = "factory_reset"
 
 # Service Attributes
 HA_SERVICE_ATTR_DEVICE_ID = "device_id"
@@ -29,3 +34,6 @@ HA_SERVICE_ATTR_CO2_INTENSITY = "co2_intensity"
 HA_SERVICE_ATTR_NEW_PIN = "new_pin"
 HA_SERVICE_ATTR_UPDATE_CONFIG = "update_config"
 HA_SERVICE_ATTR_DATA = "data"
+HA_SERVICE_ATTR_SSID = "ssid"
+HA_SERVICE_ATTR_PASSWORD = "password"
+HA_SERVICE_ATTR_RCA_ID = "rca_id"

@@ -14,8 +14,10 @@ from custom_components.blanco_unit.client import (
     BlancoUnitClientError,
     BlancoUnitConnectionError,
     PinValidationResult,
+    _AllowCloudServicesPars,
     _BlancoUnitProtocol,
     _ChangePinPars,
+    _ConnectWifiPars,
     _DispensePars,
     _extract_device_id,
     _RequestBody,
@@ -1826,3 +1828,377 @@ def test_extract_device_id_exception_handling():
 
     response2 = {"body": {"meta": BrokenDict()}}
     assert _extract_device_id(response2) is None
+
+
+# -------------------------------
+# WiFi & Device Management Pars Tests
+# -------------------------------
+
+
+def test_connect_wifi_pars_to_pars():
+    """Test _ConnectWifiPars.to_pars() with valid SSID and password."""
+    pars = _ConnectWifiPars(ssid="TestSSID", password="pass123")
+    result = pars.to_pars()
+    assert result == {"ssid": {"val": "TestSSID"}, "password": {"val": "pass123"}}
+
+
+def test_connect_wifi_pars_to_pars_empty():
+    """Test _ConnectWifiPars.to_pars() with empty strings."""
+    pars = _ConnectWifiPars(ssid="", password="")
+    result = pars.to_pars()
+    assert result == {"ssid": {"val": ""}, "password": {"val": ""}}
+
+
+def test_allow_cloud_services_pars_to_pars_default():
+    """Test _AllowCloudServicesPars.to_pars() with default rca_id."""
+    pars = _AllowCloudServicesPars()
+    result = pars.to_pars()
+    assert result == {"rca_id": ""}
+
+
+def test_allow_cloud_services_pars_to_pars_with_id():
+    """Test _AllowCloudServicesPars.to_pars() with specific rca_id."""
+    pars = _AllowCloudServicesPars(rca_id="some_id")
+    result = pars.to_pars()
+    assert result == {"rca_id": "some_id"}
+
+
+# -------------------------------
+# WiFi & Device Management Client Tests
+# -------------------------------
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_scan_wifi_networks(mock_establish):
+    """Test scan_wifi_networks method returns list of networks."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    callback = MagicMock()
+
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=callback
+    )
+
+    # Mock establish_connection
+    mock_ble_client = AsyncMock()
+    mock_ble_client.is_connected = True
+    mock_establish.return_value = mock_ble_client
+
+    # Mock responses
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
+    pairing_json = json.dumps(pairing_data)
+    pairing_packet = (
+        bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    scan_data = {
+        "body": {
+            "pars": {
+                "aps": [
+                    {"ssid": "TestWiFi", "signal": 66, "auth_mode": 3},
+                    {"ssid": "OtherWiFi", "signal": 40, "auth_mode": 3},
+                ]
+            }
+        }
+    }
+    scan_json = json.dumps(scan_data)
+    scan_packet = (
+        bytes([0xFF, 0x00, 1, 11, 0x00]) + scan_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    read_count = 0
+
+    async def mock_read(*args, **kwargs):
+        nonlocal read_count
+        read_count += 1
+        if read_count == 1:
+            return pairing_packet
+        return scan_packet
+
+    mock_ble_client.write_gatt_char = AsyncMock()
+    mock_ble_client.read_gatt_char = mock_read
+
+    result = await client.scan_wifi_networks()
+
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert result[0].ssid == "TestWiFi"
+    assert result[0].signal == 66
+    assert result[0].auth_mode == 3
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_scan_wifi_networks_empty(mock_establish):
+    """Test scan_wifi_networks method with empty access point list."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    callback = MagicMock()
+
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=callback
+    )
+
+    # Mock establish_connection
+    mock_ble_client = AsyncMock()
+    mock_ble_client.is_connected = True
+    mock_establish.return_value = mock_ble_client
+
+    # Mock responses
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
+    pairing_json = json.dumps(pairing_data)
+    pairing_packet = (
+        bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    scan_data = {"body": {"pars": {"aps": []}}}
+    scan_json = json.dumps(scan_data)
+    scan_packet = (
+        bytes([0xFF, 0x00, 1, 11, 0x00]) + scan_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    read_count = 0
+
+    async def mock_read(*args, **kwargs):
+        nonlocal read_count
+        read_count += 1
+        if read_count == 1:
+            return pairing_packet
+        return scan_packet
+
+    mock_ble_client.write_gatt_char = AsyncMock()
+    mock_ble_client.read_gatt_char = mock_read
+
+    result = await client.scan_wifi_networks()
+
+    assert isinstance(result, list)
+    assert len(result) == 0
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_connect_wifi_success(mock_establish):
+    """Test connect_wifi method with successful connection."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    callback = MagicMock()
+
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=callback
+    )
+
+    # Mock establish_connection
+    mock_ble_client = AsyncMock()
+    mock_ble_client.is_connected = True
+    mock_establish.return_value = mock_ble_client
+
+    # Mock responses
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
+    pairing_json = json.dumps(pairing_data)
+    pairing_packet = (
+        bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    response_data = {"type": 2}
+    response_json = json.dumps(response_data)
+    response_packet = (
+        bytes([0xFF, 0x00, 1, 11, 0x00]) + response_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    read_count = 0
+
+    async def mock_read(*args, **kwargs):
+        nonlocal read_count
+        read_count += 1
+        if read_count == 1:
+            return pairing_packet
+        return response_packet
+
+    mock_ble_client.write_gatt_char = AsyncMock()
+    mock_ble_client.read_gatt_char = mock_read
+
+    result = await client.connect_wifi("TestSSID", "password123")
+
+    assert result is True
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_disconnect_wifi_success(mock_establish):
+    """Test disconnect_wifi method with successful disconnection."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    callback = MagicMock()
+
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=callback
+    )
+
+    # Mock establish_connection
+    mock_ble_client = AsyncMock()
+    mock_ble_client.is_connected = True
+    mock_establish.return_value = mock_ble_client
+
+    # Mock responses
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
+    pairing_json = json.dumps(pairing_data)
+    pairing_packet = (
+        bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    response_data = {"type": 2}
+    response_json = json.dumps(response_data)
+    response_packet = (
+        bytes([0xFF, 0x00, 1, 11, 0x00]) + response_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    read_count = 0
+
+    async def mock_read(*args, **kwargs):
+        nonlocal read_count
+        read_count += 1
+        if read_count == 1:
+            return pairing_packet
+        return response_packet
+
+    mock_ble_client.write_gatt_char = AsyncMock()
+    mock_ble_client.read_gatt_char = mock_read
+
+    result = await client.disconnect_wifi()
+
+    assert result is True
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_allow_cloud_services_success(mock_establish):
+    """Test allow_cloud_services method with default rca_id."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    callback = MagicMock()
+
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=callback
+    )
+
+    # Mock establish_connection
+    mock_ble_client = AsyncMock()
+    mock_ble_client.is_connected = True
+    mock_establish.return_value = mock_ble_client
+
+    # Mock responses
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
+    pairing_json = json.dumps(pairing_data)
+    pairing_packet = (
+        bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    response_data = {"type": 2}
+    response_json = json.dumps(response_data)
+    response_packet = (
+        bytes([0xFF, 0x00, 1, 11, 0x00]) + response_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    read_count = 0
+
+    async def mock_read(*args, **kwargs):
+        nonlocal read_count
+        read_count += 1
+        if read_count == 1:
+            return pairing_packet
+        return response_packet
+
+    mock_ble_client.write_gatt_char = AsyncMock()
+    mock_ble_client.read_gatt_char = mock_read
+
+    result = await client.allow_cloud_services()
+
+    assert result is True
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_allow_cloud_services_with_rca_id(mock_establish):
+    """Test allow_cloud_services method with specific rca_id."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    callback = MagicMock()
+
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=callback
+    )
+
+    # Mock establish_connection
+    mock_ble_client = AsyncMock()
+    mock_ble_client.is_connected = True
+    mock_establish.return_value = mock_ble_client
+
+    # Mock responses
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
+    pairing_json = json.dumps(pairing_data)
+    pairing_packet = (
+        bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    response_data = {"type": 2}
+    response_json = json.dumps(response_data)
+    response_packet = (
+        bytes([0xFF, 0x00, 1, 11, 0x00]) + response_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    read_count = 0
+
+    async def mock_read(*args, **kwargs):
+        nonlocal read_count
+        read_count += 1
+        if read_count == 1:
+            return pairing_packet
+        return response_packet
+
+    mock_ble_client.write_gatt_char = AsyncMock()
+    mock_ble_client.read_gatt_char = mock_read
+
+    result = await client.allow_cloud_services(rca_id="test_id")
+
+    assert result is True
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_factory_reset_success(mock_establish):
+    """Test factory_reset method with successful reset."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    callback = MagicMock()
+
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=callback
+    )
+
+    # Mock establish_connection
+    mock_ble_client = AsyncMock()
+    mock_ble_client.is_connected = True
+    mock_establish.return_value = mock_ble_client
+
+    # Mock responses
+    pairing_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
+    pairing_json = json.dumps(pairing_data)
+    pairing_packet = (
+        bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    response_data = {"type": 2}
+    response_json = json.dumps(response_data)
+    response_packet = (
+        bytes([0xFF, 0x00, 1, 11, 0x00]) + response_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    read_count = 0
+
+    async def mock_read(*args, **kwargs):
+        nonlocal read_count
+        read_count += 1
+        if read_count == 1:
+            return pairing_packet
+        return response_packet
+
+    mock_ble_client.write_gatt_char = AsyncMock()
+    mock_ble_client.read_gatt_char = mock_read
+
+    result = await client.factory_reset()
+
+    assert result is True

@@ -94,3 +94,91 @@ scan_protocol_parameters:
           evt_type: 6
       selector:
         object:
+
+scan_wifi_networks:
+  name: Scan WiFi Networks
+  description: Scan for available WiFi networks near the device. Returns a list of discovered access points with signal strength.
+  fields:
+    device_id:
+      name: Device
+      description: The Blanco Unit device to scan with.
+      required: true
+      example: "a1b2c3d4e5f6"
+      selector:
+        device:
+          integration: blanco_unit
+
+connect_wifi:
+  name: Connect to WiFi
+  description: Connect the device to a WiFi network.
+  fields:
+    device_id:
+      name: Device
+      description: The Blanco Unit device to connect.
+      required: true
+      example: "a1b2c3d4e5f6"
+      selector:
+        device:
+          integration: blanco_unit
+    ssid:
+      name: SSID
+      description: The WiFi network name to connect to.
+      required: true
+      example: "MyWiFi"
+      selector:
+        text:
+    password:
+      name: Password
+      description: The WiFi network password.
+      required: true
+      example: "mypassword"
+      selector:
+        text:
+          type: password
+
+disconnect_wifi:
+  name: Disconnect from WiFi
+  description: Disconnect the device from the current WiFi network.
+  fields:
+    device_id:
+      name: Device
+      description: The Blanco Unit device to disconnect from WiFi.
+      required: true
+      example: "a1b2c3d4e5f6"
+      selector:
+        device:
+          integration: blanco_unit
+
+allow_cloud_services:
+  name: Allow Cloud Services
+  description: Allow cloud services on the device (Freigabe). This permits the manufacturer's cloud services to communicate with the device.
+  fields:
+    device_id:
+      name: Device
+      description: The Blanco Unit device to allow cloud services on.
+      required: true
+      example: "a1b2c3d4e5f6"
+      selector:
+        device:
+          integration: blanco_unit
+    rca_id:
+      name: RCA ID
+      description: Remote cloud access ID. Leave empty to allow all cloud services.
+      required: false
+      default: ""
+      example: ""
+      selector:
+        text:
+
+factory_reset:
+  name: Factory Reset
+  description: Perform a full software reset of the device. WARNING - This will reset all device settings to factory defaults.
+  fields:
+    device_id:
+      name: Device
+      description: The Blanco Unit device to factory reset.
+      required: true
+      example: "a1b2c3d4e5f6"
+      selector:
+        device:
+          integration: blanco_unit

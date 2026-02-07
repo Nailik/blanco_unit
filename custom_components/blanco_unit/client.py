@@ -24,6 +24,7 @@ from .data import (
     BlancoUnitStatus,
     BlancoUnitSystemInfo,
     BlancoUnitWifiInfo,
+    BlancoUnitWifiNetwork,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ class _RequestBody:
         data = {"meta": self.meta.to_dict()}
         if self.opts:
             data["opts"] = self.opts
-        if self.pars:
+        if self.pars is not None:
             data["pars"] = self.pars
         return data
 
@@ -193,6 +194,29 @@ class _SetCalibrationPars:
     def to_pars(self) -> dict[str, Any]:
         """Convert to parameters dictionary."""
         return {self.calib_type: {"val": self.amount}}
+
+
+@dataclass
+class _ConnectWifiPars:
+    """Internal: Parameters for connecting to a WiFi network."""
+
+    ssid: str
+    password: str
+
+    def to_pars(self) -> dict[str, Any]:
+        """Convert to parameters dictionary."""
+        return {"ssid": {"val": self.ssid}, "password": {"val": self.password}}
+
+
+@dataclass
+class _AllowCloudServicesPars:
+    """Internal: Parameters for allowing cloud services."""
+
+    rca_id: str = ""
+
+    def to_pars(self) -> dict[str, Any]:
+        """Convert to parameters dictionary."""
+        return {"rca_id": self.rca_id}
 
 
 # -------------------------------
@@ -376,7 +400,7 @@ class _BlancoUnitProtocol:
         request_dict = envelope.to_dict()
         packets = self.create_packets(request_dict, self.msg_id_counter)
 
-        _LOGGER.debug("Sending data: %s", request_dict)
+        _LOGGER.debug("Sending data: %s from %s", request_dict, body)
         _LOGGER.debug("Sending request (ReqID: %s, %d packets)", req_id, len(packets))
 
         # Send packets
@@ -434,10 +458,7 @@ class BlancoUnitBluetoothClient:
     @property
     def is_connected(self) -> bool:
         """Return True if the BLE client is currently connected."""
-        return (
-            self._session_data is not None
-            and self._session_data.client.is_connected
-        )
+        return self._session_data is not None and self._session_data.client.is_connected
 
     # -------------------------------
     # region Connection Management
@@ -470,7 +491,11 @@ class BlancoUnitBluetoothClient:
             # Perform initial pairing
             result = await self._perform_pairing(client, protocol)
 
-            _LOGGER.debug("Connected and paired with device ID: %s, device type: %d",  result.dev_id, result.dev_type,)
+            _LOGGER.debug(
+                "Connected and paired with device ID: %s, device type: %d",
+                result.dev_id,
+                result.dev_type,
+            )
             self._session_data = _BlancoUnitSessionData(
                 client=client,
                 dev_id=result.dev_id,
@@ -756,6 +781,80 @@ class BlancoUnitBluetoothClient:
         return resp.get("type") == 2
 
     # -------------------------------
+    # region WiFi & Device Management
+    # -------------------------------
+
+    # TODO only allowed if not currently connected else returns ctrl_errs = 5
+    async def scan_wifi_networks(self) -> list[BlancoUnitWifiNetwork]:
+        """Scan for available WiFi networks.
+
+        Returns:
+            List of discovered WiFi access points.
+        """
+        _LOGGER.info("Scanning for WiFi networks")
+        resp = await self._execute_transaction(evt_type=7, ctrl=12, pars={})
+        pars = self._session_data.protocol.extract_pars(resp)
+        aps = pars.get("aps", [])
+        return [
+            BlancoUnitWifiNetwork(
+                ssid=ap.get("ssid", ""),
+                signal=ap.get("signal", 0),
+                auth_mode=ap.get("auth_mode", 0),
+            )
+            for ap in aps
+        ]
+
+    async def connect_wifi(self, ssid: str, password: str) -> bool:
+        """Connect the device to a WiFi network.
+
+        Args:
+            ssid: The WiFi network name.
+            password: The WiFi network password.
+
+        Returns:
+            True if successful.
+        """
+        _LOGGER.info("Connecting to WiFi network: %s", ssid)
+        req = _ConnectWifiPars(ssid=ssid, password=password)
+        resp = await self._execute_transaction(evt_type=7, ctrl=7, pars=req.to_pars())
+        return resp.get("type") == 2
+
+    async def disconnect_wifi(self) -> bool:
+        """Disconnect the device from WiFi.
+
+        Returns:
+            True if successful.
+        """
+        _LOGGER.info("Disconnecting from WiFi")
+        req = _ConnectWifiPars(ssid="", password="")
+        resp = await self._execute_transaction(evt_type=7, ctrl=7, pars=req.to_pars())
+        return resp.get("type") == 2
+
+    async def allow_cloud_services(self, rca_id: str = "") -> bool:
+        """Allow cloud services (Freigabe).
+
+        Args:
+            rca_id: Remote cloud access ID (empty string to allow all).
+
+        Returns:
+            True if successful.
+        """
+        _LOGGER.info("Allowing cloud services (rca_id=%s)", rca_id)
+        req = _AllowCloudServicesPars(rca_id=rca_id)
+        resp = await self._execute_transaction(evt_type=7, ctrl=14, pars=req.to_pars())
+        return resp.get("type") == 2
+
+    async def factory_reset(self) -> bool:
+        """Perform a full software reset of the device.
+
+        Returns:
+            True if successful.
+        """
+        _LOGGER.info("Performing factory reset")
+        resp = await self._execute_transaction(evt_type=7, ctrl=15, pars={})
+        return resp.get("type") == 2
+
+    # -------------------------------
     # region Protocol Discovery
     # -------------------------------
 
@@ -785,6 +884,7 @@ class BlancoUnitBluetoothClient:
                 e,
             )
             return None
+
 
 # -------------------------------
 # region Standalone Functions

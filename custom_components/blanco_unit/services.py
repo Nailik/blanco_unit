@@ -12,15 +12,23 @@ from homeassistant.helpers import config_validation as cv, device_registry as dr
 from .const import (
     CONF_PIN,
     DOMAIN,
+    HA_SERVICE_ALLOW_CLOUD,
     HA_SERVICE_ATTR_AMOUNT_ML,
     HA_SERVICE_ATTR_CO2_INTENSITY,
     HA_SERVICE_ATTR_DATA,
     HA_SERVICE_ATTR_DEVICE_ID,
     HA_SERVICE_ATTR_NEW_PIN,
+    HA_SERVICE_ATTR_PASSWORD,
+    HA_SERVICE_ATTR_RCA_ID,
+    HA_SERVICE_ATTR_SSID,
     HA_SERVICE_ATTR_UPDATE_CONFIG,
     HA_SERVICE_CHANGE_PIN,
+    HA_SERVICE_CONNECT_WIFI,
+    HA_SERVICE_DISCONNECT_WIFI,
     HA_SERVICE_DISPENSE_WATER,
+    HA_SERVICE_FACTORY_RESET,
     HA_SERVICE_SCAN_PROTOCOL,
+    HA_SERVICE_SCAN_WIFI,
 )
 from .coordinator import BlancoUnitCoordinator
 
@@ -64,6 +72,27 @@ SERVICE_SCAN_PROTOCOL_SCHEMA = vol.Schema(
     {
         vol.Required(HA_SERVICE_ATTR_DEVICE_ID): cv.string,
         vol.Required(HA_SERVICE_ATTR_DATA): dict,
+    }
+)
+
+SERVICE_DEVICE_ONLY_SCHEMA = vol.Schema(
+    {
+        vol.Required(HA_SERVICE_ATTR_DEVICE_ID): cv.string,
+    }
+)
+
+SERVICE_CONNECT_WIFI_SCHEMA = vol.Schema(
+    {
+        vol.Required(HA_SERVICE_ATTR_DEVICE_ID): cv.string,
+        vol.Required(HA_SERVICE_ATTR_SSID): cv.string,
+        vol.Required(HA_SERVICE_ATTR_PASSWORD): cv.string,
+    }
+)
+
+SERVICE_ALLOW_CLOUD_SCHEMA = vol.Schema(
+    {
+        vol.Required(HA_SERVICE_ATTR_DEVICE_ID): cv.string,
+        vol.Optional(HA_SERVICE_ATTR_RCA_ID, default=""): cv.string,
     }
 )
 
@@ -149,6 +178,51 @@ def async_setup_services(hass: HomeAssistant) -> None:
         _LOGGER.info("Response: %s", json.dumps(response, indent=2))
         return result
 
+    async def handle_scan_wifi_networks(call: ServiceCall) -> dict:
+        """Handle the scan_wifi_networks service call."""
+        _LOGGER.debug("Scan WiFi networks service called with data: %s", call.data)
+        coordinator = _get_coordinator(hass, call)
+        networks = await coordinator.scan_wifi_networks()
+        return {
+            "networks": [
+                {
+                    "ssid": n.ssid,
+                    "signal": n.signal,
+                    "auth_mode": n.auth_mode,
+                }
+                for n in networks
+            ]
+        }
+
+    async def handle_connect_wifi(call: ServiceCall) -> None:
+        """Handle the connect_wifi service call."""
+        _LOGGER.debug("Connect WiFi service called with data: %s", call.data)
+        coordinator = _get_coordinator(hass, call)
+        ssid = call.data[HA_SERVICE_ATTR_SSID]
+        password = call.data[HA_SERVICE_ATTR_PASSWORD]
+        await coordinator.connect_wifi(ssid, password)
+
+    async def handle_disconnect_wifi(call: ServiceCall) -> None:
+        """Handle the disconnect_wifi service call."""
+        _LOGGER.debug("Disconnect WiFi service called")
+        coordinator = _get_coordinator(hass, call)
+        await coordinator.disconnect_wifi()
+
+    async def handle_allow_cloud_services(call: ServiceCall) -> None:
+        """Handle the allow_cloud_services service call."""
+        _LOGGER.debug(
+            "Allow cloud services called with data: %s", call.data
+        )
+        coordinator = _get_coordinator(hass, call)
+        rca_id = call.data[HA_SERVICE_ATTR_RCA_ID]
+        await coordinator.allow_cloud_services(rca_id)
+
+    async def handle_factory_reset(call: ServiceCall) -> None:
+        """Handle the factory_reset service call."""
+        _LOGGER.debug("Factory reset service called")
+        coordinator = _get_coordinator(hass, call)
+        await coordinator.factory_reset()
+
     hass.services.async_register(
         DOMAIN,
         HA_SERVICE_DISPENSE_WATER,
@@ -169,6 +243,42 @@ def async_setup_services(hass: HomeAssistant) -> None:
         handle_scan_protocol,
         schema=SERVICE_SCAN_PROTOCOL_SCHEMA,
         supports_response=SupportsResponse.ONLY,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        HA_SERVICE_SCAN_WIFI,
+        handle_scan_wifi_networks,
+        schema=SERVICE_DEVICE_ONLY_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        HA_SERVICE_CONNECT_WIFI,
+        handle_connect_wifi,
+        schema=SERVICE_CONNECT_WIFI_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        HA_SERVICE_DISCONNECT_WIFI,
+        handle_disconnect_wifi,
+        schema=SERVICE_DEVICE_ONLY_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        HA_SERVICE_ALLOW_CLOUD,
+        handle_allow_cloud_services,
+        schema=SERVICE_ALLOW_CLOUD_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        HA_SERVICE_FACTORY_RESET,
+        handle_factory_reset,
+        schema=SERVICE_DEVICE_ONLY_SCHEMA,
     )
 
 

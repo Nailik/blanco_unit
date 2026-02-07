@@ -16,6 +16,7 @@ from custom_components.blanco_unit.data import (
     BlancoUnitStatus,
     BlancoUnitSystemInfo,
     BlancoUnitWifiInfo,
+    BlancoUnitWifiNetwork,
 )
 from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 from homeassistant.config_entries import ConfigEntry
@@ -105,6 +106,16 @@ def mock_client():
     client.change_pin = AsyncMock()
     client.set_calibration_still = AsyncMock()
     client.set_calibration_soda = AsyncMock()
+    client.scan_wifi_networks = AsyncMock(
+        return_value=[
+            BlancoUnitWifiNetwork(ssid="TestWiFi", signal=66, auth_mode=3),
+            BlancoUnitWifiNetwork(ssid="OtherWiFi", signal=40, auth_mode=3),
+        ]
+    )
+    client.connect_wifi = AsyncMock()
+    client.disconnect_wifi = AsyncMock()
+    client.allow_cloud_services = AsyncMock()
+    client.factory_reset = AsyncMock()
     return client
 
 
@@ -996,3 +1007,173 @@ async def test_coordinator_set_unavailable_with_no_data(
 
         # Should still trigger rediscovery
         mock_rediscover.assert_called_once_with(hass, "AA:BB:CC:DD:EE:FF")
+
+
+async def test_coordinator_scan_wifi_networks(
+    hass: HomeAssistant, mock_device, mock_config_entry, mock_client
+) -> None:
+    """Test scan_wifi_networks method."""
+    unsub_listener = MagicMock()
+
+    with (
+        patch(
+            "custom_components.blanco_unit.coordinator.BlancoUnitBluetoothClient",
+            return_value=mock_client,
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_track_unavailable"
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_register_callback"
+        ),
+    ):
+        coordinator = BlancoUnitCoordinator(
+            hass, mock_config_entry, mock_device, unsub_listener
+        )
+
+        result = await coordinator.scan_wifi_networks()
+
+        mock_client.scan_wifi_networks.assert_called_once()
+        assert isinstance(result, list)
+        assert len(result) == 2
+
+
+async def test_coordinator_connect_wifi(
+    hass: HomeAssistant, mock_device, mock_config_entry, mock_client
+) -> None:
+    """Test connect_wifi method."""
+    unsub_listener = MagicMock()
+
+    with (
+        patch(
+            "custom_components.blanco_unit.coordinator.BlancoUnitBluetoothClient",
+            return_value=mock_client,
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_track_unavailable"
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_register_callback"
+        ),
+    ):
+        coordinator = BlancoUnitCoordinator(
+            hass, mock_config_entry, mock_device, unsub_listener
+        )
+
+        coordinator.data = BlancoUnitData(
+            connected=True,
+            available=True,
+            device_id="test_device_id",
+        )
+
+        await coordinator.connect_wifi("TestSSID", "password123")
+
+
+async def test_coordinator_disconnect_wifi(
+    hass: HomeAssistant, mock_device, mock_config_entry, mock_client
+) -> None:
+    """Test disconnect_wifi method."""
+    unsub_listener = MagicMock()
+
+    with (
+        patch(
+            "custom_components.blanco_unit.coordinator.BlancoUnitBluetoothClient",
+            return_value=mock_client,
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_track_unavailable"
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_register_callback"
+        ),
+    ):
+        coordinator = BlancoUnitCoordinator(
+            hass, mock_config_entry, mock_device, unsub_listener
+        )
+
+        coordinator.data = BlancoUnitData(
+            connected=True,
+            available=True,
+            device_id="test_device_id",
+        )
+
+        await coordinator.disconnect_wifi()
+
+
+async def test_coordinator_allow_cloud_services(
+    hass: HomeAssistant, mock_device, mock_config_entry, mock_client
+) -> None:
+    """Test allow_cloud_services method."""
+    unsub_listener = MagicMock()
+
+    with (
+        patch(
+            "custom_components.blanco_unit.coordinator.BlancoUnitBluetoothClient",
+            return_value=mock_client,
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_track_unavailable"
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_register_callback"
+        ),
+    ):
+        coordinator = BlancoUnitCoordinator(
+            hass, mock_config_entry, mock_device, unsub_listener
+        )
+
+        await coordinator.allow_cloud_services("test_id")
+
+        mock_client.allow_cloud_services.assert_called_once_with("test_id")
+
+
+async def test_coordinator_allow_cloud_services_default_rca(
+    hass: HomeAssistant, mock_device, mock_config_entry, mock_client
+) -> None:
+    """Test allow_cloud_services method with default rca_id."""
+    unsub_listener = MagicMock()
+
+    with (
+        patch(
+            "custom_components.blanco_unit.coordinator.BlancoUnitBluetoothClient",
+            return_value=mock_client,
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_track_unavailable"
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_register_callback"
+        ),
+    ):
+        coordinator = BlancoUnitCoordinator(
+            hass, mock_config_entry, mock_device, unsub_listener
+        )
+
+        await coordinator.allow_cloud_services()
+
+        mock_client.allow_cloud_services.assert_called_once_with("")
+
+
+async def test_coordinator_factory_reset(
+    hass: HomeAssistant, mock_device, mock_config_entry, mock_client
+) -> None:
+    """Test factory_reset method."""
+    unsub_listener = MagicMock()
+
+    with (
+        patch(
+            "custom_components.blanco_unit.coordinator.BlancoUnitBluetoothClient",
+            return_value=mock_client,
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_track_unavailable"
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_register_callback"
+        ),
+    ):
+        coordinator = BlancoUnitCoordinator(
+            hass, mock_config_entry, mock_device, unsub_listener
+        )
+
+        await coordinator.factory_reset()
