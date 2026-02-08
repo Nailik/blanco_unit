@@ -1,5 +1,6 @@
 """Coordinator for Blanco Unit BLE integration in order to communicate with client."""
 
+import asyncio
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import timedelta
@@ -223,13 +224,13 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
 
     async def connect_wifi(self, ssid: str, password: str) -> None:
         """Connect the device to a WiFi network."""
-        await self._call(self._client.connect_wifi, ssid, password)
-        # device will disconnect automatically, and trigger refresh on reconnection, so no need to manually refresh here
+        if await self._call(self._client.connect_wifi, ssid, password):
+            await self._wait_for_ble_disconnect_and_reconnect()
 
     async def disconnect_wifi(self) -> None:
         """Disconnect the device from WiFi."""
-        await self._call(self._client.disconnect_wifi)
-        # device will disconnect automatically, and trigger refresh on reconnection, so no need to manually refresh here
+        if await self._call(self._client.disconnect_wifi):
+            await self._wait_for_ble_disconnect_and_reconnect()
 
     async def allow_cloud_services(self, rca_id: str = "") -> None:
         """Allow cloud services (Freigabe)."""
@@ -239,6 +240,16 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
         """Perform a full software reset of the device."""
         await self._call(self._client.factory_reset)
         await self.refresh_data()
+
+    async def _wait_for_ble_disconnect_and_reconnect(self) -> None:
+        """Wait for BLE device to disconnect, then trigger reconnect."""
+        for _ in range(10):  # poll every 1s
+            if not self._client.is_connected:
+                break
+            await asyncio.sleep(1)
+        else:
+            _LOGGER.warning("BLE device did not disconnect within 10s timeout")
+        self.hass.async_create_task(self.async_request_refresh())
 
     # -------------------------------
     # region Testing
