@@ -309,24 +309,41 @@ class _BlancoUnitProtocol:
 
     async def read_response_chunks(self, client: BleakClient) -> list[bytes]:
         """Read response chunks from the characteristic."""
-        chunks = []
+        chunks: list[bytes] = []
         expected = 1
         last_data = b""
         attempts = 0
-        max_attempts = 40
+        max_attempts = 60
+        consecutive_errors = 0
 
         while len(chunks) < expected and attempts < max_attempts:
             try:
                 data = await client.read_gatt_char(CHARACTERISTIC_UUID)
+                consecutive_errors = 0
                 if data != last_data:
                     last_data = data
                     chunks.append(data)
                     if data[0] == 0xFF:
                         expected = data[2]
                 attempts += 1
+                await asyncio.sleep(0.05)
             except Exception as e:  # noqa: BLE001
-                _LOGGER.error("Read error: %s", e)
-                break
+                err_str = str(e)
+                if "Not connected" in err_str or "NotConnected" in err_str:
+                    _LOGGER.warning("Read failed (disconnected): %s", e)
+                    break
+                # Transient ATT errors (e.g. 0x0e) mean the device
+                # hasn't prepared its response yet — keep polling.
+                consecutive_errors += 1
+                if consecutive_errors >= 10:
+                    _LOGGER.warning(
+                        "Read failed %d times, giving up: %s",
+                        consecutive_errors, e,
+                    )
+                    break
+                _LOGGER.debug("Transient read error (attempt %d): %s", attempts, e)
+                await asyncio.sleep(0.1)
+                attempts += 1
 
         if len(chunks) != expected:
             raise TimeoutError(
@@ -362,6 +379,9 @@ class _BlancoUnitProtocol:
         # Send packets
         for packet in packets:
             await client.write_gatt_char(CHARACTERISTIC_UUID, packet, response=True)
+
+        # Delay to let device process before polling reads
+        await asyncio.sleep(0.3)
 
         # Read response
         chunks = await self.read_response_chunks(client)
@@ -406,6 +426,9 @@ class _BlancoUnitProtocol:
         # Send packets
         for packet in packets:
             await client.write_gatt_char(CHARACTERISTIC_UUID, packet, response=True)
+
+        # Delay to let device process before polling reads
+        await asyncio.sleep(0.3)
 
         # Read response
         chunks = await self.read_response_chunks(client)
@@ -470,40 +493,70 @@ class BlancoUnitBluetoothClient:
             await self._session_data.client.disconnect()
 
     async def _connect(self) -> _BlancoUnitSessionData:
-        """Connect to the device if not already connected and authenticate."""
+        """Connect to the device if not already connected and authenticate.
+
+        The device tends to drop BLE connections quickly after GATT
+        discovery, so we retry the full connect + pairing sequence
+        up to 3 times before giving up.
+        """
         async with self._connect_lock:
             _LOGGER.debug("Connecting to device %s", self._device.address)
             if self._session_data:
                 _LOGGER.debug("Already connected")
                 return self._session_data
 
-            client = await establish_connection(
-                client_class=BleakClientWithServiceCache,
-                device=self._device,
-                name=self._device.name or "Unknown Device",
-                disconnected_callback=self._handle_disconnect,
-                timeout=120,
-            )
+            last_err: Exception | None = None
+            for attempt in range(3):
+                client: BleakClient | None = None
+                try:
+                    client = await establish_connection(
+                        client_class=BleakClientWithServiceCache,
+                        device=self._device,
+                        name=self._device.name or "Unknown Device",
+                        disconnected_callback=self._handle_disconnect,
+                        timeout=120,
+                    )
 
-            # Create protocol instance for this session
-            protocol = _BlancoUnitProtocol(mtu=MTU_SIZE)
+                    # Create protocol instance for this session
+                    protocol = _BlancoUnitProtocol(mtu=MTU_SIZE)
 
-            # Perform initial pairing
-            result = await self._perform_pairing(client, protocol)
+                    # Perform initial pairing
+                    result = await self._perform_pairing(client, protocol)
 
-            _LOGGER.debug(
-                "Connected and paired with device ID: %s, device type: %d",
-                result.dev_id,
-                result.dev_type,
+                    _LOGGER.debug(
+                        "Connected and paired with device ID: %s, device type: %d",
+                        result.dev_id,
+                        result.dev_type,
+                    )
+                    self._session_data = _BlancoUnitSessionData(
+                        client=client,
+                        dev_id=result.dev_id,
+                        dev_type=result.dev_type,
+                        protocol=protocol,
+                    )
+                    self._connection_callback(
+                        self._session_data.client.is_connected
+                    )
+                    return self._session_data
+                except BlancoUnitAuthenticationError:
+                    # Wrong PIN — no point retrying
+                    raise
+                except Exception as err:  # noqa: BLE001
+                    last_err = err
+                    _LOGGER.warning(
+                        "Connection attempt %d/3 failed: %s",
+                        attempt + 1, err,
+                    )
+                    if client is not None:
+                        try:
+                            await client.disconnect()
+                        except Exception:  # noqa: BLE001
+                            pass
+                    await asyncio.sleep(0.5)
+
+            raise BlancoUnitConnectionError(
+                f"Failed after 3 connection attempts: {last_err}"
             )
-            self._session_data = _BlancoUnitSessionData(
-                client=client,
-                dev_id=result.dev_id,
-                dev_type=result.dev_type,
-                protocol=protocol,
-            )
-            self._connection_callback(self._session_data.client.is_connected)
-            return self._session_data
 
     def _handle_disconnect(self, _: BleakClient) -> None:
         """Reset session and call connection callback."""
