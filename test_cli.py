@@ -383,7 +383,7 @@ class BlancoUnitCLI:
     async def test_dispense_water(self) -> None:
         """Test dispense_water()."""
         print("\n--- Dispense Water ---")
-        print("Amount: 100-1500ml (multiples of 100)")
+        print("Amount: ml (minimum 50ml)")
         print("CO2 Intensity: 1=still, 2=medium, 3=high")
 
         while True:
@@ -391,8 +391,8 @@ class BlancoUnitCLI:
                 amount = input("Enter amount (ml): ").strip()
                 amount_int = int(amount)
 
-                if not (100 <= amount_int <= 1500 and amount_int % 100 == 0):
-                    print("Amount must be 100-1500ml in multiples of 100")
+                if amount_int < 50:
+                    print("Amount must be minimum 50ml")
                     continue
 
                 co2 = input("Enter CO2 intensity (1-3): ").strip()

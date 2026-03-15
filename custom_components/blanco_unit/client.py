@@ -661,10 +661,8 @@ class BlancoUnitBluetoothClient:
         Raises:
             ValueError: If amount or intensity is invalid.
         """
-        if not (100 <= amount_ml <= 1500):
-            raise ValueError("Amount must be between 100ml and 1500ml")
-        if amount_ml % 100 != 0:
-            raise ValueError("Amount must be a multiple of 100ml")
+        if amount_ml < 50:
+            raise ValueError("Amount must be at least 50ml")
         if co2_intensity not in (1, 2, 3):
             raise ValueError("CO2 intensity must be 1 (still), 2 (medium), or 3 (high)")
 

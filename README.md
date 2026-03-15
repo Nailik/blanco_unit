@@ -171,7 +171,7 @@ Dispense water with specified amount and carbonation level.
 **Parameters:**
 
 - `device_id` (required): The Blanco Unit device to dispense water from
-- `amount_ml` (required): Amount of water in milliliters (100-1500, must be multiple of 100)
+- `amount_ml` (required): Amount of water in milliliters, min 50ml
 - `co2_intensity` (required): Carbonation level
   - `1` = Still water
   - `2` = Medium carbonation
