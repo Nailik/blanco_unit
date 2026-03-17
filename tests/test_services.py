@@ -47,16 +47,6 @@ def test_validate_amount_ml_valid():
     assert _validate_amount_ml(1500) == 1500
 
 
-def test_validate_amount_ml_invalid():
-    """Test _validate_amount_ml with invalid values."""
-    with pytest.raises(vol.Invalid, match="Amount must be a multiple of 100ml"):
-        _validate_amount_ml(150)
-    with pytest.raises(vol.Invalid, match="Amount must be a multiple of 100ml"):
-        _validate_amount_ml(99)
-    with pytest.raises(vol.Invalid, match="Amount must be a multiple of 100ml"):
-        _validate_amount_ml(1550)
-
-
 def test_dispense_water_schema_valid():
     """Test dispense water schema with valid data."""
     valid_data = {
@@ -72,32 +62,12 @@ def test_dispense_water_schema_valid():
 
 def test_dispense_water_schema_invalid_amount():
     """Test dispense water schema with invalid amount."""
-    # Not a multiple of 100
-    with pytest.raises(vol.Invalid):
-        SERVICE_DISPENSE_WATER_SCHEMA(
-            {
-                HA_SERVICE_ATTR_DEVICE_ID: "test_device_id",
-                HA_SERVICE_ATTR_AMOUNT_ML: 150,
-                HA_SERVICE_ATTR_CO2_INTENSITY: 2,
-            }
-        )
-
     # Below minimum
     with pytest.raises(vol.Invalid):
         SERVICE_DISPENSE_WATER_SCHEMA(
             {
                 HA_SERVICE_ATTR_DEVICE_ID: "test_device_id",
-                HA_SERVICE_ATTR_AMOUNT_ML: 50,
-                HA_SERVICE_ATTR_CO2_INTENSITY: 2,
-            }
-        )
-
-    # Above maximum
-    with pytest.raises(vol.Invalid):
-        SERVICE_DISPENSE_WATER_SCHEMA(
-            {
-                HA_SERVICE_ATTR_DEVICE_ID: "test_device_id",
-                HA_SERVICE_ATTR_AMOUNT_ML: 1600,
+                HA_SERVICE_ATTR_AMOUNT_ML: 1,
                 HA_SERVICE_ATTR_CO2_INTENSITY: 2,
             }
         )

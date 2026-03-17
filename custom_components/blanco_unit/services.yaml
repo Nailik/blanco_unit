@@ -14,14 +14,13 @@ dispense_water:
           integration: blanco_unit
     amount_ml:
       name: Amount (ml)
-      description: Amount of water to dispense in milliliters (100-1500, must be multiple of 100).
+      description: Amount of water to dispense in milliliters.
       required: true
       example: 250
       selector:
         number:
-          min: 100
-          max: 1500
-          step: 100
+          min: 50
+          step: 1
           unit_of_measurement: "ml"
     co2_intensity:
       name: CO2 intensity

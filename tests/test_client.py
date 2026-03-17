@@ -1668,36 +1668,8 @@ async def test_bluetooth_client_dispense_water_invalid_amount_low():
         pin="12345", device=device, connection_callback=callback
     )
 
-    with pytest.raises(ValueError, match="Amount must be between 100ml and 1500ml"):
-        await client.dispense_water(amount_ml=50, co2_intensity=1)
-
-
-@pytest.mark.asyncio
-async def test_bluetooth_client_dispense_water_invalid_amount_high():
-    """Test dispense_water with amount too high."""
-    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
-    callback = MagicMock()
-
-    client = BlancoUnitBluetoothClient(
-        pin="12345", device=device, connection_callback=callback
-    )
-
-    with pytest.raises(ValueError, match="Amount must be between 100ml and 1500ml"):
-        await client.dispense_water(amount_ml=2000, co2_intensity=1)
-
-
-@pytest.mark.asyncio
-async def test_bluetooth_client_dispense_water_invalid_amount_not_multiple():
-    """Test dispense_water with amount not a multiple of 100."""
-    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
-    callback = MagicMock()
-
-    client = BlancoUnitBluetoothClient(
-        pin="12345", device=device, connection_callback=callback
-    )
-
-    with pytest.raises(ValueError, match="Amount must be a multiple of 100ml"):
-        await client.dispense_water(amount_ml=150, co2_intensity=1)
+    with pytest.raises(ValueError, match="Amount must be at least 50ml"):
+        await client.dispense_water(amount_ml=1, co2_intensity=1)
 
 
 @pytest.mark.asyncio
