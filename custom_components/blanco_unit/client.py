@@ -482,6 +482,7 @@ class BlancoUnitBluetoothClient:
                 device=self._device,
                 name=self._device.name or "Unknown Device",
                 disconnected_callback=self._handle_disconnect,
+                pair=True,
                 timeout=120,
             )
 
