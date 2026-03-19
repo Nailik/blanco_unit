@@ -1,0 +1,34 @@
+name: Release
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  release_zip_file:
+    name: Run automations to build latest release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 🛍️ Checkout the repo
+        uses: actions/checkout@v6.0.2
+
+      - name: 📦 Created zipped release package
+        shell: bash
+        run: |
+          cd "${{ github.workspace }}/custom_components/blanco_unit"
+          zip blanco_unit.zip -r ./
+
+      - name: 🔏 Sign release package
+        uses: sigstore/gh-action-sigstore-python@v3.2.0
+        with:
+          inputs: ${{ github.workspace }}/custom_components/blanco_unit/blanco_unit.zip
+
+      - name: ⬆️ Upload zip to release
+        uses: softprops/action-gh-release@v2.5.3
+        with:
+          files: ${{ github.workspace }}/custom_components/blanco_unit/blanco_unit.zip
+
+    
