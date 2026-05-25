@@ -86,7 +86,6 @@ class FilterRemainingSensor(BlancoUnitBaseEntity, SensorEntity):
 
     _attr_unique_id = "filter_remaining"
     _attr_translation_key = _attr_unique_id
-    _attr_device_class = SensorDeviceClass.BATTERY
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
@@ -108,7 +107,6 @@ class CO2RemainingSensor(BlancoUnitBaseEntity, SensorEntity):
 
     _attr_unique_id = "co2_remaining"
     _attr_translation_key = _attr_unique_id
-    _attr_device_class = SensorDeviceClass.BATTERY
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
