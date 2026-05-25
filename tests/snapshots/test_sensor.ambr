@@ -123,7 +123,7 @@
     'options': dict({
     }),
     'original_device_class': None,
-    'original_icon': None,
+    'original_icon': 'mdi:history',
     'original_name': 'CO2 Cylinder Remaining',
     'platform': 'blanco_unit',
     'previous_unique_id': None,
@@ -138,6 +138,7 @@
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'friendly_name': 'Test Blanco Unit CO2 Cylinder Remaining',
+      'icon': 'mdi:history',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
       'unit_of_measurement': '%',
     }),
@@ -469,7 +470,7 @@
     'options': dict({
     }),
     'original_device_class': None,
-    'original_icon': None,
+    'original_icon': 'mdi:history',
     'original_name': 'Filter Capacity Remaining',
     'platform': 'blanco_unit',
     'previous_unique_id': None,
@@ -484,6 +485,7 @@
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'friendly_name': 'Test Blanco Unit Filter Capacity Remaining',
+      'icon': 'mdi:history',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
       'unit_of_measurement': '%',
     }),
