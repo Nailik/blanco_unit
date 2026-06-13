@@ -102,6 +102,19 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
         self, info: BluetoothServiceInfoBleak, change: BluetoothChange
     ) -> None:
         _LOGGER.debug("%s is discovered again", info.address)
+        # For random MAC devices, update the device reference so the client
+        # connects to the current address rather than a stale rotated one.
+        if self._random_mac and info.device.address != self.address:
+            _LOGGER.debug(
+                "Random MAC rotated: %s -> %s", self.address, info.device.address
+            )
+            self.address = info.device.address
+            self._client.update_device(info.device)
+            # Re-register the unavailable tracker for the new address
+            self._unsub_unavailable_update_listener()
+            self._unsub_unavailable_update_listener = bluetooth.async_track_unavailable(
+                self.hass, self._unavailable_callback, self.address, connectable=True
+            )
         self.hass.async_create_task(self.async_request_refresh())  # load the data
 
     def _unavailable_callback(self, info: BluetoothServiceInfoBleak) -> None:
