@@ -460,6 +460,19 @@ class BlancoUnitBluetoothClient:
         """Return True if the BLE client is currently connected."""
         return self._session_data is not None and self._session_data.client.is_connected
 
+    def update_device(self, device: BLEDevice) -> None:
+        """Update the BLE device reference (used when MAC address rotates).
+
+        Only updates if not currently connected, to avoid disrupting an active session.
+        """
+        if not self.is_connected:
+            _LOGGER.debug(
+                "Updating device reference: %s -> %s",
+                self._device.address,
+                device.address,
+            )
+            self._device = device
+
     # -------------------------------
     # region Connection Management
     # -------------------------------
@@ -482,7 +495,7 @@ class BlancoUnitBluetoothClient:
                 device=self._device,
                 name=self._device.name or "Unknown Device",
                 disconnected_callback=self._handle_disconnect,
-                pair=False,
+                pair=True,
                 timeout=120,
             )
 
