@@ -7,11 +7,7 @@ import logging
 import re
 from typing import Any
 
-from bleak_retry_connector import (
-    BleakClientWithServiceCache,
-    BleakConnectionError,
-    establish_connection,
-)
+from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 import voluptuous as vol
 from voluptuous.schema_builder import UNDEFINED
 
@@ -168,33 +164,13 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             )
 
             _LOGGER.debug("await establish_connection")
-            try:
-                client = await establish_connection(
-                    client_class=BleakClientWithServiceCache,
-                    device=device,
-                    name=device.name or "Unknown Device",
-                    pair=True,
-                    timeout=120,
-                )
-            except BleakConnectionError as conn_err:
-                if "AuthenticationFailed" not in str(conn_err):
-                    raise
-                # Stale BlueZ bond - clear it and retry
-                _LOGGER.warning(
-                    "Stale bond for %s, clearing and retrying", device.address
-                )
-                try:
-                    unpair_client = BleakClientWithServiceCache(device)
-                    await unpair_client.unpair()
-                except Exception:  # noqa: BLE001
-                    pass
-                client = await establish_connection(
-                    client_class=BleakClientWithServiceCache,
-                    device=device,
-                    name=device.name or "Unknown Device",
-                    pair=True,
-                    timeout=120,
-                )
+            client = await establish_connection(
+                client_class=BleakClientWithServiceCache,
+                device=device,
+                name=device.name or "Unknown Device",
+                pair=True,
+                timeout=120,
+            )
 
             _LOGGER.debug("await validate_pin")
             validation = await validate_pin(client, pin_str)
