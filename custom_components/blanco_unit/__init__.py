@@ -190,7 +190,7 @@ def _register_retry_callback(
             hass,
             _available_callback,
             {"service_uuid": CHARACTERISTIC_UUID, "connectable": True},
-            BluetoothScanningMode.ACTIVE,
+            BluetoothScanningMode.PASSIVE,
         )
     else:
         # For static MAC, listen for the specific address
@@ -198,7 +198,7 @@ def _register_retry_callback(
             hass,
             _available_callback,
             {"address": config_entry.data[CONF_MAC], "connectable": True},
-            BluetoothScanningMode.ACTIVE,
+            BluetoothScanningMode.PASSIVE,
         )
 
     hass.data[DOMAIN][config_entry.entry_id][BLE_CALLBACK] = unregister_ble_callback
