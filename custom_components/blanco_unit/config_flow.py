@@ -7,7 +7,11 @@ import logging
 import re
 from typing import Any
 
-from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
+from bleak_retry_connector import (
+    BleakClientWithServiceCache,
+    BleakConnectionError,
+    establish_connection,
+)
 import voluptuous as vol
 from voluptuous.schema_builder import UNDEFINED
 
