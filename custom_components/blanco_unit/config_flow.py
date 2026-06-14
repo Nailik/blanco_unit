@@ -20,6 +20,7 @@ from homeassistant.helpers.selector import (
     TextSelectorType,
 )
 
+from .ble_agent import async_register_agent
 from .client import validate_pin
 from .const import (
     CONF_DEV_ID,
@@ -109,6 +110,9 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
     async def validate_input(self, user_input: dict[str, Any]) -> ValidationResult:
         """Set up the entry from user data."""
         _LOGGER.debug("validate_input %s", user_input)
+
+        # Ensure BlueZ pairing agent is registered before connection attempt
+        await async_register_agent()
 
         # Validate MAC address format
         if not bool(

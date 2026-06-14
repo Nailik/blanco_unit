@@ -24,6 +24,7 @@ from homeassistant.exceptions import (
     IntegrationError,
 )
 
+from .ble_agent import async_register_agent
 from .client import validate_pin
 from .const import (
     BLE_CALLBACK,
@@ -59,6 +60,9 @@ async def async_setup(hass: HomeAssistant, entry: BlancoUnitConfigEntry) -> bool
             translation_key="invalid_ha_version",
             translation_placeholders={"version": MIN_HA_VERSION},
         )
+    # Register a BlueZ pairing agent so that BLE pairing (pair=True) works.
+    # Without an agent, BlueZ rejects Pair() with AuthenticationFailed.
+    await async_register_agent()
     async_setup_services(hass)
     return True
 
