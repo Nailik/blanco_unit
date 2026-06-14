@@ -150,9 +150,7 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
                 "random_static",
                 "random_resolvable",
             )
-            mac_to_store = (
-                RANDOM_MAC_PLACEHOLDER if has_random_mac else device.address
-            )
+            mac_to_store = RANDOM_MAC_PLACEHOLDER if has_random_mac else device.address
 
             _LOGGER.debug(
                 "Device name %s, address_type %s, MAC: %s, Random: %s, Storing as: %s",
@@ -214,7 +212,11 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
         self, discovery_info: BluetoothServiceInfoBleak
     ) -> ConfigFlowResult:
         """Handle a bluetooth device being discovered."""
-        _LOGGER.debug("async_step_bluetooth called with %s and advertisement %s", discovery_info, discovery_info.advertisement)
+        _LOGGER.debug(
+            "async_step_bluetooth called with %s and advertisement %s",
+            discovery_info,
+            discovery_info.advertisement,
+        )
         # Check if the device already exists.
         await self._async_handle_discovery_without_unique_id()
         self._abort_if_unique_id_configured()

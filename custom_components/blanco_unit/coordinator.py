@@ -86,14 +86,14 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
                 hass,
                 self._available_callback,
                 {"service_uuid": CHARACTERISTIC_UUID, "connectable": True},
-                BluetoothScanningMode.PASSIVE,
+                BluetoothScanningMode.ACTIVE,
             )
         else:
             self._unsub_available_update_listener = bluetooth.async_register_callback(
                 hass,
                 self._available_callback,
                 {"address": self.address, "connectable": True},
-                BluetoothScanningMode.PASSIVE,
+                BluetoothScanningMode.ACTIVE,
             )
 
         _LOGGER.debug("Coordinator startup finished (random_mac=%s)", self._random_mac)

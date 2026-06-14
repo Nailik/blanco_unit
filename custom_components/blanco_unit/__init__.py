@@ -105,9 +105,7 @@ async def _find_device_by_scanning(
     had_auth_failure = False
 
     for device, rssi in candidates:
-        _LOGGER.debug(
-            "Random MAC scan: trying %s (RSSI: %s)", device.address, rssi
-        )
+        _LOGGER.debug("Random MAC scan: trying %s (RSSI: %s)", device.address, rssi)
         client = None
         try:
             client = await establish_connection(
@@ -120,9 +118,7 @@ async def _find_device_by_scanning(
             result = await validate_pin(client, pin)
 
             if not result.is_valid:
-                _LOGGER.debug(
-                    "Random MAC scan: PIN rejected by %s", device.address
-                )
+                _LOGGER.debug("Random MAC scan: PIN rejected by %s", device.address)
                 had_auth_failure = True
                 continue
 
@@ -174,16 +170,14 @@ def _register_retry_callback(
         info: BluetoothServiceInfoBleak, _change: BluetoothChange
     ) -> None:
         if random_mac:
-            _LOGGER.debug(
-                "Random MAC: device with UUID discovered at %s", info.address
-            )
+            _LOGGER.debug("Random MAC: device with UUID discovered at %s", info.address)
         else:
             _LOGGER.debug("%s is discovered again", info.address)
-        hass.async_create_task(
-            hass.config_entries.async_reload(config_entry.entry_id)
-        )
+        hass.async_create_task(hass.config_entries.async_reload(config_entry.entry_id))
 
-    _LOGGER.debug("async_setup_entry async_register_callback (random_mac=%s)", random_mac)
+    _LOGGER.debug(
+        "async_setup_entry async_register_callback (random_mac=%s)", random_mac
+    )
 
     if random_mac:
         # For random MAC, listen for any device advertising our service UUID
@@ -191,7 +185,7 @@ def _register_retry_callback(
             hass,
             _available_callback,
             {"service_uuid": CHARACTERISTIC_UUID, "connectable": True},
-            BluetoothScanningMode.PASSIVE,
+            BluetoothScanningMode.ACTIVE,
         )
     else:
         # For static MAC, listen for the specific address
@@ -199,7 +193,7 @@ def _register_retry_callback(
             hass,
             _available_callback,
             {"address": config_entry.data[CONF_MAC], "connectable": True},
-            BluetoothScanningMode.PASSIVE,
+            BluetoothScanningMode.ACTIVE,
         )
 
     hass.data[DOMAIN][config_entry.entry_id][BLE_CALLBACK] = unregister_ble_callback

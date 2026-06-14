@@ -34,6 +34,7 @@ from .coordinator import BlancoUnitCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+
 # Service schemas
 def _validate_amount_ml(value: int) -> int:
     """Validate amount is minimum 50."""
@@ -163,16 +164,14 @@ def async_setup_services(hass: HomeAssistant) -> None:
         )
 
         # Test the specific parameter combination
-        response = await coordinator.test_protocol_parameters(
-            evt_type, ctrl, pars
-        )
+        response = await coordinator.test_protocol_parameters(evt_type, ctrl, pars)
 
         result = {
             "evt_type": evt_type,
             "ctrl": ctrl,
             "pars": pars,
             "success": response is not None,
-            "response": response if response else None,
+            "response": response or None,
         }
 
         _LOGGER.info("Response: %s", json.dumps(response, indent=2))
@@ -210,9 +209,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def handle_allow_cloud_services(call: ServiceCall) -> None:
         """Handle the allow_cloud_services service call."""
-        _LOGGER.debug(
-            "Allow cloud services called with data: %s", call.data
-        )
+        _LOGGER.debug("Allow cloud services called with data: %s", call.data)
         coordinator = _get_coordinator(hass, call)
         rca_id = call.data[HA_SERVICE_ATTR_RCA_ID]
         await coordinator.allow_cloud_services(rca_id)

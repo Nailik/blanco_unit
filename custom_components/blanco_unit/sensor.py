@@ -29,36 +29,36 @@ async def async_setup_entry(
     coordinator: BlancoUnitCoordinator = config_entry.runtime_data
 
     entities = [
-            # Status sensors
-            FilterRemainingSensor(coordinator),
-            CO2RemainingSensor(coordinator),
-            TapStateSensor(coordinator),
-            CleanModeStateSensor(coordinator),
-            ErrorBitsSensor(coordinator),
-            # Settings sensors
-            FilterLifetimeSensor(coordinator),
-            PostFlushQuantitySensor(coordinator),
-            # System info sensors
-            FirmwareMainSensor(coordinator),
-            FirmwareCommSensor(coordinator),
-            FirmwareElecSensor(coordinator),
-            DeviceNameSensor(coordinator),
-            ResetCountSensor(coordinator),
-            DeviceTypeSensor(coordinator),
-            DeviceIdSensor(coordinator),
-            # Identity sensors
-            SerialNumberSensor(coordinator),
-            ServiceCodeSensor(coordinator),
-            # WiFi sensors
-            WiFiSSIDSensor(coordinator),
-            WiFiSignalSensor(coordinator),
-            IPAddressSensor(coordinator),
-            BLEMacSensor(coordinator),
-            WiFiMacSensor(coordinator),
-            GatewaySensor(coordinator),
-            GatewayMacSensor(coordinator),
-            SubnetSensor(coordinator),
-        ]
+        # Status sensors
+        FilterRemainingSensor(coordinator),
+        CO2RemainingSensor(coordinator),
+        TapStateSensor(coordinator),
+        CleanModeStateSensor(coordinator),
+        ErrorBitsSensor(coordinator),
+        # Settings sensors
+        FilterLifetimeSensor(coordinator),
+        PostFlushQuantitySensor(coordinator),
+        # System info sensors
+        FirmwareMainSensor(coordinator),
+        FirmwareCommSensor(coordinator),
+        FirmwareElecSensor(coordinator),
+        DeviceNameSensor(coordinator),
+        ResetCountSensor(coordinator),
+        DeviceTypeSensor(coordinator),
+        DeviceIdSensor(coordinator),
+        # Identity sensors
+        SerialNumberSensor(coordinator),
+        ServiceCodeSensor(coordinator),
+        # WiFi sensors
+        WiFiSSIDSensor(coordinator),
+        WiFiSignalSensor(coordinator),
+        IPAddressSensor(coordinator),
+        BLEMacSensor(coordinator),
+        WiFiMacSensor(coordinator),
+        GatewaySensor(coordinator),
+        GatewayMacSensor(coordinator),
+        SubnetSensor(coordinator),
+    ]
     # CHOICE.All status sensors
     entitiesExtended = [
         BoilerTemp1Sensor(coordinator),

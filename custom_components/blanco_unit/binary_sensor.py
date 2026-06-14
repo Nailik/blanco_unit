@@ -26,10 +26,10 @@ async def async_setup_entry(
     """Set up the binary sensors."""
     coordinator: BlancoUnitCoordinator = config_entry.runtime_data
     entities = [
-            ConnectionBinarySensor(coordinator),
-            WaterDispensingBinarySensor(coordinator),
-            FirmwareUpdateBinarySensor(coordinator),
-            CloudConnectBinarySensor(coordinator),
+        ConnectionBinarySensor(coordinator),
+        WaterDispensingBinarySensor(coordinator),
+        FirmwareUpdateBinarySensor(coordinator),
+        CloudConnectBinarySensor(coordinator),
     ]
 
     # CHOICE.All binary sensors (decoded from main_controller_status)
@@ -71,10 +71,7 @@ class WaterDispensingBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
     @property
     def available(self) -> bool:
         """Set availability if status is available."""
-        return (
-            super().available
-            and self.coordinator.data.status is not None
-        )
+        return super().available and self.coordinator.data.status is not None
 
     @property
     def is_on(self) -> bool | None:
@@ -96,10 +93,7 @@ class FirmwareUpdateBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
     @property
     def available(self) -> bool:
         """Set availability if status is available."""
-        return (
-            super().available
-            and self.coordinator.data.status is not None
-        )
+        return super().available and self.coordinator.data.status is not None
 
     @property
     def is_on(self) -> bool | None:
@@ -121,10 +115,7 @@ class CloudConnectBinarySensor(BlancoUnitBaseEntity, BinarySensorEntity):
     @property
     def available(self) -> bool:
         """Set availability if wifi info is available."""
-        return (
-            super().available
-            and self.coordinator.data.wifi_info is not None
-        )
+        return super().available and self.coordinator.data.wifi_info is not None
 
     @property
     def is_on(self) -> bool | None:

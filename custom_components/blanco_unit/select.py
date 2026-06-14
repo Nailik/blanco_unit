@@ -41,10 +41,7 @@ class TemperatureSelect(BlancoUnitBaseEntity, SelectEntity):
     @property
     def available(self) -> bool:
         """Set availability if settings are available."""
-        return (
-            super().available
-            and self.coordinator.data.settings is not None
-        )
+        return super().available and self.coordinator.data.settings is not None
 
     @property
     def current_option(self) -> str | None:
@@ -106,10 +103,7 @@ class WaterHardnessSelect(BlancoUnitBaseEntity, SelectEntity):
     @property
     def available(self) -> bool:
         """Set availability if settings are available."""
-        return (
-            super().available
-            and self.coordinator.data.settings is not None
-        )
+        return super().available and self.coordinator.data.settings is not None
 
     @property
     def current_option(self) -> str | None:
