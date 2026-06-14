@@ -6,9 +6,11 @@ ceremonies. Without one, Pair() immediately fails with AuthenticationFailed.
 This module registers a minimal NoInputNoOutput agent that auto-accepts
 Just Works pairing requests, which is the pairing method used by Blanco Unit
 devices.
-"""
 
-from __future__ import annotations
+Note: `from __future__ import annotations` is intentionally NOT used here because
+dbus-fast reads type annotations at runtime to derive D-Bus method signatures.
+PEP 563 (stringified annotations) breaks this introspection.
+"""
 
 import logging
 
@@ -50,17 +52,17 @@ async def async_register_agent() -> bool:
             _LOGGER.debug("BlueZ agent released")
 
         @method()
-        def RequestConfirmation(self, device: "o", passkey: "u") -> None:  # noqa: F821, UP037
+        def RequestConfirmation(self, device: "o", passkey: "u") -> None:  # noqa: F821
             """Auto-confirm numeric comparison (Just Works)."""
             _LOGGER.debug("Auto-confirming pairing for %s", device)
 
         @method()
-        def RequestAuthorization(self, device: "o") -> None:  # noqa: F821, UP037
+        def RequestAuthorization(self, device: "o") -> None:  # noqa: F821
             """Auto-authorize pairing request."""
             _LOGGER.debug("Auto-authorizing pairing for %s", device)
 
         @method()
-        def AuthorizeService(self, device: "o", uuid: "s") -> None:  # noqa: F821, UP037
+        def AuthorizeService(self, device: "o", uuid: "s") -> None:  # noqa: F821
             """Auto-authorize service access."""
             _LOGGER.debug("Auto-authorizing service %s for %s", uuid, device)
 
