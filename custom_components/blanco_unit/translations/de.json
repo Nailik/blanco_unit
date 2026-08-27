@@ -97,10 +97,18 @@
         "name": "Cloud-Verbindung"
       },
       "heater_active": {
-        "name": "Heizung Status"
+        "name": "Heizung",
+        "state": {
+          "on": "an",
+          "off": "aus"
+        }
       },
       "compressor_active": {
-        "name": "Kompressor Status"
+        "name": "Kompressor",
+        "state": {
+          "on": "an",
+          "off": "aus"
+        }
       }
     },
     "button": {
