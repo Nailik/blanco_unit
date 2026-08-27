@@ -33,7 +33,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryNotReady,
-    HomeAssistantError,
     IntegrationError,
 )
 
@@ -71,12 +70,18 @@ async def test_async_setup_entry_success(hass: HomeAssistant) -> None:
     mock_device.address = "AA:BB:CC:DD:EE:FF"
 
     mock_coordinator = MagicMock()
-    mock_coordinator.async_config_entry_first_refresh = AsyncMock()
+    mock_coordinator.async_refresh = AsyncMock()
 
     mock_entry = MagicMock(spec=ConfigEntry)
     mock_entry.entry_id = "test_entry_id"
     mock_entry.data = {CONF_MAC: "AA:BB:CC:DD:EE:FF"}
     mock_entry.add_update_listener = MagicMock(return_value=MagicMock())
+
+    def _run_bg_task(_hass, coro, _name):
+        coro.close()
+        return MagicMock()
+
+    mock_entry.async_create_background_task = MagicMock(side_effect=_run_bg_task)
 
     with (
         patch(
@@ -93,7 +98,9 @@ async def test_async_setup_entry_success(hass: HomeAssistant) -> None:
 
         assert result is True
         assert mock_entry.runtime_data == mock_coordinator
-        mock_coordinator.async_config_entry_first_refresh.assert_called_once()
+        # The first refresh runs in the background so it cannot block startup.
+        mock_coordinator.async_refresh.assert_called_once()
+        mock_entry.async_create_background_task.assert_called_once()
         mock_forward.assert_called_once()
 
         # Verify platforms are registered
@@ -206,111 +213,6 @@ async def test_async_setup_entry_ble_callback_triggers_reload(
         await hass.async_block_till_done()
 
         mock_reload.assert_called_once_with("test_entry_id")
-
-
-async def test_async_setup_entry_auth_failed(hass: HomeAssistant) -> None:
-    """Test config entry setup with authentication failure."""
-    mock_device = MagicMock()
-    mock_device.address = "AA:BB:CC:DD:EE:FF"
-
-    mock_coordinator = MagicMock()
-    mock_coordinator.async_config_entry_first_refresh = AsyncMock(
-        side_effect=ConfigEntryAuthFailed("Auth failed")
-    )
-
-    mock_entry = MagicMock(spec=ConfigEntry)
-    mock_entry.entry_id = "test_entry_id"
-    mock_entry.data = {CONF_MAC: "AA:BB:CC:DD:EE:FF"}
-
-    unsub_listener = MagicMock()
-    mock_entry.add_update_listener = MagicMock(return_value=unsub_listener)
-
-    with (
-        patch(
-            "custom_components.blanco_unit.bluetooth.async_ble_device_from_address",
-            return_value=mock_device,
-        ),
-        patch(
-            "custom_components.blanco_unit.BlancoUnitCoordinator",
-            return_value=mock_coordinator,
-        ),
-    ):
-        with pytest.raises(ConfigEntryAuthFailed):
-            await async_setup_entry(hass, mock_entry)
-
-        # Verify unsub listener was called
-        unsub_listener.assert_called_once()
-
-
-async def test_async_setup_entry_home_assistant_error(hass: HomeAssistant) -> None:
-    """Test config entry setup with HomeAssistantError."""
-    mock_device = MagicMock()
-    mock_device.address = "AA:BB:CC:DD:EE:FF"
-
-    mock_coordinator = MagicMock()
-    error = HomeAssistantError()
-    error.translation_key = "test_error"
-    error.translation_placeholders = {"key": "value"}
-    mock_coordinator.async_config_entry_first_refresh = AsyncMock(side_effect=error)
-
-    mock_entry = MagicMock(spec=ConfigEntry)
-    mock_entry.entry_id = "test_entry_id"
-    mock_entry.data = {CONF_MAC: "AA:BB:CC:DD:EE:FF"}
-
-    unsub_listener = MagicMock()
-    mock_entry.add_update_listener = MagicMock(return_value=unsub_listener)
-
-    with (
-        patch(
-            "custom_components.blanco_unit.bluetooth.async_ble_device_from_address",
-            return_value=mock_device,
-        ),
-        patch(
-            "custom_components.blanco_unit.BlancoUnitCoordinator",
-            return_value=mock_coordinator,
-        ),
-    ):
-        with pytest.raises(ConfigEntryNotReady) as exc_info:
-            await async_setup_entry(hass, mock_entry)
-
-        assert exc_info.value.translation_key == "test_error"
-        # Verify unsub listener was called
-        unsub_listener.assert_called_once()
-
-
-async def test_async_setup_entry_generic_exception(hass: HomeAssistant) -> None:
-    """Test config entry setup with generic exception."""
-    mock_device = MagicMock()
-    mock_device.address = "AA:BB:CC:DD:EE:FF"
-
-    mock_coordinator = MagicMock()
-    mock_coordinator.async_config_entry_first_refresh = AsyncMock(
-        side_effect=ValueError("Test error")
-    )
-
-    mock_entry = MagicMock(spec=ConfigEntry)
-    mock_entry.entry_id = "test_entry_id"
-    mock_entry.data = {CONF_MAC: "AA:BB:CC:DD:EE:FF"}
-
-    unsub_listener = MagicMock()
-    mock_entry.add_update_listener = MagicMock(return_value=unsub_listener)
-
-    with (
-        patch(
-            "custom_components.blanco_unit.bluetooth.async_ble_device_from_address",
-            return_value=mock_device,
-        ),
-        patch(
-            "custom_components.blanco_unit.BlancoUnitCoordinator",
-            return_value=mock_coordinator,
-        ),
-    ):
-        with pytest.raises(ConfigEntryNotReady) as exc_info:
-            await async_setup_entry(hass, mock_entry)
-
-        assert exc_info.value.translation_key == "error_unknown"
-        # Verify unsub listener was called
-        unsub_listener.assert_called_once()
 
 
 async def test_async_reload_entry(hass: HomeAssistant) -> None:
