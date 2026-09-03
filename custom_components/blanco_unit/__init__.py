@@ -20,7 +20,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryNotReady,
-    HomeAssistantError,
     IntegrationError,
 )
 
@@ -265,31 +264,19 @@ async def async_setup_entry(
     )
     config_entry.runtime_data = coordinator
 
-    try:
-        await coordinator.async_config_entry_first_refresh()
-    except ConfigEntryAuthFailed as err:
-        # do not reload if setup failed
-        _LOGGER.debug("async_setup_entry ConfigEntryAuthFailed %s", str(err))
-        unsub_update_listener()
-        raise err from err
-    except HomeAssistantError as err:
-        _LOGGER.debug("async_setup_entry HomeAssistantError %s", str(err))
-        # do not reload if setup failed
-        unsub_update_listener()
-        raise ConfigEntryNotReady(
-            translation_key=err.translation_key,
-            translation_placeholders=err.translation_placeholders,
-        ) from err
-    except Exception as err:
-        _LOGGER.debug("async_setup_entry Exception %s", str(err))
-        # do not reload if setup failed
-        unsub_update_listener()
-        raise ConfigEntryNotReady(
-            translation_key="error_unknown",
-            translation_placeholders={"error": repr(err)},
-        ) from err
-
+    # Set up the entities right away and load the first data set in the
+    # background. Connecting to the Blanco unit over BLE can take a long time
+    # or fail transiently, and blocking setup on that first refresh stalls
+    # Home Assistant startup. Entities report as "unavailable" until the first
+    # refresh succeeds; the coordinator retries on its update interval and
+    # whenever the device is rediscovered over Bluetooth.
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+
+    config_entry.async_create_background_task(
+        hass,
+        coordinator.async_refresh(),
+        f"{DOMAIN} initial refresh {config_entry.entry_id}",
+    )
 
     return True
 
