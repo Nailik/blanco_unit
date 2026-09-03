@@ -1,0 +1,375 @@
+{
+  "exceptions": {
+    "device_id_not_specified": {
+      "message": "Erforderliche device_id wurde nicht angegeben."
+    },
+    "device_not_found": {
+      "message": "Gerät mit der ID {device_id} wurde nicht gefunden."
+    },
+    "config_entry_not_found": {
+      "message": "Konfigurationseintrag für Gerät {device_id} wurde nicht gefunden."
+    },
+    "invalid_runtime_data": {
+      "message": "Gerät mit der ID {device_id} hat ungültige Laufzeitdaten."
+    },
+    "error_device_not_found": {
+      "message": "Gerät nicht gefunden. Bitte überprüfe die MAC-Adresse und stelle sicher, dass das Gerät eingeschaltet und in Reichweite ist."
+    },
+    "error_unknown": {
+      "message": "Ein unbekannter Fehler ist aufgetreten: {error}"
+    },
+    "not_saved_temperature": {
+      "message": "Die Temperaturänderung wurde nicht auf dem Gerät gespeichert. Erwartet wurden {expected}°C, das Gerät zeigt jedoch {actual}°C an."
+    },
+    "not_saved_heating_temperature": {
+      "message": "Die Änderung der Heiztemperatur wurde nicht auf dem Gerät gespeichert. Erwartet wurden {expected}°C, das Gerät zeigt jedoch {actual}°C an."
+    },
+    "not_saved_water_hardness": {
+      "message": "Die Änderung der Wasserhärte wurde nicht auf dem Gerät gespeichert. Erwartet wurde Stufe {expected}, das Gerät zeigt jedoch Stufe {actual} an."
+    }
+  },
+  "config": {
+    "error": {
+      "invalid_ha_version": "Die Blanco Unit Integration benötigt Home Assistant Version {version} oder neuer.",
+      "invalid_mac_code": "Das Format der MAC-Adresse ist ungültig. Bitte verwende das Format XX:XX:XX:XX:XX:XX.",
+      "invalid_pin_format": "Die PIN muss genau 5 Ziffern haben (00000–99999).",
+      "error_device_not_found": "Gerät nicht gefunden. Bitte stelle sicher, dass die Blanco Unit eingeschaltet und in Bluetooth-Reichweite ist.",
+      "error_invalid_authentication": "Authentifizierung fehlgeschlagen. Bitte überprüfe, ob die PIN korrekt ist.",
+      "error_unknown": "Verbindung zum Gerät fehlgeschlagen: {error}"
+    },
+    "abort": {
+      "already_configured": "Dieses Gerät ist bereits konfiguriert.",
+      "reconfigure_successful": "Konfiguration erfolgreich aktualisiert!",
+      "reauth_successful": "Erneute Authentifizierung erfolgreich!",
+      "wrong_device": "Falsches Gerät ausgewählt. Bitte wähle das richtige Gerät für die erneute Authentifizierung aus."
+    },
+    "step": {
+      "bluetooth": {
+        "title": "Erkannte Blanco Unit konfigurieren",
+        "description": "Konfiguriere deinen Blanco Unit Wasserspender.",
+        "data": {
+          "conf_mac": "MAC-Adresse",
+          "conf_name": "Gerätename",
+          "conf_pin": "PIN (5 Ziffern)"
+        }
+      },
+      "user": {
+        "title": "Blanco Unit hinzufügen",
+        "description": "Richte deinen Blanco Unit Wasserspender ein. Die MAC-Adresse und die PIN findest du in der Gerätedokumentation.",
+        "data": {
+          "conf_mac": "MAC-Adresse",
+          "conf_name": "Gerätename",
+          "conf_pin": "PIN (5 Ziffern)"
+        }
+      },
+      "reauth": {
+        "title": "Blanco Unit erneut authentifizieren",
+        "description": "Das Gerät erfordert eine erneute Authentifizierung. Bitte gib die korrekte PIN ein.",
+        "data": {
+          "conf_mac": "MAC-Adresse",
+          "conf_name": "Gerätename",
+          "conf_pin": "PIN (5 Ziffern)"
+        }
+      },
+      "reconfigure": {
+        "title": "Blanco Unit neu konfigurieren",
+        "description": "Aktualisiere die Konfiguration deiner Blanco Unit.",
+        "data": {
+          "conf_mac": "MAC-Adresse",
+          "conf_name": "Gerätename",
+          "conf_pin": "PIN (5 Ziffern)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connection": {
+        "name": "BLE-Verbindung"
+      },
+      "water_dispensing": {
+        "name": "Wasserausgabe"
+      },
+      "firmware_update": {
+        "name": "Firmware-Update verfügbar"
+      },
+      "cloud_connection": {
+        "name": "Cloud-Verbindung"
+      },
+      "heater_active": {
+        "name": "Heizung",
+        "state": {
+          "on": "an",
+          "off": "aus"
+        }
+      },
+      "compressor_active": {
+        "name": "Kompressor",
+        "state": {
+          "on": "an",
+          "off": "aus"
+        }
+      }
+    },
+    "button": {
+      "refresh_data": {
+        "name": "Daten aktualisieren"
+      },
+      "disconnect": {
+        "name": "Trennen"
+      }
+    },
+    "number": {
+      "calibration_still": {
+        "name": "Kalibrierung stilles Wasser"
+      },
+      "calibration_soda": {
+        "name": "Kalibrierung Sprudelwasser"
+      }
+    },
+    "select": {
+      "temperature": {
+        "name": "Kühltemperatur",
+        "state": {
+          "4": "4 °C (kältester Wert)",
+          "5": "5 °C",
+          "6": "6 °C",
+          "7": "7 °C (empfohlen)",
+          "8": "8 °C",
+          "9": "9 °C",
+          "10": "10 °C (wärmster Wert)"
+        }
+      },
+      "heating_temperature": {
+        "name": "Heiztemperatur",
+        "state": {
+          "60": "60 °C",
+          "65": "65 °C",
+          "70": "70 °C",
+          "75": "75 °C",
+          "80": "80 °C",
+          "85": "85 °C",
+          "90": "90 °C",
+          "95": "95 °C",
+          "99": "99 °C (empfohlen)",
+          "100": "100 °C (kochend)"
+        }
+      },
+      "water_hardness": {
+        "name": "Wasserhärtegrad",
+        "state": {
+          "1": "<8 °dH",
+          "2": "8–10 °dH",
+          "3": "11–13 °dH",
+          "4": "14–16 °dH",
+          "5": "17–19 °dH",
+          "6": "20–22 °dH",
+          "7": "23–25 °dH",
+          "8": "26–28 °dH",
+          "9": ">28 °dH"
+        }
+      }
+    },
+    "sensor": {
+      "filter_remaining": {
+        "name": "Verbleibende Filterkapazität"
+      },
+      "co2_remaining": {
+        "name": "Verbleibendes CO2 in der Kartusche"
+      },
+      "tap_state": {
+        "name": "Zapfstatus"
+      },
+      "clean_mode_state": {
+        "name": "Reinigungsmodus-Status"
+      },
+      "error_bits": {
+        "name": "Fehlercode"
+      },
+      "boiler_temp_1": {
+        "name": "Boilertemperatur 1"
+      },
+      "boiler_temp_2": {
+        "name": "Boilertemperatur 2"
+      },
+      "cooling_temp": {
+        "name": "Kompressortemperatur"
+      },
+      "main_controller_status": {
+        "name": "Status Hauptsteuerung"
+      },
+      "conn_controller_status": {
+        "name": "Status Verbindungssteuerung"
+      },
+      "filter_lifetime": {
+        "name": "Filterlebensdauer"
+      },
+      "post_flush_quantity": {
+        "name": "Nachspülmenge"
+      },
+      "heating_setpoint": {
+        "name": "Heizung Sollwert"
+      },
+      "hot_water_calibration": {
+        "name": "Kalibrierung Heißwasser"
+      },
+      "medium_carbonation_ratio": {
+        "name": "Verhältnis mittlere Karbonisierung"
+      },
+      "classic_carbonation_ratio": {
+        "name": "Verhältnis starke Karbonisierung"
+      },
+      "firmware_main": {
+        "name": "Firmware Hauptsteuerung"
+      },
+      "firmware_comm": {
+        "name": "Firmware Kommunikationssteuerung"
+      },
+      "firmware_elec": {
+        "name": "Firmware Elektroniksteuerung"
+      },
+      "device_name": {
+        "name": "Gerätename"
+      },
+      "reset_count": {
+        "name": "Anzahl Rücksetzungen"
+      },
+      "device_type": {
+        "name": "Gerätetyp"
+      },
+      "device_id": {
+        "name": "Geräte-ID"
+      },
+      "serial_number": {
+        "name": "Seriennummer"
+      },
+      "service_code": {
+        "name": "Servicecode"
+      },
+      "wifi_ssid": {
+        "name": "WLAN-Netzwerkname"
+      },
+      "wifi_signal": {
+        "name": "WLAN-Signalstärke"
+      },
+      "ip_address": {
+        "name": "IP-Adresse"
+      },
+      "ble_mac": {
+        "name": "Bluetooth-MAC-Adresse"
+      },
+      "wifi_mac": {
+        "name": "WLAN-MAC-Adresse"
+      },
+      "gateway": {
+        "name": "Netzwerk-Gateway"
+      },
+      "gateway_mac": {
+        "name": "Gateway-MAC-Adresse"
+      },
+      "subnet": {
+        "name": "Subnetzmaske"
+      }
+    }
+  },
+  "services": {
+    "dispense_water": {
+      "name": "Wasser ausgeben",
+      "description": "Gibt eine festgelegte Menge Wasser mit dem gewählten Karbonisierungsgrad aus.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Die Blanco Unit, aus der Wasser ausgegeben werden soll."
+        },
+        "amount_ml": {
+          "name": "Menge",
+          "description": "Auszugebende Wassermenge in Millilitern (100–1500 ml, in 100-ml-Schritten)."
+        },
+        "co2_intensity": {
+          "name": "Karbonisierungsgrad",
+          "description": "CO2-Karbonisierungsintensität: 1 = stilles Wasser, 2 = mittlere Karbonisierung, 3 = starke Karbonisierung."
+        }
+      }
+    },
+    "change_pin": {
+      "name": "PIN ändern",
+      "description": "Ändert den PIN-Code des Geräts. Optional kann die Integrationskonfiguration aktualisiert werden, um automatisch mit der neuen PIN erneut zu verbinden.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Die Blanco Unit, für die die PIN geändert werden soll."
+        },
+        "new_pin": {
+          "name": "Neue PIN",
+          "description": "Neuer 5-stelliger PIN-Code (00000–99999)."
+        },
+        "update_config": {
+          "name": "Konfiguration aktualisieren",
+          "description": "Wenn aktiviert, wird die Integrationskonfiguration mit der neuen PIN aktualisiert und das Gerät verbindet sich automatisch neu. Wenn deaktiviert, muss die Integration manuell mit der neuen PIN neu konfiguriert werden."
+        }
+      }
+    },
+    "scan_wifi_networks": {
+      "name": "WLAN-Netzwerke suchen",
+      "description": "Sucht nach verfügbaren WLAN-Netzwerken in der Nähe des Geräts.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Die Blanco Unit, mit der gesucht werden soll."
+        }
+      }
+    },
+    "connect_wifi": {
+      "name": "Mit WLAN verbinden",
+      "description": "Verbindet das Gerät mit einem WLAN-Netzwerk.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Die Blanco Unit, die verbunden werden soll."
+        },
+        "ssid": {
+          "name": "SSID",
+          "description": "Der Name des WLAN-Netzwerks, mit dem verbunden werden soll."
+        },
+        "password": {
+          "name": "Passwort",
+          "description": "Das Passwort des WLAN-Netzwerks."
+        }
+      }
+    },
+    "disconnect_wifi": {
+      "name": "WLAN trennen",
+      "description": "Trennt das Gerät vom aktuellen WLAN-Netzwerk.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Die Blanco Unit, deren WLAN-Verbindung getrennt werden soll."
+        }
+      }
+    },
+    "allow_cloud_services": {
+      "name": "Cloud-Dienste zulassen",
+      "description": "Erlaubt Cloud-Dienste auf dem Gerät (Freigabe). Dies ermöglicht es den Cloud-Diensten des Herstellers, mit dem Gerät zu kommunizieren.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Die Blanco Unit, auf der Cloud-Dienste zugelassen werden sollen."
+        },
+        "rca_id": {
+          "name": "RCA-ID",
+          "description": "Fernzugriffs-ID für die Cloud. Leer lassen, um alle Cloud-Dienste zuzulassen."
+        }
+      }
+    },
+    "factory_reset": {
+      "name": "Werksreset",
+      "description": "Führt einen vollständigen Software-Reset des Geräts durch. Dabei werden alle Geräteeinstellungen auf die Werkseinstellungen zurückgesetzt.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Die Blanco Unit, die auf Werkseinstellungen zurückgesetzt werden soll."
+        }
+      }
+    }
+  }
+}

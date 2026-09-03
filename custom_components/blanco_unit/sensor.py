@@ -200,6 +200,7 @@ class BoilerTemp1Sensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_translation_key = _attr_unique_id
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_suggested_display_precision = 0
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:thermometer-water"
 
@@ -223,6 +224,7 @@ class BoilerTemp2Sensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_translation_key = _attr_unique_id
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_suggested_display_precision = 0
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:thermometer-water"
 
@@ -250,6 +252,7 @@ class CoolingTempSensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_translation_key = _attr_unique_id
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_suggested_display_precision = 0
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:heat-wave"
 
@@ -371,6 +374,7 @@ class HeatingSetpointSensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_translation_key = _attr_unique_id
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_suggested_display_precision = 0
     _attr_icon = "mdi:thermometer-high"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
@@ -417,6 +421,9 @@ class MediumCarbonationRatioSensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_translation_key = _attr_unique_id
     _attr_icon = "mdi:gas-cylinder"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
 
     @property
     def available(self) -> bool:
@@ -438,6 +445,9 @@ class ClassicCarbonationRatioSensor(BlancoUnitBaseEntity, SensorEntity):
     _attr_translation_key = _attr_unique_id
     _attr_icon = "mdi:gas-cylinder"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
 
     @property
     def available(self) -> bool:
