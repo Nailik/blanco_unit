@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.blanco_unit import (
+    FIRST_REFRESH_RETRY_SECONDS,
     _find_device_by_scanning,
     _is_random_mac,
     _register_retry_callback,
@@ -77,11 +78,13 @@ async def test_async_setup_entry_success(hass: HomeAssistant) -> None:
     mock_entry.data = {CONF_MAC: "AA:BB:CC:DD:EE:FF"}
     mock_entry.add_update_listener = MagicMock(return_value=MagicMock())
 
-    def _run_bg_task(_hass, coro, _name):
-        coro.close()
+    bg_tasks: list = []
+
+    def _capture_bg_task(_hass, coro, _name):
+        bg_tasks.append(coro)
         return MagicMock()
 
-    mock_entry.async_create_background_task = MagicMock(side_effect=_run_bg_task)
+    mock_entry.async_create_background_task = MagicMock(side_effect=_capture_bg_task)
 
     with (
         patch(
@@ -98,9 +101,15 @@ async def test_async_setup_entry_success(hass: HomeAssistant) -> None:
 
         assert result is True
         assert mock_entry.runtime_data == mock_coordinator
-        # The first refresh runs in the background so it cannot block startup.
-        mock_coordinator.async_refresh.assert_called_once()
+        # The first refresh runs in the background so it cannot block startup,
+        # and the platforms are only set up once it has produced data.
         mock_entry.async_create_background_task.assert_called_once()
+        mock_coordinator.async_refresh.assert_not_called()
+        mock_forward.assert_not_called()
+
+        await bg_tasks[0]
+
+        mock_coordinator.async_refresh.assert_called_once()
         mock_forward.assert_called_once()
 
         # Verify platforms are registered
@@ -111,6 +120,56 @@ async def test_async_setup_entry_success(hass: HomeAssistant) -> None:
         assert Platform.NUMBER in call_args[1]
         assert Platform.SELECT in call_args[1]
         assert Platform.SENSOR in call_args[1]
+
+
+async def test_async_setup_entry_retries_until_data(hass: HomeAssistant) -> None:
+    """Test platforms are only set up once the first refresh returns data."""
+    mock_device = MagicMock()
+    mock_device.address = "AA:BB:CC:DD:EE:FF"
+
+    mock_coordinator = MagicMock()
+    mock_coordinator.data = None
+
+    async def _refresh() -> None:
+        if mock_coordinator.async_refresh.await_count >= 2:
+            mock_coordinator.data = MagicMock()
+
+    mock_coordinator.async_refresh = AsyncMock(side_effect=_refresh)
+
+    mock_entry = MagicMock(spec=ConfigEntry)
+    mock_entry.entry_id = "test_entry_id"
+    mock_entry.data = {CONF_MAC: "AA:BB:CC:DD:EE:FF"}
+    mock_entry.add_update_listener = MagicMock(return_value=MagicMock())
+
+    bg_tasks: list = []
+
+    def _capture_bg_task(_hass, coro, _name):
+        bg_tasks.append(coro)
+        return MagicMock()
+
+    mock_entry.async_create_background_task = MagicMock(side_effect=_capture_bg_task)
+
+    with (
+        patch(
+            "custom_components.blanco_unit.bluetooth.async_ble_device_from_address",
+            return_value=mock_device,
+        ),
+        patch(
+            "custom_components.blanco_unit.BlancoUnitCoordinator",
+            return_value=mock_coordinator,
+        ),
+        patch(
+            "custom_components.blanco_unit.asyncio.sleep", AsyncMock()
+        ) as mock_sleep,
+        patch.object(hass.config_entries, "async_forward_entry_setups") as mock_forward,
+    ):
+        assert await async_setup_entry(hass, mock_entry) is True
+
+        await bg_tasks[0]
+
+        assert mock_coordinator.async_refresh.await_count == 2
+        mock_sleep.assert_awaited_once_with(FIRST_REFRESH_RETRY_SECONDS)
+        mock_forward.assert_called_once()
 
 
 async def test_async_setup_entry_device_not_found_first_time(
@@ -721,11 +780,19 @@ async def test_async_setup_entry_random_mac_success(hass: HomeAssistant) -> None
     mock_device.address = "11:22:33:44:55:66"
 
     mock_coordinator = MagicMock()
-    mock_coordinator.async_config_entry_first_refresh = AsyncMock()
+    mock_coordinator.async_refresh = AsyncMock()
 
     mock_entry = _make_random_mac_entry()
     mock_entry.title = "Test Blanco"
     mock_entry.add_update_listener = MagicMock(return_value=MagicMock())
+
+    bg_tasks: list = []
+
+    def _capture_bg_task(_hass, coro, _name):
+        bg_tasks.append(coro)
+        return MagicMock()
+
+    mock_entry.async_create_background_task = MagicMock(side_effect=_capture_bg_task)
 
     with (
         patch(
@@ -742,6 +809,9 @@ async def test_async_setup_entry_random_mac_success(hass: HomeAssistant) -> None
 
         assert result is True
         assert mock_entry.runtime_data == mock_coordinator
+
+        await bg_tasks[0]
+
         mock_forward.assert_called_once()
 
 

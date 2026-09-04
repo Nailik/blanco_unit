@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from bleak.backends.device import BLEDevice
@@ -38,6 +39,8 @@ from .coordinator import BlancoUnitCoordinator
 from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
+
+FIRST_REFRESH_RETRY_SECONDS = 60
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
@@ -264,18 +267,22 @@ async def async_setup_entry(
     )
     config_entry.runtime_data = coordinator
 
-    # Set up the entities right away and load the first data set in the
-    # background. Connecting to the Blanco unit over BLE can take a long time
-    # or fail transiently, and blocking setup on that first refresh stalls
-    # Home Assistant startup. Entities report as "unavailable" until the first
-    # refresh succeeds; the coordinator retries on its update interval and
-    # whenever the device is rediscovered over Bluetooth.
-    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+    # Connecting to the Blanco unit over BLE can take a long time or fail
+    # transiently, so the first refresh must not block Home Assistant startup.
+    # The platforms read the device type to decide which entities exist, so
+    # they are forwarded from a background task once data has arrived.
+    async def _setup_platforms_when_ready() -> None:
+        while True:
+            await coordinator.async_refresh()
+            if coordinator.data is not None:
+                break
+            await asyncio.sleep(FIRST_REFRESH_RETRY_SECONDS)
+        await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     config_entry.async_create_background_task(
         hass,
-        coordinator.async_refresh(),
-        f"{DOMAIN} initial refresh {config_entry.entry_id}",
+        _setup_platforms_when_ready(),
+        f"{DOMAIN} initial setup {config_entry.entry_id}",
     )
 
     return True
