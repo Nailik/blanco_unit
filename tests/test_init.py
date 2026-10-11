@@ -76,6 +76,7 @@ async def test_async_setup_entry_success(hass: HomeAssistant) -> None:
     mock_entry = MagicMock(spec=ConfigEntry)
     mock_entry.entry_id = "test_entry_id"
     mock_entry.data = {CONF_MAC: "AA:BB:CC:DD:EE:FF"}
+    mock_entry.options = {}
     mock_entry.add_update_listener = MagicMock(return_value=MagicMock())
 
     bg_tasks: list = []
@@ -139,6 +140,7 @@ async def test_async_setup_entry_retries_until_data(hass: HomeAssistant) -> None
     mock_entry = MagicMock(spec=ConfigEntry)
     mock_entry.entry_id = "test_entry_id"
     mock_entry.data = {CONF_MAC: "AA:BB:CC:DD:EE:FF"}
+    mock_entry.options = {}
     mock_entry.add_update_listener = MagicMock(return_value=MagicMock())
 
     bg_tasks: list = []
@@ -447,6 +449,7 @@ def _make_random_mac_entry() -> MagicMock:
         CONF_PIN: "12345",
         CONF_DEV_ID: "expected_dev_id",
     }
+    entry.options = {}
     return entry
 
 

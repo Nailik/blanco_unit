@@ -26,6 +26,12 @@
     },
     "not_saved_water_hardness": {
       "message": "Die Änderung der Wasserhärte wurde nicht auf dem Gerät gespeichert. Erwartet wurde Stufe {expected}, das Gerät zeigt jedoch Stufe {actual} an."
+    },
+    "cloud_access_not_granted": {
+      "message": "Der Zugriff auf die BLANCO-Cloud ist für dieses Gerät nicht freigegeben. Bitte in der BLANCO UNIT App freigeben."
+    },
+    "cloud_update_failed": {
+      "message": "Abruf aus der BLANCO-Cloud fehlgeschlagen: {error}"
     }
   },
   "config": {
@@ -80,6 +86,22 @@
           "conf_pin": "PIN (5 Ziffern)"
         }
       }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "BLANCO-Cloud-Statistik",
+        "description": "Optional die Wasserstatistik (gezapfte Liter, je Wasserart) und die Fehlerliste alle 15 Minuten aus der BLANCO-Smart-Home-Cloud lesen. Der Zugriff muss vorher einmal in der BLANCO UNIT App freigegeben werden, in Bluetooth-Reichweite des Geräts.",
+        "data": {
+          "cloud_enabled": "Wasserstatistik aus der BLANCO-Cloud"
+        }
+      }
+    },
+    "error": {
+      "cloud_access_not_granted": "Der Zugriff ist noch nicht freigegeben. Bitte in der BLANCO UNIT App freigeben (in Bluetooth-Reichweite des Geräts) und erneut versuchen.",
+      "cloud_cannot_connect": "Die BLANCO-Cloud ist nicht erreichbar.",
+      "cloud_device_not_ready": "Das Gerät wurde noch nicht per Bluetooth gelesen, die Seriennummer ist daher unbekannt. Bitte erneut versuchen, sobald es verbunden ist."
     }
   },
   "entity": {
@@ -269,6 +291,30 @@
       },
       "subnet": {
         "name": "Subnetzmaske"
+      },
+      "cloud_water_total": {
+        "name": "Gezapftes Wasser"
+      },
+      "cloud_water_still": {
+        "name": "Gezapftes stilles Wasser"
+      },
+      "cloud_water_medium": {
+        "name": "Gezapftes Wasser medium"
+      },
+      "cloud_water_classic": {
+        "name": "Gezapftes Wasser classic"
+      },
+      "cloud_water_hot": {
+        "name": "Gezapftes heißes Wasser"
+      },
+      "cloud_errors_critical": {
+        "name": "Kritische Fehler"
+      },
+      "cloud_errors_warning": {
+        "name": "Warnungen"
+      },
+      "cloud_last_error": {
+        "name": "Letzter Cloud-Fehler"
       }
     }
   },

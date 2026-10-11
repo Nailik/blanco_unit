@@ -7,3 +7,4 @@ bleak
 pyudev
 aiousbwatcher
 pycares==4.11.0
+blanco-smart-home-api-client==1.2.0

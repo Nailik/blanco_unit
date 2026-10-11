@@ -13,6 +13,13 @@ CONF_ERROR = "base"
 RANDOM_MAC_PLACEHOLDER = "randomized:mac"
 BLE_CALLBACK = "unregister_ble_callback"
 
+# Optional water statistics from the BLANCO Smart Home cloud (options flow)
+CONF_CLOUD_ENABLED = "cloud_enabled"
+CONF_CLOUD_APP_ID = "cloud_app_id"
+CONF_CLOUD_DEV_ID = "cloud_dev_id"
+CLOUD_COORDINATOR = "cloud_coordinator"
+CLOUD_PENDING_APP_IDS = "cloud_pending_app_ids"
+
 # BLE Protocol Constants
 CHARACTERISTIC_UUID = "3b531d4d-ed58-4677-b2fa-1c72a86082cf"
 MTU_SIZE = 200

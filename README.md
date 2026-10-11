@@ -138,6 +138,15 @@ Once configured, the integration creates the following entities:
 - **Gateway MAC Address** - Gateway MAC address
 - **Subnet Mask** - Network subnet mask
 
+#### Cloud Statistics Sensors (optional)
+
+Bluetooth does not expose consumption history. If the device is on WiFi, the integration can additionally read lifetime water statistics and the error list from the BLANCO Smart Home cloud every 15 minutes. This is off by default; enable it under **Configure** on the integration. Access must first be granted once in the BLANCO UNIT app, within Bluetooth range of the device.
+
+- **Water Dispensed** - Lifetime total in litres, usable in the Energy dashboard as water consumption
+- **Still / Medium / Classic / Hot Water Dispensed** - Lifetime total per water type in litres
+- **Critical Errors** / **Warnings** - Number of errors and warnings reported to the cloud
+- **Last Cloud Error** - Most recent error code, with type and time as attributes
+
 ### Binary Sensors (6 total)
 
 - **BLE Connection** - Bluetooth connection status

@@ -25,9 +25,12 @@ from homeassistant.exceptions import (
 )
 
 from .client import validate_pin
+from .cloud import BlancoCloudCoordinator
 from .const import (
     BLE_CALLBACK,
     CHARACTERISTIC_UUID,
+    CLOUD_COORDINATOR,
+    CONF_CLOUD_ENABLED,
     CONF_DEV_ID,
     CONF_MAC,
     CONF_PIN,
@@ -267,6 +270,11 @@ async def async_setup_entry(
     )
     config_entry.runtime_data = coordinator
 
+    cloud: BlancoCloudCoordinator | None = None
+    if config_entry.options.get(CONF_CLOUD_ENABLED):
+        cloud = BlancoCloudCoordinator(hass, config_entry)
+        hass.data[DOMAIN][config_entry.entry_id][CLOUD_COORDINATOR] = cloud
+
     # Connecting to the Blanco unit over BLE can take a long time or fail
     # transiently, so the first refresh must not block Home Assistant startup.
     # The platforms read the device type to decide which entities exist, so
@@ -277,6 +285,10 @@ async def async_setup_entry(
             if coordinator.data is not None:
                 break
             await asyncio.sleep(FIRST_REFRESH_RETRY_SECONDS)
+        if cloud is not None:
+            # A failing cloud must not hold back the BLE entities; its sensors
+            # stay unavailable until a later refresh succeeds.
+            await cloud.async_refresh()
         await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     config_entry.async_create_background_task(
@@ -311,6 +323,7 @@ async def async_unload_entry(
         if unregister_ble_callback:
             _LOGGER.debug("unregister_ble_callback")
             unregister_ble_callback()
+        entry_data.pop(CLOUD_COORDINATOR, None)
 
     if unload_ok := await hass.config_entries.async_unload_platforms(
         config_entry, PLATFORMS
