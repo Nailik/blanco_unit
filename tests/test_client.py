@@ -897,6 +897,116 @@ def test_bluetooth_client_handle_disconnect():
     callback.assert_called_once_with(False)
 
 
+def test_bluetooth_client_handle_disconnect_of_old_client_keeps_session():
+    """Test a late disconnect of a previous client keeps the current session."""
+    from custom_components.blanco_unit.client import _BlancoUnitSessionData
+
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    callback = MagicMock()
+
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=callback
+    )
+
+    current_ble_client = AsyncMock()
+    session = _BlancoUnitSessionData(
+        client=current_ble_client, dev_id="device123", dev_type=1, protocol=MagicMock()
+    )
+    client._session_data = session
+
+    client._handle_disconnect(AsyncMock())
+
+    assert client._session_data is session
+    callback.assert_not_called()
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_connect_pairs_ble(mock_establish):
+    """Test _connect asks for a BLE bond."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=MagicMock()
+    )
+
+    response_data = {"body": {"meta": {"dev_id": "device123", "dev_type": 1}}}
+    response_packet = (
+        bytes([0xFF, 0x00, 1, 10, 0x00])
+        + json.dumps(response_data).encode("utf-8")
+        + b"\x00\xff"
+    )
+    mock_ble_client = AsyncMock()
+    mock_ble_client.read_gatt_char = AsyncMock(return_value=response_packet)
+    mock_establish.return_value = mock_ble_client
+
+    await client._connect()
+
+    assert mock_establish.call_args.kwargs["pair"] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "pairing_error",
+    [
+        BlancoUnitAuthenticationError("Wrong PIN"),
+        BlancoUnitConnectionError("No device ID"),
+        TimeoutError("Incomplete response"),
+    ],
+)
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_connect_disconnects_when_pairing_fails(
+    mock_establish, pairing_error
+):
+    """Test _connect closes the BLE connection when pairing fails."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    callback = MagicMock()
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=callback
+    )
+
+    mock_ble_client = AsyncMock()
+    mock_establish.return_value = mock_ble_client
+
+    with (
+        patch.object(client, "_perform_pairing", side_effect=pairing_error),
+        pytest.raises(type(pairing_error)),
+    ):
+        await client._connect()
+
+    mock_ble_client.disconnect.assert_awaited_once()
+    assert client._session_data is None
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_execute_transaction_disconnects_on_failure(
+    mock_establish,
+):
+    """Test a failed request closes the session so the next call reconnects."""
+    from custom_components.blanco_unit.client import _BlancoUnitSessionData
+
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=MagicMock()
+    )
+
+    mock_ble_client = AsyncMock()
+    mock_protocol = MagicMock()
+    mock_protocol.send_request = AsyncMock(
+        side_effect=TimeoutError("Incomplete response")
+    )
+    client._session_data = _BlancoUnitSessionData(
+        client=mock_ble_client, dev_id="device123", dev_type=1, protocol=mock_protocol
+    )
+
+    with pytest.raises(TimeoutError):
+        await client._execute_transaction(evt_type=7, ctrl=3)
+
+    mock_ble_client.disconnect.assert_awaited_once()
+    assert client._session_data is None
+    mock_establish.assert_not_called()
+
+
 @pytest.mark.asyncio
 async def test_bluetooth_client_perform_pairing_success():
     """Test _perform_pairing with successful authentication."""

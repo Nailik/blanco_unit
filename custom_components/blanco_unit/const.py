@@ -14,6 +14,8 @@ RANDOM_MAC_PLACEHOLDER = "randomized:mac"
 BLE_CALLBACK = "unregister_ble_callback"
 
 # BLE Protocol Constants
+# Advertised service, used for discovery (see manifest.json)
+SERVICE_UUID = "847bba10-a31f-41bf-a35f-3f73a22bb307"
 CHARACTERISTIC_UUID = "3b531d4d-ed58-4677-b2fa-1c72a86082cf"
 MTU_SIZE = 200
 
