@@ -59,7 +59,7 @@ async def test_async_setup_success(hass: HomeAssistant) -> None:
     mock_entry = MagicMock(spec=ConfigEntry)
 
     with (
-        patch("homeassistant.const.__version__", "2025.6.0"),
+        patch("homeassistant.const.__version__", "2026.6.0"),
         patch(
             "custom_components.blanco_unit.async_setup_services"
         ) as mock_setup_services,

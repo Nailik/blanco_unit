@@ -8,7 +8,7 @@ import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from bleak.backends.device import BLEDevice
-from bleak.exc import BleakError
+from bleak.exc import BleakError, BleakGATTProtocolError, BleakGATTProtocolErrorCode
 import pytest
 
 from custom_components.blanco_unit.client import (
@@ -2382,6 +2382,104 @@ async def test_protocol_read_response_chunks_stops_when_disconnected():
         await protocol.read_response_chunks(mock_client)
 
     mock_client.read_gatt_char.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_protocol_read_response_chunks_short_header():
+    """Test a first packet too short to carry the packet count does not crash."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.read_gatt_char = AsyncMock(return_value=b"\xff\x00")
+
+    chunks = await protocol.read_response_chunks(mock_client)
+
+    assert chunks == [b"\xff\x00"]
+
+
+@pytest.mark.asyncio
+async def test_protocol_read_response_chunks_timeout_diagnostics():
+    """Test an incomplete response reports why it is incomplete."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.read_gatt_char = AsyncMock(
+        side_effect=[bytes([0xFF, 0x00, 2, 10, 0x00])] + [b""] * 39
+    )
+
+    with (
+        patch("custom_components.blanco_unit.client.READ_INTERVAL", 0),
+        pytest.raises(
+            TimeoutError,
+            match=r"got 1/2 chunks \(attempts=40, empty_reads=39, "
+            r"duplicate_reads=0, read_errors=0\)",
+        ),
+    ):
+        await protocol.read_response_chunks(mock_client)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "code",
+    [
+        BleakGATTProtocolErrorCode.PREPARE_QUEUE_FULL,
+        BleakGATTProtocolErrorCode.UNLIKELY_ERROR,
+        BleakGATTProtocolErrorCode.INSUFFICIENT_RESOURCE,
+        BleakGATTProtocolErrorCode.PROCEDURE_ALREADY_IN_PROGRESS,
+    ],
+)
+async def test_protocol_write_retries_transient_att_error(code):
+    """Test a write the device rejects as busy is retried."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.write_gatt_char = AsyncMock(
+        side_effect=[None, BleakGATTProtocolError(code), None]
+    )
+
+    with patch("custom_components.blanco_unit.client.RESPONSE_DELAY", 0):
+        await protocol._write_packets(mock_client, [b"first", b"second"])
+
+    assert [call.args[1] for call in mock_client.write_gatt_char.await_args_list] == [
+        b"first",
+        b"second",
+        b"second",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_protocol_write_gives_up_after_attempts():
+    """Test a write that stays rejected fails after WRITE_ATTEMPTS."""
+    from custom_components.blanco_unit.client import WRITE_ATTEMPTS
+
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.write_gatt_char = AsyncMock(
+        side_effect=BleakGATTProtocolError(BleakGATTProtocolErrorCode.UNLIKELY_ERROR)
+    )
+
+    with pytest.raises(BleakGATTProtocolError):
+        await protocol._write_packets(mock_client, [b"packet"])
+
+    assert mock_client.write_gatt_char.await_count == WRITE_ATTEMPTS
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error",
+    [
+        BleakGATTProtocolError(BleakGATTProtocolErrorCode.WRITE_NOT_PERMITTED),
+        BleakGATTProtocolError(BleakGATTProtocolErrorCode.INSUFFICIENT_AUTHENTICATION),
+        BleakError("Not connected"),
+    ],
+)
+async def test_protocol_write_does_not_retry_permanent_error(error):
+    """Test a permanent rejection or a lost link fails on the first attempt."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.write_gatt_char = AsyncMock(side_effect=error)
+
+    with pytest.raises(BleakError):
+        await protocol._write_packets(mock_client, [b"packet"])
+
+    mock_client.write_gatt_char.assert_awaited_once()
 
 
 @pytest.mark.asyncio

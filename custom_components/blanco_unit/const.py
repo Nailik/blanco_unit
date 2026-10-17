@@ -2,7 +2,7 @@
 
 DOMAIN = "blanco_unit"
 # for this version read_only was added to config selectors
-MIN_HA_VERSION = "2025.6.0"
+MIN_HA_VERSION = "2026.6.0"
 
 # Config Entry Keys
 CONF_MAC = "conf_mac"

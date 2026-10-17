@@ -2,7 +2,7 @@
 
 [![Open Blanco Unit in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Nailik&repository=blanco_unit&category=integration)
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
-[![Version](https://img.shields.io/github/v/release/Nailik/blanco_unit)](https://github.com/Nailik/vogels_motblanco_unition_mount_ble/releases/latest)
+[![Version](https://img.shields.io/github/v/release/Nailik/blanco_unit)](https://github.com/Nailik/blanco_unit/releases/latest)
 ![Downloads latest](https://img.shields.io/github/downloads/nailik/blanco_unit/latest/total.svg)
 ![Downloads](https://img.shields.io/github/downloads/nailik/blanco_unit/total)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
@@ -28,9 +28,9 @@ This integration allows you to:
 
 ## Requirements
 
-- **Home Assistant**: Version 2025.6.0 or newer
-- **Bluetooth**: Your Home Assistant instance must have Bluetooth support enabled
-- **Dependencies**: `bleak>=0.21.1` (automatically installed)
+- **Home Assistant**: Version 2026.6.0 or newer
+- **Bluetooth**: Your Home Assistant instance must have Bluetooth support enabled, either a local adapter or an ESPHome Bluetooth proxy
+- **Dependencies**: None to install. The integration uses the Bluetooth stack (bleak 3) that ships with Home Assistant
 - **Device PIN**: The 5-digit PIN code for your Blanco Unit (found in device documentation)
 
 ## Installation
@@ -491,6 +491,22 @@ automation:
 2. Move Home Assistant closer to the device
 3. Check for Bluetooth interference from other devices
 4. Consider using a Bluetooth proxy for extended range
+
+### Connection Gets Stuck
+
+BlueZ can keep a Bluetooth operation pending forever after the link drops, after which every request to the device hangs. The integration detects this, removes the device from BlueZ and connects again, and logs a warning saying so. If the warning keeps coming back, restart the Blanco Unit.
+
+### Collecting Logs
+
+To include detailed logs in an issue, enable debug logging in `configuration.yaml` and restart Home Assistant:
+
+```yaml
+logger:
+  logs:
+    custom_components.blanco_unit: debug
+```
+
+PINs and WiFi passwords are redacted from the log.
 
 ### Entities Showing "Unavailable"
 

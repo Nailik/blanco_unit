@@ -16,6 +16,7 @@ from typing import Any, TypeVar
 
 from bleak import BleakClient
 from bleak.backends.device import BLEDevice
+from bleak.exc import BleakGATTProtocolError, BleakGATTProtocolErrorCode
 from bleak_retry_connector import (
     BleakClientWithServiceCache,
     close_stale_connections_by_address,
@@ -42,6 +43,18 @@ GATT_TIMEOUT = 10
 RESPONSE_DELAY = 0.3
 READ_INTERVAL = 0.05
 MAX_READ_ERRORS = 10
+# A write the device is too busy for is rejected, not dropped, so it can be retried
+WRITE_ATTEMPTS = 3
+WRITE_RETRY_DELAY = 0.1
+# ATT errors that mean "not right now" rather than "never"
+TRANSIENT_ATT_ERRORS = frozenset(
+    {
+        BleakGATTProtocolErrorCode.PREPARE_QUEUE_FULL,
+        BleakGATTProtocolErrorCode.UNLIKELY_ERROR,
+        BleakGATTProtocolErrorCode.INSUFFICIENT_RESOURCE,
+        BleakGATTProtocolErrorCode.PROCEDURE_ALREADY_IN_PROGRESS,
+    }
+)
 # Time for a device removed from BlueZ to be discovered again
 REDISCOVERY_DELAY = 5
 # Request parameters that must not end up in logs
@@ -352,6 +365,8 @@ class _BlancoUnitProtocol:
         attempts = 0
         max_attempts = 40
         read_errors = 0
+        empty_reads = 0
+        duplicate_reads = 0
 
         while len(chunks) < expected and attempts < max_attempts:
             attempts += 1
@@ -369,31 +384,52 @@ class _BlancoUnitProtocol:
                 _LOGGER.debug("Read error, retrying: %s", e)
                 await asyncio.sleep(READ_INTERVAL)
                 continue
-            if data and data != last_data:
+            if not data:
+                empty_reads += 1
+            elif data == last_data:
+                duplicate_reads += 1
+            else:
                 last_data = data
                 chunks.append(data)
-                if data[0] == 0xFF:
+                # the header of the first packet carries the total packet count
+                if data[0] == 0xFF and len(data) >= 3:
                     expected = data[2]
             if len(chunks) < expected:
                 await asyncio.sleep(READ_INTERVAL)
 
         if len(chunks) != expected:
             raise TimeoutError(
-                f"Incomplete response: got {len(chunks)}/{expected} chunks"
+                f"Incomplete response: got {len(chunks)}/{expected} chunks "
+                f"(attempts={attempts}, empty_reads={empty_reads}, "
+                f"duplicate_reads={duplicate_reads}, read_errors={read_errors})"
             )
 
         return chunks
 
     async def _write_packets(self, client: BleakClient, packets: list[bytes]) -> None:
         """Write request packets and give the device time to prepare its response."""
-        for packet in packets:
-            try:
-                async with asyncio.timeout(GATT_TIMEOUT):
-                    await client.write_gatt_char(
-                        CHARACTERISTIC_UUID, packet, response=True
+        for index, packet in enumerate(packets, start=1):
+            for attempt in range(1, WRITE_ATTEMPTS + 1):
+                try:
+                    async with asyncio.timeout(GATT_TIMEOUT):
+                        await client.write_gatt_char(
+                            CHARACTERISTIC_UUID, packet, response=True
+                        )
+                    break
+                except TimeoutError as e:
+                    raise BlancoUnitGattTimeoutError("Write did not complete") from e
+                except BleakGATTProtocolError as e:
+                    if e.code not in TRANSIENT_ATT_ERRORS or attempt == WRITE_ATTEMPTS:
+                        raise
+                    delay = WRITE_RETRY_DELAY * attempt
+                    _LOGGER.debug(
+                        "Packet %d/%d rejected with %s, retrying in %.1f s",
+                        index,
+                        len(packets),
+                        e.code.name,
+                        delay,
                     )
-            except TimeoutError as e:
-                raise BlancoUnitGattTimeoutError("Write did not complete") from e
+                    await asyncio.sleep(delay)
         await asyncio.sleep(RESPONSE_DELAY)
 
     async def send_pairing_request(
