@@ -1,5 +1,6 @@
 """Tests for the Blanco Unit __init__ module."""
 
+import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from bleak_retry_connector import BleakConnectionError
@@ -15,7 +16,10 @@ from custom_components.blanco_unit import (
     async_setup_entry,
     async_unload_entry,
 )
-from custom_components.blanco_unit.client import PinValidationResult
+from custom_components.blanco_unit.client import (
+    BlancoUnitGattTimeoutError,
+    PinValidationResult,
+)
 from custom_components.blanco_unit.const import (
     BLE_CALLBACK,
     CONF_DEV_ID,
@@ -55,7 +59,7 @@ async def test_async_setup_success(hass: HomeAssistant) -> None:
     mock_entry = MagicMock(spec=ConfigEntry)
 
     with (
-        patch("homeassistant.const.__version__", "2025.6.0"),
+        patch("homeassistant.const.__version__", "2026.6.0"),
         patch(
             "custom_components.blanco_unit.async_setup_services"
         ) as mock_setup_services,
@@ -275,9 +279,13 @@ async def test_async_setup_entry_ble_callback_triggers_reload(
         mock_reload.assert_called_once_with("test_entry_id")
 
 
-async def test_async_reload_entry(hass: HomeAssistant) -> None:
+async def test_async_reload_entry(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
     """Test config entry reload."""
+    caplog.set_level(logging.DEBUG)
     mock_entry = MagicMock(spec=ConfigEntry)
+    mock_entry.entry_id = "test_entry_id"
     mock_entry.data = {"conf_pin": 12345}
 
     with (
@@ -292,6 +300,7 @@ async def test_async_reload_entry(hass: HomeAssistant) -> None:
 
         mock_unload.assert_called_once_with(hass, mock_entry)
         mock_setup.assert_called_once_with(hass, mock_entry)
+        assert "12345" not in caplog.text
 
 
 async def test_async_unload_entry_success(hass: HomeAssistant) -> None:
@@ -487,7 +496,7 @@ async def test_find_device_by_scanning_match_found(hass: HomeAssistant) -> None:
             return_value=scanner,
         ),
         patch(
-            "custom_components.blanco_unit.establish_connection",
+            "custom_components.blanco_unit.client.establish_connection",
             return_value=mock_client,
         ),
         patch(
@@ -544,7 +553,7 @@ async def test_find_device_by_scanning_filters_by_uuid(hass: HomeAssistant) -> N
             return_value=scanner,
         ),
         patch(
-            "custom_components.blanco_unit.establish_connection",
+            "custom_components.blanco_unit.client.establish_connection",
             return_value=mock_client,
         ),
         patch(
@@ -574,7 +583,7 @@ async def test_find_device_by_scanning_auth_failure(hass: HomeAssistant) -> None
             return_value=scanner,
         ),
         patch(
-            "custom_components.blanco_unit.establish_connection",
+            "custom_components.blanco_unit.client.establish_connection",
             return_value=mock_client,
         ),
         patch(
@@ -605,7 +614,7 @@ async def test_find_device_by_scanning_dev_id_mismatch(hass: HomeAssistant) -> N
             return_value=scanner,
         ),
         patch(
-            "custom_components.blanco_unit.establish_connection",
+            "custom_components.blanco_unit.client.establish_connection",
             return_value=mock_client,
         ),
         patch(
@@ -654,7 +663,7 @@ async def test_find_device_by_scanning_connection_failure_skipped(
             return_value=scanner,
         ),
         patch(
-            "custom_components.blanco_unit.establish_connection",
+            "custom_components.blanco_unit.client.establish_connection",
             side_effect=mock_establish,
         ),
         patch(
@@ -693,7 +702,7 @@ async def test_find_device_by_scanning_bleak_error_skipped(
             return_value=scanner,
         ),
         patch(
-            "custom_components.blanco_unit.establish_connection",
+            "custom_components.blanco_unit.client.establish_connection",
             side_effect=[
                 BleakConnectionError("failed to discover services"),
                 mock_client_ok,
@@ -704,6 +713,46 @@ async def test_find_device_by_scanning_bleak_error_skipped(
             return_value=PinValidationResult(
                 is_valid=True, dev_id="expected_dev_id", dev_type=1
             ),
+        ),
+    ):
+        device = await _find_device_by_scanning(hass, "12345", "expected_dev_id")
+
+    assert device == dev_ok
+
+
+async def test_find_device_by_scanning_stuck_candidate_skipped(
+    hass: HomeAssistant,
+) -> None:
+    """Test _find_device_by_scanning skips a device whose GATT operations hang."""
+    dev_stuck, adv_stuck = _make_discovered_device("11:22:33:44:55:66", rssi=-20)
+    dev_ok, adv_ok = _make_discovered_device("AA:BB:CC:DD:EE:FF", rssi=-50)
+
+    scanner = _make_scanner(
+        {
+            "11:22:33:44:55:66": (dev_stuck, adv_stuck),
+            "AA:BB:CC:DD:EE:FF": (dev_ok, adv_ok),
+        }
+    )
+
+    mock_client_ok = AsyncMock()
+    mock_client_ok.is_connected = True
+
+    with (
+        patch(
+            "custom_components.blanco_unit.bluetooth.async_get_scanner",
+            return_value=scanner,
+        ),
+        patch(
+            "custom_components.blanco_unit.establish_validated_connection",
+            side_effect=[
+                BlancoUnitGattTimeoutError(),
+                (
+                    mock_client_ok,
+                    PinValidationResult(
+                        is_valid=True, dev_id="expected_dev_id", dev_type=1
+                    ),
+                ),
+            ],
         ),
     ):
         device = await _find_device_by_scanning(hass, "12345", "expected_dev_id")
@@ -722,7 +771,7 @@ async def test_find_device_by_scanning_pairs_ble(hass: HomeAssistant) -> None:
             return_value=scanner,
         ),
         patch(
-            "custom_components.blanco_unit.establish_connection",
+            "custom_components.blanco_unit.client.establish_connection",
             return_value=AsyncMock(),
         ) as mock_establish,
         patch(
@@ -767,7 +816,7 @@ async def test_find_device_by_scanning_sorts_by_rssi(hass: HomeAssistant) -> Non
             return_value=scanner,
         ),
         patch(
-            "custom_components.blanco_unit.establish_connection",
+            "custom_components.blanco_unit.client.establish_connection",
             side_effect=mock_establish,
         ),
         patch(

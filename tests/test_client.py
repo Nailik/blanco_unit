@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from bleak.backends import BleakBackend
 from bleak.backends.device import BLEDevice
+from bleak.exc import BleakError, BleakGATTProtocolError, BleakGATTProtocolErrorCode
 import pytest
 
 from custom_components.blanco_unit.client import (
@@ -13,6 +17,7 @@ from custom_components.blanco_unit.client import (
     BlancoUnitBluetoothClient,
     BlancoUnitClientError,
     BlancoUnitConnectionError,
+    BlancoUnitGattTimeoutError,
     PinValidationResult,
     _AllowCloudServicesPars,
     _BlancoUnitProtocol,
@@ -27,6 +32,7 @@ from custom_components.blanco_unit.client import (
     _SetHeatingTemperaturePars,
     _SetTemperaturePars,
     _SetWaterHardnessPars,
+    establish_validated_connection,
     validate_pin,
 )
 
@@ -2284,3 +2290,432 @@ async def test_bluetooth_client_factory_reset_success(mock_establish):
     result = await client.factory_reset()
 
     assert result is True
+
+
+# -------------------------------
+# GATT Timeout and Recovery Tests
+# -------------------------------
+
+
+def _response_packet(data: dict) -> bytes:
+    """Create a single packet response."""
+    return (
+        bytes([0xFF, 0x00, 1, 10, 0x00])
+        + json.dumps(data).encode("utf-8")
+        + b"\x00\xff"
+    )
+
+
+def _bluez_client() -> AsyncMock:
+    """Create a BLE client connected through a local BlueZ adapter."""
+    client = AsyncMock()
+    client.backend_id = BleakBackend.BLUEZ_DBUS
+    return client
+
+
+async def _never_completes(*args, **kwargs):
+    """Simulate a GATT operation that BlueZ keeps pending."""
+    await asyncio.Event().wait()
+
+
+@pytest.mark.asyncio
+async def test_protocol_write_timeout_raises_gatt_timeout():
+    """Test a write that never completes raises a GATT timeout."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.write_gatt_char = AsyncMock(side_effect=_never_completes)
+
+    with (
+        patch("custom_components.blanco_unit.client.GATT_TIMEOUT", 0.01),
+        pytest.raises(BlancoUnitGattTimeoutError),
+    ):
+        await protocol.send_pairing_request(mock_client, "12345")
+
+
+@pytest.mark.asyncio
+async def test_protocol_read_timeout_raises_gatt_timeout():
+    """Test a read that never completes raises a GATT timeout."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.read_gatt_char = AsyncMock(side_effect=_never_completes)
+
+    with (
+        patch("custom_components.blanco_unit.client.GATT_TIMEOUT", 0.01),
+        pytest.raises(BlancoUnitGattTimeoutError),
+    ):
+        await protocol.read_response_chunks(mock_client)
+
+
+@pytest.mark.asyncio
+async def test_protocol_read_response_chunks_retries_read_errors():
+    """Test read errors while connected are retried."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.is_connected = True
+    packet = _response_packet({"status": "ok"})
+    mock_client.read_gatt_char = AsyncMock(
+        side_effect=[BleakError("Unlikely Error"), BleakError("Unlikely Error"), packet]
+    )
+
+    chunks = await protocol.read_response_chunks(mock_client)
+
+    assert chunks == [packet]
+
+
+@pytest.mark.asyncio
+async def test_protocol_read_response_chunks_gives_up_after_read_errors():
+    """Test reading stops after too many read errors."""
+    from custom_components.blanco_unit.client import MAX_READ_ERRORS
+
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.is_connected = True
+    mock_client.read_gatt_char = AsyncMock(side_effect=BleakError("Unlikely Error"))
+
+    with pytest.raises(TimeoutError, match="Incomplete response"):
+        await protocol.read_response_chunks(mock_client)
+
+    assert mock_client.read_gatt_char.await_count == MAX_READ_ERRORS
+
+
+@pytest.mark.asyncio
+async def test_protocol_read_response_chunks_stops_when_disconnected():
+    """Test a read error is not retried once the link is gone."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.is_connected = False
+    mock_client.read_gatt_char = AsyncMock(side_effect=BleakError("Not connected"))
+
+    with pytest.raises(TimeoutError, match="Incomplete response"):
+        await protocol.read_response_chunks(mock_client)
+
+    mock_client.read_gatt_char.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_protocol_read_response_chunks_short_header():
+    """Test a first packet too short to carry the packet count does not crash."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.read_gatt_char = AsyncMock(return_value=b"\xff\x00")
+
+    chunks = await protocol.read_response_chunks(mock_client)
+
+    assert chunks == [b"\xff\x00"]
+
+
+@pytest.mark.asyncio
+async def test_protocol_read_response_chunks_timeout_diagnostics():
+    """Test an incomplete response reports why it is incomplete."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.read_gatt_char = AsyncMock(
+        side_effect=[bytes([0xFF, 0x00, 2, 10, 0x00])] + [b""] * 39
+    )
+
+    with (
+        patch("custom_components.blanco_unit.client.READ_INTERVAL", 0),
+        pytest.raises(
+            TimeoutError,
+            match=r"got 1/2 chunks \(attempts=40, empty_reads=39, "
+            r"duplicate_reads=0, read_errors=0\)",
+        ),
+    ):
+        await protocol.read_response_chunks(mock_client)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "code",
+    [
+        BleakGATTProtocolErrorCode.PREPARE_QUEUE_FULL,
+        BleakGATTProtocolErrorCode.UNLIKELY_ERROR,
+        BleakGATTProtocolErrorCode.INSUFFICIENT_RESOURCE,
+        BleakGATTProtocolErrorCode.PROCEDURE_ALREADY_IN_PROGRESS,
+    ],
+)
+async def test_protocol_write_retries_transient_att_error(code):
+    """Test a write the device rejects as busy is retried."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.write_gatt_char = AsyncMock(
+        side_effect=[None, BleakGATTProtocolError(code), None]
+    )
+
+    with patch("custom_components.blanco_unit.client.RESPONSE_DELAY", 0):
+        await protocol._write_packets(mock_client, [b"first", b"second"])
+
+    assert [call.args[1] for call in mock_client.write_gatt_char.await_args_list] == [
+        b"first",
+        b"second",
+        b"second",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_protocol_write_gives_up_after_attempts():
+    """Test a write that stays rejected fails after WRITE_ATTEMPTS."""
+    from custom_components.blanco_unit.client import WRITE_ATTEMPTS
+
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.write_gatt_char = AsyncMock(
+        side_effect=BleakGATTProtocolError(BleakGATTProtocolErrorCode.UNLIKELY_ERROR)
+    )
+
+    with pytest.raises(BleakGATTProtocolError):
+        await protocol._write_packets(mock_client, [b"packet"])
+
+    assert mock_client.write_gatt_char.await_count == WRITE_ATTEMPTS
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error",
+    [
+        BleakGATTProtocolError(BleakGATTProtocolErrorCode.WRITE_NOT_PERMITTED),
+        BleakGATTProtocolError(BleakGATTProtocolErrorCode.INSUFFICIENT_AUTHENTICATION),
+        BleakError("Not connected"),
+    ],
+)
+async def test_protocol_write_does_not_retry_permanent_error(error):
+    """Test a permanent rejection or a lost link fails on the first attempt."""
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.write_gatt_char = AsyncMock(side_effect=error)
+
+    with pytest.raises(BleakError):
+        await protocol._write_packets(mock_client, [b"packet"])
+
+    mock_client.write_gatt_char.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_establish_validated_connection_success(
+    mock_establish, mock_close_stale_connections
+):
+    """Test stale connections are closed and the device is bonded."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    mock_ble_client = AsyncMock()
+    mock_establish.return_value = mock_ble_client
+    validate = AsyncMock(return_value="valid")
+
+    result = await establish_validated_connection(device, validate)
+
+    assert result == (mock_ble_client, "valid")
+    mock_close_stale_connections.assert_awaited_once_with("AA:BB:CC:DD:EE:FF")
+    assert mock_establish.call_args.kwargs["pair"] is True
+    validate.assert_awaited_once_with(mock_ble_client)
+    mock_ble_client.disconnect.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_establish_validated_connection_removes_device_after_gatt_timeout(
+    mock_establish,
+):
+    """Test a stuck GATT operation removes the device and connects again."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    stuck_client = _bluez_client()
+    fresh_client = _bluez_client()
+    mock_establish.side_effect = [stuck_client, fresh_client]
+    validate = AsyncMock(side_effect=[BlancoUnitGattTimeoutError(), "valid"])
+
+    result = await establish_validated_connection(device, validate)
+
+    assert result == (fresh_client, "valid")
+    stuck_client.unpair.assert_awaited_once()
+    stuck_client.disconnect.assert_awaited_once()
+    fresh_client.unpair.assert_not_awaited()
+    assert mock_establish.await_count == 2
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_establish_validated_connection_keeps_proxy_bond_after_gatt_timeout(
+    mock_establish,
+):
+    """Test a GATT timeout through a proxy reconnects without unpairing."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    stuck_client = AsyncMock()
+    stuck_client.backend_id = "ESPHomeClient"
+    fresh_client = AsyncMock()
+    mock_establish.side_effect = [stuck_client, fresh_client]
+    validate = AsyncMock(side_effect=[BlancoUnitGattTimeoutError(), "valid"])
+
+    result = await establish_validated_connection(device, validate)
+
+    assert result == (fresh_client, "valid")
+    stuck_client.unpair.assert_not_awaited()
+    stuck_client.disconnect.assert_awaited_once()
+    assert mock_establish.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_client_execute_transaction_keeps_proxy_bond_on_gatt_timeout():
+    """Test a stuck request through a proxy disconnects without unpairing."""
+    from custom_components.blanco_unit.client import _BlancoUnitSessionData
+
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=MagicMock()
+    )
+
+    mock_ble_client = AsyncMock()
+    mock_ble_client.backend_id = "ESPHomeClient"
+    mock_protocol = MagicMock()
+    mock_protocol.send_request = AsyncMock(side_effect=BlancoUnitGattTimeoutError())
+    client._session_data = _BlancoUnitSessionData(
+        client=mock_ble_client, dev_id="device123", dev_type=1, protocol=mock_protocol
+    )
+
+    with pytest.raises(BlancoUnitGattTimeoutError):
+        await client._execute_transaction(evt_type=7, ctrl=3)
+
+    mock_ble_client.unpair.assert_not_awaited()
+    mock_ble_client.disconnect.assert_awaited()
+    assert client._session_data is None
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_establish_validated_connection_gatt_timeout_twice(mock_establish):
+    """Test a second stuck GATT operation is raised."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    first_client = _bluez_client()
+    second_client = _bluez_client()
+    mock_establish.side_effect = [first_client, second_client]
+    validate = AsyncMock(side_effect=BlancoUnitGattTimeoutError())
+
+    with pytest.raises(BlancoUnitGattTimeoutError):
+        await establish_validated_connection(device, validate)
+
+    first_client.unpair.assert_awaited_once()
+    second_client.unpair.assert_awaited_once()
+    second_client.disconnect.assert_awaited_once()
+    assert mock_establish.await_count == 2
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_establish_validated_connection_disconnects_on_error(mock_establish):
+    """Test other errors close the connection without removing the device."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    mock_ble_client = AsyncMock()
+    mock_establish.return_value = mock_ble_client
+    validate = AsyncMock(side_effect=BlancoUnitAuthenticationError())
+
+    with pytest.raises(BlancoUnitAuthenticationError):
+        await establish_validated_connection(device, validate)
+
+    mock_ble_client.disconnect.assert_awaited_once()
+    mock_ble_client.unpair.assert_not_awaited()
+    mock_establish.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_connect_recovers_from_gatt_timeout(mock_establish):
+    """Test _connect removes the device when the pairing request is stuck."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=MagicMock()
+    )
+
+    stuck_client = _bluez_client()
+    stuck_client.write_gatt_char = AsyncMock(side_effect=BlancoUnitGattTimeoutError())
+    fresh_client = AsyncMock()
+    fresh_client.read_gatt_char = AsyncMock(
+        return_value=_response_packet(
+            {"body": {"meta": {"dev_id": "dev", "dev_type": 1}}}
+        )
+    )
+    mock_establish.side_effect = [stuck_client, fresh_client]
+
+    session_data = await client._connect()
+
+    assert session_data.client is fresh_client
+    stuck_client.unpair.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_client_execute_transaction_removes_device_on_gatt_timeout():
+    """Test a stuck request removes the device so the next call starts clean."""
+    from custom_components.blanco_unit.client import _BlancoUnitSessionData
+
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=MagicMock()
+    )
+
+    mock_ble_client = _bluez_client()
+    mock_protocol = MagicMock()
+    mock_protocol.send_request = AsyncMock(side_effect=BlancoUnitGattTimeoutError())
+    client._session_data = _BlancoUnitSessionData(
+        client=mock_ble_client, dev_id="device123", dev_type=1, protocol=mock_protocol
+    )
+
+    with pytest.raises(BlancoUnitGattTimeoutError):
+        await client._execute_transaction(evt_type=7, ctrl=3)
+
+    mock_ble_client.unpair.assert_awaited_once()
+    assert client._session_data is None
+
+
+# -------------------------------
+# Logging Tests
+# -------------------------------
+
+
+@pytest.mark.asyncio
+async def test_validate_pin_does_not_log_pin_or_token(caplog):
+    """Test neither the PIN nor the token derived from it are logged."""
+    caplog.set_level(logging.DEBUG)
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.read_gatt_char = AsyncMock(
+        return_value=_response_packet(
+            {"body": {"meta": {"dev_id": "dev", "dev_type": 1}}}
+        )
+    )
+    tokens = []
+    calculate_token = protocol.calculate_token
+
+    def capture_token(pin, salt):
+        tokens.append(calculate_token(pin, salt))
+        return tokens[-1]
+
+    with patch.object(protocol, "calculate_token", side_effect=capture_token):
+        await validate_pin(mock_client, "00000", protocol)
+
+    assert "00000" not in caplog.text
+    assert tokens
+    assert tokens[0] not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_protocol_send_request_redacts_secrets(caplog):
+    """Test new PINs and WiFi passwords are not logged."""
+    caplog.set_level(logging.DEBUG)
+    protocol = _BlancoUnitProtocol()
+    mock_client = AsyncMock()
+    mock_client.read_gatt_char = AsyncMock(return_value=_response_packet({"type": 2}))
+
+    await protocol.send_request(
+        mock_client,
+        pin="12345",
+        dev_id="dev",
+        dev_type=1,
+        evt_type=7,
+        ctrl=5,
+        pars={
+            "new_pass": "54321",
+            "password": {"val": "wifi-secret"},
+            "ssid": {"val": "home-network"},
+        },
+    )
+
+    assert "54321" not in caplog.text
+    assert "wifi-secret" not in caplog.text
+    assert "home-network" in caplog.text

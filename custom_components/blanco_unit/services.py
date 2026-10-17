@@ -117,7 +117,10 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def handle_change_pin(call: ServiceCall) -> None:
         """Handle the change_pin service call."""
-        _LOGGER.debug("Change PIN service called with data: %s", call.data)
+        _LOGGER.debug(
+            "Change PIN service called for device %s",
+            call.data[HA_SERVICE_ATTR_DEVICE_ID],
+        )
         coordinator = _get_coordinator(hass, call)
         new_pin = call.data[HA_SERVICE_ATTR_NEW_PIN]
         update_config = call.data[HA_SERVICE_ATTR_UPDATE_CONFIG]
@@ -196,7 +199,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def handle_connect_wifi(call: ServiceCall) -> None:
         """Handle the connect_wifi service call."""
-        _LOGGER.debug("Connect WiFi service called with data: %s", call.data)
+        _LOGGER.debug(
+            "Connect WiFi service called for device %s, ssid %s",
+            call.data[HA_SERVICE_ATTR_DEVICE_ID],
+            call.data[HA_SERVICE_ATTR_SSID],
+        )
         coordinator = _get_coordinator(hass, call)
         ssid = call.data[HA_SERVICE_ATTR_SSID]
         password = call.data[HA_SERVICE_ATTR_PASSWORD]
