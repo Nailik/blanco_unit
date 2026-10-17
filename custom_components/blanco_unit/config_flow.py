@@ -7,6 +7,8 @@ import logging
 import re
 from typing import Any
 
+from bleak.exc import BleakError
+from bleak_retry_connector import BleakNotFoundError, BleakOutOfConnectionSlotsError
 import voluptuous as vol
 from voluptuous.schema_builder import UNDEFINED
 
@@ -19,7 +21,12 @@ from homeassistant.helpers.selector import (
     TextSelectorType,
 )
 
-from .client import establish_validated_connection, validate_pin
+from .client import (
+    BlancoUnitConnectionError,
+    BlancoUnitGattTimeoutError,
+    establish_validated_connection,
+    validate_pin,
+)
 from .const import (
     CONF_DEV_ID,
     CONF_ERROR,
@@ -38,6 +45,11 @@ def _loggable(data: dict[str, Any] | None) -> dict[str, Any] | None:
     if data is None or CONF_PIN not in data:
         return data
     return {**data, CONF_PIN: "**REDACTED**"}
+
+
+def _describe(err: Exception) -> str:
+    """Return the error with its type, a TimeoutError has no message of its own."""
+    return f"{type(err).__name__}: {err}" if str(err) else type(err).__name__
 
 
 @dataclass
@@ -200,11 +212,28 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
         except ValueError as err:
             _LOGGER.error("Validation error: %s", err)
             return ValidationResult({CONF_ERROR: "invalid_pin_format"})
+        except BleakNotFoundError as err:
+            # the device went away between discovery and connecting
+            _LOGGER.error("Device not found: %s", err)
+            return ValidationResult({CONF_ERROR: "error_device_not_found"})
+        except BleakOutOfConnectionSlotsError as err:
+            _LOGGER.error("No free Bluetooth connection slot: %s", err)
+            return ValidationResult({CONF_ERROR: "error_no_connection_slot"})
+        except BlancoUnitGattTimeoutError as err:
+            # still stuck after removing the device from BlueZ
+            _LOGGER.error("Device did not respond: %s", err)
+            return ValidationResult({CONF_ERROR: "error_device_not_responding"})
+        except (BlancoUnitConnectionError, BleakError, OSError, TimeoutError) as err:
+            _LOGGER.error("Communication with the device failed: %s", _describe(err))
+            return ValidationResult(
+                errors={CONF_ERROR: "error_connection"},
+                description_placeholders={"error": _describe(err)},
+            )
         except Exception as err:
             _LOGGER.exception("Unexpected error during validation")
             return ValidationResult(
                 errors={CONF_ERROR: "error_unknown"},
-                description_placeholders={"error": str(err)},
+                description_placeholders={"error": _describe(err)},
             )
         finally:
             # Always disconnect the client

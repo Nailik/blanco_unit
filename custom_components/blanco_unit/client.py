@@ -94,6 +94,14 @@ class BlancoUnitGattTimeoutError(BlancoUnitConnectionError):
         super().__init__(message)
 
 
+class BlancoUnitProtocolError(BlancoUnitConnectionError):
+    """Exception raised when a response from the device cannot be parsed."""
+
+    def __init__(self, message: str = "Invalid response") -> None:
+        """Initialize BlancoUnitProtocolError."""
+        super().__init__(message)
+
+
 # -------------------------------
 # region Internal Data Models
 # -------------------------------
@@ -325,14 +333,14 @@ class _BlancoUnitProtocol:
         _LOGGER.debug("Parsing response data: %s", raw_chunks)
 
         if not raw_chunks or raw_chunks[0][0] != 0xFF:
-            raise ValueError("Invalid chunk stream")
+            raise BlancoUnitProtocolError("Invalid chunk stream")
 
         msg_id = raw_chunks[0][3]
         payload = bytearray(raw_chunks[0][5:])
 
         for c in raw_chunks[1:]:
             if c[0] != msg_id:
-                raise ValueError("Chunk message ID mismatch")
+                raise BlancoUnitProtocolError("Chunk message ID mismatch")
             payload.extend(c[2:])
 
         clean = payload.split(b"\x00")[0]
@@ -342,7 +350,7 @@ class _BlancoUnitProtocol:
             return result  # noqa: TRY300
         except Exception as e:
             _LOGGER.error("JSON parse failed: %s", clean)
-            raise ValueError("Failed to parse JSON response") from e
+            raise BlancoUnitProtocolError("Failed to parse JSON response") from e
 
     def extract_pars(self, response: dict[str, Any]) -> dict[str, Any]:
         """Extract parameters from response body."""

@@ -35,7 +35,10 @@
       "invalid_pin_format": "Die PIN muss genau 5 Ziffern haben (00000–99999).",
       "error_device_not_found": "Gerät nicht gefunden. Bitte stelle sicher, dass die Blanco Unit eingeschaltet und in Bluetooth-Reichweite ist.",
       "error_invalid_authentication": "Authentifizierung fehlgeschlagen. Bitte überprüfe, ob die PIN korrekt ist.",
-      "error_unknown": "Verbindung zum Gerät fehlgeschlagen: {error}"
+      "error_no_connection_slot": "Kein freier Bluetooth-Verbindungsplatz. Trenne ein anderes Bluetooth-Gerät vom Adapter oder Proxy oder füge einen Bluetooth-Proxy hinzu und versuche es erneut.",
+      "error_device_not_responding": "Die Blanco Unit hat auch nach erneutem Verbinden nicht über Bluetooth geantwortet. Starte den Home-Assistant-Host neu (ein Neustart nur von Home Assistant reicht nicht) oder den Bluetooth-Proxy und versuche es erneut. Hilft das nicht, starte die Blanco Unit neu.",
+      "error_connection": "Die Kommunikation mit der Blanco Unit ist fehlgeschlagen. Bitte stelle sie näher an den Bluetooth-Adapter oder Proxy und versuche es erneut. ({error})",
+      "error_unknown": "Ein unerwarteter Fehler ist aufgetreten: {error}"
     },
     "abort": {
       "already_configured": "Dieses Gerät ist bereits konfiguriert.",
