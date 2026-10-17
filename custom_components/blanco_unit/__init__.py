@@ -23,6 +23,7 @@ from homeassistant.exceptions import (
     ConfigEntryNotReady,
     IntegrationError,
 )
+from homeassistant.helpers import config_validation as cv
 
 from .client import (
     BlancoUnitConnectionError,
@@ -55,6 +56,9 @@ PLATFORMS: list[Platform] = [
 ]
 
 type BlancoUnitConfigEntry = ConfigEntry[BlancoUnitCoordinator]
+
+# set up through config entries only, async_setup only registers the services
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, entry: BlancoUnitConfigEntry) -> bool:
