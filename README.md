@@ -496,6 +496,10 @@ automation:
 
 BlueZ can keep a Bluetooth operation pending forever after the link drops, after which every request to the device hangs. The integration detects this, removes the device from BlueZ and connects again, and logs a warning saying so. The stuck operation lives in BlueZ on the Home Assistant host, not in the Blanco Unit. If the warning keeps coming back, reboot the host (on Home Assistant OS: Settings → System → Restart → Reboot system, restarting only Home Assistant is not enough), or restart the Bluetooth proxy if you use one. Restart the Blanco Unit only if that does not help.
 
+### Requests Are Slow
+
+Requests are split into packets that fit the connection's negotiated MTU. When the adapter only negotiates the 23 byte minimum, a request takes up to twenty writes instead of one or two. This works, it is only slower. Newer adapters, BlueZ 5.62 or later, or an ESPHome Bluetooth proxy usually negotiate a larger MTU. The debug log shows the packet size of each connection.
+
 ### Collecting Logs
 
 To include detailed logs in an issue, enable debug logging in `configuration.yaml` and restart Home Assistant:

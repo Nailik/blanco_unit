@@ -17,7 +17,7 @@ from typing import Any, TypeVar
 from bleak import BleakClient
 from bleak.backends import BleakBackend
 from bleak.backends.device import BLEDevice
-from bleak.exc import BleakGATTProtocolError, BleakGATTProtocolErrorCode
+from bleak.exc import BleakError, BleakGATTProtocolError, BleakGATTProtocolErrorCode
 from bleak_retry_connector import (
     BleakClientWithServiceCache,
     close_stale_connections_by_address,
@@ -583,8 +583,8 @@ class BlancoUnitBluetoothClient:
                 _LOGGER.debug("Already connected")
                 return self._session_data
 
-            # Create protocol instance for this session
-            protocol = _BlancoUnitProtocol(mtu=MTU_SIZE)
+            # Create protocol instance for this session, sized on connection
+            protocol = _BlancoUnitProtocol()
 
             # Connect and perform initial pairing
             client, result = await establish_validated_connection(
@@ -629,6 +629,9 @@ class BlancoUnitBluetoothClient:
             BlancoUnitAuthenticationError: If PIN is wrong (error code 4).
             BlancoUnitConnectionError: If device ID cannot be extracted.
         """
+        # the negotiated MTU can differ on every connection
+        protocol.mtu = _packet_size(client)
+
         # Validate PIN and get response
         validation = await validate_pin(client, self._pin, protocol)
         if not validation.is_valid:
@@ -1050,6 +1053,26 @@ def _extract_device_type(response: dict[str, Any]) -> int | None:
     return None
 
 
+def _packet_size(client: BleakClient) -> int:
+    """Return the packet size that fits a single write at the negotiated MTU.
+
+    A larger write turns into a long write, which the device can reject with
+    ATT error 0x0e. A write request carries ATT MTU - 3 bytes, the same as a
+    write without response. BlueZ before 5.62 does not publish the MTU, bleak
+    then reports the 20 bytes of the minimum MTU.
+    """
+    try:
+        characteristic = client.services.get_characteristic(CHARACTERISTIC_UUID)
+    except BleakError:
+        characteristic = None
+    if characteristic is None:
+        _LOGGER.debug("Characteristic not resolved, using %d byte packets", MTU_SIZE)
+        return MTU_SIZE
+    size = min(MTU_SIZE, characteristic.max_write_without_response_size)
+    _LOGGER.debug("Using %d byte packets", size)
+    return size
+
+
 async def _remove_device(client: BleakClient) -> None:
     """Close a connection whose GATT operation did not complete.
 
@@ -1147,7 +1170,7 @@ async def validate_pin(
 
     # Use provided protocol or create new one
     if protocol is None:
-        protocol = _BlancoUnitProtocol(mtu=MTU_SIZE)
+        protocol = _BlancoUnitProtocol(mtu=_packet_size(client))
 
     # Send pairing request and get response
     response = await protocol.send_pairing_request(client, pin)

@@ -26,6 +26,7 @@ from custom_components.blanco_unit.client import (
     _ConnectWifiPars,
     _DispensePars,
     _extract_device_id,
+    _packet_size,
     _RequestBody,
     _RequestEnvelope,
     _RequestMeta,
@@ -36,6 +37,19 @@ from custom_components.blanco_unit.client import (
     establish_validated_connection,
     validate_pin,
 )
+from custom_components.blanco_unit.const import CHARACTERISTIC_UUID, MTU_SIZE
+
+
+def _ble_client(packet_size: int = MTU_SIZE) -> AsyncMock:
+    """Create a BleakClient mock on a local BlueZ adapter, characteristic resolved."""
+    client = AsyncMock()
+    client.backend_id = BleakBackend.BLUEZ_DBUS
+    # services is a property on BleakClient, not a coroutine
+    client.services = MagicMock()
+    characteristic = client.services.get_characteristic.return_value
+    characteristic.max_write_without_response_size = packet_size
+    return client
+
 
 # -------------------------------
 # Exception Tests
@@ -388,7 +402,7 @@ def test_protocol_extract_pars_with_empty_results():
 async def test_protocol_read_response_chunks_success():
     """Test reading response chunks successfully."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     # Mock single packet response
     packet = bytes([0xFF, 0x00, 1, 10, 0x00]) + b'{"status":"ok"}\x00\xff'
@@ -404,7 +418,7 @@ async def test_protocol_read_response_chunks_success():
 async def test_protocol_read_response_chunks_multiple():
     """Test reading multiple response chunks."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     # Mock multi-packet response
     packet1 = bytes([0xFF, 0x00, 2, 10, 0x00]) + b'{"status":'
@@ -433,7 +447,7 @@ async def test_protocol_read_response_chunks_multiple():
 async def test_protocol_read_response_chunks_timeout():
     """Test reading response chunks with timeout."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     # Mock incomplete response (expected 2 chunks, only get 1)
     packet1 = bytes([0xFF, 0x00, 2, 10, 0x00]) + b'{"status":'
@@ -447,7 +461,7 @@ async def test_protocol_read_response_chunks_timeout():
 async def test_protocol_read_response_chunks_error():
     """Test reading response chunks with read error."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     # Mock read error
     mock_client.read_gatt_char = AsyncMock(side_effect=Exception("Read error"))
@@ -460,7 +474,7 @@ async def test_protocol_read_response_chunks_error():
 async def test_protocol_send_pairing_request():
     """Test sending pairing request."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     # Mock response
     response_data = {
@@ -484,7 +498,7 @@ async def test_protocol_send_pairing_request():
 async def test_protocol_send_request_with_ctrl():
     """Test sending request with ctrl parameter."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     # Mock response
     response_data = {"body": {"results": [{"pars": {"status": "ok"}}]}}
@@ -508,7 +522,7 @@ async def test_protocol_send_request_with_ctrl():
 async def test_protocol_send_request_without_ctrl():
     """Test sending request without ctrl parameter."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     # Mock response
     response_data = {"body": {"results": [{"pars": {"status": "ok"}}]}}
@@ -560,7 +574,7 @@ def test_extract_device_id_invalid_structure():
 @pytest.mark.asyncio
 async def test_validate_pin_success_with_dev_id():
     """Test validate_pin with successful PIN and device ID."""
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     # Mock successful pairing response
     response_data = {
@@ -587,7 +601,7 @@ async def test_validate_pin_success_with_dev_id():
 @pytest.mark.asyncio
 async def test_validate_pin_wrong_pin_error_code():
     """Test validate_pin with wrong PIN (error code 4)."""
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     # Mock auth error response
     response_data = {"body": {"results": [{"pars": {"errs": [{"err_code": 4}]}}]}}
@@ -607,7 +621,7 @@ async def test_validate_pin_wrong_pin_error_code():
 @pytest.mark.asyncio
 async def test_validate_pin_no_device_id():
     """Test validate_pin when no device ID is returned."""
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     # Mock response without device ID
     response_data = {"body": {"results": [{"pars": {}}]}}
@@ -627,7 +641,7 @@ async def test_validate_pin_no_device_id():
 @pytest.mark.asyncio
 async def test_validate_pin_invalid_format():
     """Test validate_pin with invalid PIN format."""
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     with pytest.raises(ValueError, match="PIN must be exactly 5 digits"):
         await validate_pin(mock_client, "123")
@@ -636,7 +650,7 @@ async def test_validate_pin_invalid_format():
 @pytest.mark.asyncio
 async def test_validate_pin_non_digit():
     """Test validate_pin with non-digit PIN."""
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
 
     with pytest.raises(ValueError, match="PIN must be exactly 5 digits"):
         await validate_pin(mock_client, "abcde")
@@ -645,7 +659,7 @@ async def test_validate_pin_non_digit():
 @pytest.mark.asyncio
 async def test_validate_pin_with_provided_protocol():
     """Test validate_pin with provided protocol instance."""
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     protocol = _BlancoUnitProtocol()
 
     # Mock successful pairing response
@@ -736,7 +750,7 @@ def test_bluetooth_client_device_id_when_connected():
     )
 
     # Mock session data
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_protocol = MagicMock()
     client._session_data = _BlancoUnitSessionData(
         client=mock_client, dev_id="device123", dev_type=1, protocol=mock_protocol
@@ -769,7 +783,7 @@ def test_bluetooth_client_is_connected_when_connected():
     )
 
     # Mock session data with connected client
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.is_connected = True
     mock_protocol = MagicMock()
     client._session_data = _BlancoUnitSessionData(
@@ -792,7 +806,7 @@ async def test_bluetooth_client_disconnect_when_connected():
     )
 
     # Mock session data
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_protocol = MagicMock()
     client._session_data = _BlancoUnitSessionData(
         client=mock_client, dev_id="device123", dev_type=1, protocol=mock_protocol
@@ -829,7 +843,7 @@ async def test_bluetooth_client_connect_first_time(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -865,7 +879,7 @@ async def test_bluetooth_client_connect_already_connected(mock_establish):
     )
 
     # Pre-populate session data
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_protocol = MagicMock()
     existing_session = _BlancoUnitSessionData(
         client=mock_ble_client, dev_id="device123", dev_type=1, protocol=mock_protocol
@@ -891,7 +905,7 @@ def test_bluetooth_client_handle_disconnect():
     # Set session data
     from custom_components.blanco_unit.client import _BlancoUnitSessionData
 
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_protocol = MagicMock()
     client._session_data = _BlancoUnitSessionData(
         client=mock_ble_client, dev_id="device123", dev_type=1, protocol=mock_protocol
@@ -915,7 +929,7 @@ def test_bluetooth_client_handle_disconnect_of_old_client_keeps_session():
         pin="12345", device=device, connection_callback=callback
     )
 
-    current_ble_client = AsyncMock()
+    current_ble_client = _ble_client()
     session = _BlancoUnitSessionData(
         client=current_ble_client, dev_id="device123", dev_type=1, protocol=MagicMock()
     )
@@ -942,7 +956,7 @@ async def test_bluetooth_client_connect_pairs_ble(mock_establish):
         + json.dumps(response_data).encode("utf-8")
         + b"\x00\xff"
     )
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.read_gatt_char = AsyncMock(return_value=response_packet)
     mock_establish.return_value = mock_ble_client
 
@@ -971,7 +985,7 @@ async def test_bluetooth_client_connect_disconnects_when_pairing_fails(
         pin="12345", device=device, connection_callback=callback
     )
 
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_establish.return_value = mock_ble_client
 
     with (
@@ -997,7 +1011,7 @@ async def test_bluetooth_client_execute_transaction_disconnects_on_failure(
         pin="12345", device=device, connection_callback=MagicMock()
     )
 
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_protocol = MagicMock()
     mock_protocol.send_request = AsyncMock(
         side_effect=TimeoutError("Incomplete response")
@@ -1024,7 +1038,7 @@ async def test_bluetooth_client_perform_pairing_success():
         pin="12345", device=device, connection_callback=callback
     )
 
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_protocol = _BlancoUnitProtocol()
 
     # Mock successful pairing response
@@ -1059,7 +1073,7 @@ async def test_bluetooth_client_perform_pairing_wrong_pin():
         pin="99999", device=device, connection_callback=callback
     )
 
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_protocol = _BlancoUnitProtocol()
 
     # Mock auth error response
@@ -1087,7 +1101,7 @@ async def test_bluetooth_client_perform_pairing_no_device_id(mock_validate_pin):
         pin="12345", device=device, connection_callback=callback
     )
 
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_protocol = _BlancoUnitProtocol()
 
     # Mock validate_pin to return True but with a response that has no device ID
@@ -1111,7 +1125,7 @@ async def test_bluetooth_client_execute_transaction_success(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1163,7 +1177,7 @@ async def test_bluetooth_client_execute_transaction_auth_error(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1214,7 +1228,7 @@ async def test_bluetooth_client_get_system_info(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1278,7 +1292,7 @@ async def test_bluetooth_client_get_settings(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1344,7 +1358,7 @@ async def test_bluetooth_client_get_status(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1411,7 +1425,7 @@ async def test_bluetooth_client_get_device_identity(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1460,7 +1474,7 @@ async def test_bluetooth_client_get_wifi_info(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1527,7 +1541,7 @@ async def test_bluetooth_client_set_temperature_success(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1601,7 +1615,7 @@ async def test_bluetooth_client_set_water_hardness_success(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1647,7 +1661,7 @@ async def test_bluetooth_client_change_pin_success(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1694,7 +1708,7 @@ async def test_bluetooth_client_change_pin_failure(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1741,7 +1755,7 @@ async def test_bluetooth_client_dispense_water_success(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1815,7 +1829,7 @@ async def test_bluetooth_client_set_calibration_still(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1861,7 +1875,7 @@ async def test_bluetooth_client_set_calibration_soda(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -1969,7 +1983,7 @@ async def test_bluetooth_client_scan_wifi_networks(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -2028,7 +2042,7 @@ async def test_bluetooth_client_scan_wifi_networks_empty(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -2075,7 +2089,7 @@ async def test_bluetooth_client_connect_wifi_success(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -2121,7 +2135,7 @@ async def test_bluetooth_client_disconnect_wifi_success(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -2167,7 +2181,7 @@ async def test_bluetooth_client_allow_cloud_services_success(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -2213,7 +2227,7 @@ async def test_bluetooth_client_allow_cloud_services_with_rca_id(mock_establish)
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -2259,7 +2273,7 @@ async def test_bluetooth_client_factory_reset_success(mock_establish):
     )
 
     # Mock establish_connection
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_ble_client.is_connected = True
     mock_establish.return_value = mock_ble_client
 
@@ -2307,13 +2321,6 @@ def _response_packet(data: dict) -> bytes:
     )
 
 
-def _bluez_client() -> AsyncMock:
-    """Create a BLE client connected through a local BlueZ adapter."""
-    client = AsyncMock()
-    client.backend_id = BleakBackend.BLUEZ_DBUS
-    return client
-
-
 async def _never_completes(*args, **kwargs):
     """Simulate a GATT operation that BlueZ keeps pending."""
     await asyncio.Event().wait()
@@ -2323,7 +2330,7 @@ async def _never_completes(*args, **kwargs):
 async def test_protocol_write_timeout_raises_gatt_timeout():
     """Test a write that never completes raises a GATT timeout."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.write_gatt_char = AsyncMock(side_effect=_never_completes)
 
     with (
@@ -2337,7 +2344,7 @@ async def test_protocol_write_timeout_raises_gatt_timeout():
 async def test_protocol_read_timeout_raises_gatt_timeout():
     """Test a read that never completes raises a GATT timeout."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.read_gatt_char = AsyncMock(side_effect=_never_completes)
 
     with (
@@ -2351,7 +2358,7 @@ async def test_protocol_read_timeout_raises_gatt_timeout():
 async def test_protocol_read_response_chunks_retries_read_errors():
     """Test read errors while connected are retried."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.is_connected = True
     packet = _response_packet({"status": "ok"})
     mock_client.read_gatt_char = AsyncMock(
@@ -2369,7 +2376,7 @@ async def test_protocol_read_response_chunks_gives_up_after_read_errors():
     from custom_components.blanco_unit.client import MAX_READ_ERRORS
 
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.is_connected = True
     mock_client.read_gatt_char = AsyncMock(side_effect=BleakError("Unlikely Error"))
 
@@ -2383,7 +2390,7 @@ async def test_protocol_read_response_chunks_gives_up_after_read_errors():
 async def test_protocol_read_response_chunks_stops_when_disconnected():
     """Test a read error is not retried once the link is gone."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.is_connected = False
     mock_client.read_gatt_char = AsyncMock(side_effect=BleakError("Not connected"))
 
@@ -2397,7 +2404,7 @@ async def test_protocol_read_response_chunks_stops_when_disconnected():
 async def test_protocol_read_response_chunks_short_header():
     """Test a first packet too short to carry the packet count does not crash."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.read_gatt_char = AsyncMock(return_value=b"\xff\x00")
 
     chunks = await protocol.read_response_chunks(mock_client)
@@ -2409,7 +2416,7 @@ async def test_protocol_read_response_chunks_short_header():
 async def test_protocol_read_response_chunks_timeout_diagnostics():
     """Test an incomplete response reports why it is incomplete."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.read_gatt_char = AsyncMock(
         side_effect=[bytes([0xFF, 0x00, 2, 10, 0x00])] + [b""] * 39
     )
@@ -2438,7 +2445,7 @@ async def test_protocol_read_response_chunks_timeout_diagnostics():
 async def test_protocol_write_retries_transient_att_error(code):
     """Test a write the device rejects as busy is retried."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.write_gatt_char = AsyncMock(
         side_effect=[None, BleakGATTProtocolError(code), None]
     )
@@ -2459,7 +2466,7 @@ async def test_protocol_write_gives_up_after_attempts():
     from custom_components.blanco_unit.client import WRITE_ATTEMPTS
 
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.write_gatt_char = AsyncMock(
         side_effect=BleakGATTProtocolError(BleakGATTProtocolErrorCode.UNLIKELY_ERROR)
     )
@@ -2482,13 +2489,74 @@ async def test_protocol_write_gives_up_after_attempts():
 async def test_protocol_write_does_not_retry_permanent_error(error):
     """Test a permanent rejection or a lost link fails on the first attempt."""
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.write_gatt_char = AsyncMock(side_effect=error)
 
     with pytest.raises(BleakError):
         await protocol._write_packets(mock_client, [b"packet"])
 
     mock_client.write_gatt_char.assert_awaited_once()
+
+
+@pytest.mark.parametrize(
+    ("write_size", "expected"),
+    [(20, 20), (182, 182), (514, MTU_SIZE)],
+)
+def test_packet_size_fits_negotiated_mtu(write_size, expected):
+    """Test packets fit a single write, capped at the protocol target."""
+    mock_client = _ble_client(packet_size=write_size)
+
+    assert _packet_size(mock_client) == expected
+    mock_client.services.get_characteristic.assert_called_once_with(CHARACTERISTIC_UUID)
+
+
+def test_packet_size_without_characteristic():
+    """Test the protocol target is used when the characteristic is unknown."""
+    mock_client = _ble_client()
+    mock_client.services.get_characteristic.return_value = None
+
+    assert _packet_size(mock_client) == MTU_SIZE
+
+
+def test_packet_size_without_service_discovery():
+    """Test the protocol target is used when services are not resolved."""
+    mock_client = _ble_client()
+    type(mock_client).services = property(
+        lambda self: (_ for _ in ()).throw(BleakError("Service Discovery"))
+    )
+
+    assert _packet_size(mock_client) == MTU_SIZE
+
+
+@pytest.mark.asyncio
+async def test_validate_pin_sizes_packets_to_mtu():
+    """Test a PIN validation without a protocol writes MTU sized packets."""
+    mock_client = _ble_client(packet_size=20)
+    mock_client.read_gatt_char = AsyncMock(return_value=_response_packet({"type": 10}))
+
+    await validate_pin(mock_client, "12345")
+
+    for call in mock_client.write_gatt_char.await_args_list:
+        assert len(call.args[1]) <= 20
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_client_perform_pairing_sizes_protocol():
+    """Test pairing sizes the session protocol to the connection's MTU."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=MagicMock()
+    )
+    protocol = _BlancoUnitProtocol()
+    validation = PinValidationResult(is_valid=True, dev_id="device123", dev_type=1)
+
+    with patch(
+        "custom_components.blanco_unit.client.validate_pin",
+        AsyncMock(return_value=validation),
+    ):
+        await client._perform_pairing(_ble_client(packet_size=20), protocol)
+
+    assert protocol.mtu == 20
 
 
 @pytest.mark.asyncio
@@ -2498,7 +2566,7 @@ async def test_establish_validated_connection_success(
 ):
     """Test stale connections are closed and the device is bonded."""
     device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_establish.return_value = mock_ble_client
     validate = AsyncMock(return_value="valid")
 
@@ -2518,8 +2586,8 @@ async def test_establish_validated_connection_removes_device_after_gatt_timeout(
 ):
     """Test a stuck GATT operation removes the device and connects again."""
     device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
-    stuck_client = _bluez_client()
-    fresh_client = _bluez_client()
+    stuck_client = _ble_client()
+    fresh_client = _ble_client()
     mock_establish.side_effect = [stuck_client, fresh_client]
     validate = AsyncMock(side_effect=[BlancoUnitGattTimeoutError(), "valid"])
 
@@ -2584,8 +2652,8 @@ async def test_bluetooth_client_execute_transaction_keeps_proxy_bond_on_gatt_tim
 async def test_establish_validated_connection_gatt_timeout_twice(mock_establish):
     """Test a second stuck GATT operation is raised."""
     device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
-    first_client = _bluez_client()
-    second_client = _bluez_client()
+    first_client = _ble_client()
+    second_client = _ble_client()
     mock_establish.side_effect = [first_client, second_client]
     validate = AsyncMock(side_effect=BlancoUnitGattTimeoutError())
 
@@ -2603,7 +2671,7 @@ async def test_establish_validated_connection_gatt_timeout_twice(mock_establish)
 async def test_establish_validated_connection_disconnects_on_error(mock_establish):
     """Test other errors close the connection without removing the device."""
     device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _ble_client()
     mock_establish.return_value = mock_ble_client
     validate = AsyncMock(side_effect=BlancoUnitAuthenticationError())
 
@@ -2624,9 +2692,9 @@ async def test_bluetooth_client_connect_recovers_from_gatt_timeout(mock_establis
         pin="12345", device=device, connection_callback=MagicMock()
     )
 
-    stuck_client = _bluez_client()
+    stuck_client = _ble_client()
     stuck_client.write_gatt_char = AsyncMock(side_effect=BlancoUnitGattTimeoutError())
-    fresh_client = AsyncMock()
+    fresh_client = _ble_client()
     fresh_client.read_gatt_char = AsyncMock(
         return_value=_response_packet(
             {"body": {"meta": {"dev_id": "dev", "dev_type": 1}}}
@@ -2650,7 +2718,7 @@ async def test_bluetooth_client_execute_transaction_removes_device_on_gatt_timeo
         pin="12345", device=device, connection_callback=MagicMock()
     )
 
-    mock_ble_client = _bluez_client()
+    mock_ble_client = _ble_client()
     mock_protocol = MagicMock()
     mock_protocol.send_request = AsyncMock(side_effect=BlancoUnitGattTimeoutError())
     client._session_data = _BlancoUnitSessionData(
@@ -2674,7 +2742,7 @@ async def test_validate_pin_does_not_log_pin_or_token(caplog):
     """Test neither the PIN nor the token derived from it are logged."""
     caplog.set_level(logging.DEBUG)
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.read_gatt_char = AsyncMock(
         return_value=_response_packet(
             {"body": {"meta": {"dev_id": "dev", "dev_type": 1}}}
@@ -2700,7 +2768,7 @@ async def test_protocol_send_request_redacts_secrets(caplog):
     """Test new PINs and WiFi passwords are not logged."""
     caplog.set_level(logging.DEBUG)
     protocol = _BlancoUnitProtocol()
-    mock_client = AsyncMock()
+    mock_client = _ble_client()
     mock_client.read_gatt_char = AsyncMock(return_value=_response_packet({"type": 2}))
 
     await protocol.send_request(
