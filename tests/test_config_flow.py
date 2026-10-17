@@ -463,6 +463,34 @@ async def test_validate_input_success(
     assert result.description_placeholders is None
 
 
+@patch("custom_components.blanco_unit.config_flow.validate_pin")
+@patch("custom_components.blanco_unit.config_flow.establish_connection")
+@patch(
+    "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
+)
+async def test_validate_input_pairs_ble(
+    mock_device_from_address: AsyncMock,
+    mock_establish_connection: AsyncMock,
+    mock_validate_pin: AsyncMock,
+    hass: HomeAssistant,
+    mock_bluetooth_device,
+    mock_bleak_client,
+) -> None:
+    """Test validation asks for a BLE bond, BlueZ fails service discovery without one."""
+    from custom_components.blanco_unit.config_flow import BlancoUnitConfigFlow
+
+    mock_device_from_address.return_value = mock_bluetooth_device
+    mock_establish_connection.return_value = mock_bleak_client
+    mock_validate_pin.return_value = PinValidationResult(True, "test_device_id", 2)
+
+    flow = BlancoUnitConfigFlow()
+    flow.hass = hass
+
+    await flow.validate_input(MOCKED_CONFIG)
+
+    assert mock_establish_connection.call_args.kwargs["pair"] is True
+
+
 async def test_validate_input_value_error(hass: HomeAssistant) -> None:
     """Test input validation with value error."""
     from custom_components.blanco_unit.config_flow import BlancoUnitConfigFlow

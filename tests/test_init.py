@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from bleak_retry_connector import BleakConnectionError
 import pytest
 
 from custom_components.blanco_unit import (
@@ -17,12 +18,12 @@ from custom_components.blanco_unit import (
 from custom_components.blanco_unit.client import PinValidationResult
 from custom_components.blanco_unit.const import (
     BLE_CALLBACK,
-    CHARACTERISTIC_UUID,
     CONF_DEV_ID,
     CONF_MAC,
     CONF_PIN,
     DOMAIN,
     RANDOM_MAC_PLACEHOLDER,
+    SERVICE_UUID,
 )
 from homeassistant.components.bluetooth import (
     BluetoothChange,
@@ -423,7 +424,7 @@ def _make_discovered_device(
     device.name = f"Device_{address}"
 
     adv_data = MagicMock()
-    adv_data.service_uuids = [CHARACTERISTIC_UUID]
+    adv_data.service_uuids = [SERVICE_UUID]
     adv_data.rssi = rssi
 
     return device, adv_data
@@ -640,7 +641,7 @@ async def test_find_device_by_scanning_connection_failure_skipped(
 
     call_count = 0
 
-    async def mock_establish(client_class, device, name):
+    async def mock_establish(client_class, device, name, **kwargs):
         nonlocal call_count
         call_count += 1
         if call_count == 1:
@@ -669,6 +670,73 @@ async def test_find_device_by_scanning_connection_failure_skipped(
     assert device == dev_ok
 
 
+async def test_find_device_by_scanning_bleak_error_skipped(
+    hass: HomeAssistant,
+) -> None:
+    """Test _find_device_by_scanning skips devices that raise a BleakError."""
+    dev_fail, adv_fail = _make_discovered_device("11:22:33:44:55:66", rssi=-20)
+    dev_ok, adv_ok = _make_discovered_device("AA:BB:CC:DD:EE:FF", rssi=-50)
+
+    scanner = _make_scanner(
+        {
+            "11:22:33:44:55:66": (dev_fail, adv_fail),
+            "AA:BB:CC:DD:EE:FF": (dev_ok, adv_ok),
+        }
+    )
+
+    mock_client_ok = AsyncMock()
+    mock_client_ok.is_connected = True
+
+    with (
+        patch(
+            "custom_components.blanco_unit.bluetooth.async_get_scanner",
+            return_value=scanner,
+        ),
+        patch(
+            "custom_components.blanco_unit.establish_connection",
+            side_effect=[
+                BleakConnectionError("failed to discover services"),
+                mock_client_ok,
+            ],
+        ),
+        patch(
+            "custom_components.blanco_unit.validate_pin",
+            return_value=PinValidationResult(
+                is_valid=True, dev_id="expected_dev_id", dev_type=1
+            ),
+        ),
+    ):
+        device = await _find_device_by_scanning(hass, "12345", "expected_dev_id")
+
+    assert device == dev_ok
+
+
+async def test_find_device_by_scanning_pairs_ble(hass: HomeAssistant) -> None:
+    """Test _find_device_by_scanning asks for a BLE bond."""
+    dev, adv = _make_discovered_device("AA:BB:CC:DD:EE:FF")
+    scanner = _make_scanner({"AA:BB:CC:DD:EE:FF": (dev, adv)})
+
+    with (
+        patch(
+            "custom_components.blanco_unit.bluetooth.async_get_scanner",
+            return_value=scanner,
+        ),
+        patch(
+            "custom_components.blanco_unit.establish_connection",
+            return_value=AsyncMock(),
+        ) as mock_establish,
+        patch(
+            "custom_components.blanco_unit.validate_pin",
+            return_value=PinValidationResult(
+                is_valid=True, dev_id="expected_dev_id", dev_type=1
+            ),
+        ),
+    ):
+        await _find_device_by_scanning(hass, "12345", "expected_dev_id")
+
+    assert mock_establish.call_args.kwargs["pair"] is True
+
+
 async def test_find_device_by_scanning_sorts_by_rssi(hass: HomeAssistant) -> None:
     """Test _find_device_by_scanning tries closest device first."""
     dev_far, adv_far = _make_discovered_device("AA:BB:CC:DD:EE:FF", rssi=-80)
@@ -689,7 +757,7 @@ async def test_find_device_by_scanning_sorts_by_rssi(hass: HomeAssistant) -> Non
 
     tried_addresses = []
 
-    async def mock_establish(client_class, device, name):
+    async def mock_establish(client_class, device, name, **kwargs):
         tried_addresses.append(device.address)
         return mock_client
 
@@ -733,7 +801,7 @@ async def test_register_retry_callback_random_mac(hass: HomeAssistant) -> None:
         # Second argument is the filter dict
         filter_dict = call_args[0][2]
         assert "service_uuid" in filter_dict
-        assert filter_dict["service_uuid"] == CHARACTERISTIC_UUID
+        assert filter_dict["service_uuid"] == SERVICE_UUID
 
 
 async def test_register_retry_callback_static_mac(hass: HomeAssistant) -> None:
