@@ -7,6 +7,7 @@ import json
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from bleak.backends import BleakBackend
 from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError, BleakGATTProtocolError, BleakGATTProtocolErrorCode
 import pytest
@@ -2305,6 +2306,13 @@ def _response_packet(data: dict) -> bytes:
     )
 
 
+def _bluez_client() -> AsyncMock:
+    """Create a BLE client connected through a local BlueZ adapter."""
+    client = AsyncMock()
+    client.backend_id = BleakBackend.BLUEZ_DBUS
+    return client
+
+
 async def _never_completes(*args, **kwargs):
     """Simulate a GATT operation that BlueZ keeps pending."""
     await asyncio.Event().wait()
@@ -2509,8 +2517,8 @@ async def test_establish_validated_connection_removes_device_after_gatt_timeout(
 ):
     """Test a stuck GATT operation removes the device and connects again."""
     device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
-    stuck_client = AsyncMock()
-    fresh_client = AsyncMock()
+    stuck_client = _bluez_client()
+    fresh_client = _bluez_client()
     mock_establish.side_effect = [stuck_client, fresh_client]
     validate = AsyncMock(side_effect=[BlancoUnitGattTimeoutError(), "valid"])
 
@@ -2525,11 +2533,58 @@ async def test_establish_validated_connection_removes_device_after_gatt_timeout(
 
 @pytest.mark.asyncio
 @patch("custom_components.blanco_unit.client.establish_connection")
+async def test_establish_validated_connection_keeps_proxy_bond_after_gatt_timeout(
+    mock_establish,
+):
+    """Test a GATT timeout through a proxy reconnects without unpairing."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    stuck_client = AsyncMock()
+    stuck_client.backend_id = "ESPHomeClient"
+    fresh_client = AsyncMock()
+    mock_establish.side_effect = [stuck_client, fresh_client]
+    validate = AsyncMock(side_effect=[BlancoUnitGattTimeoutError(), "valid"])
+
+    result = await establish_validated_connection(device, validate)
+
+    assert result == (fresh_client, "valid")
+    stuck_client.unpair.assert_not_awaited()
+    stuck_client.disconnect.assert_awaited_once()
+    assert mock_establish.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_client_execute_transaction_keeps_proxy_bond_on_gatt_timeout():
+    """Test a stuck request through a proxy disconnects without unpairing."""
+    from custom_components.blanco_unit.client import _BlancoUnitSessionData
+
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=MagicMock()
+    )
+
+    mock_ble_client = AsyncMock()
+    mock_ble_client.backend_id = "ESPHomeClient"
+    mock_protocol = MagicMock()
+    mock_protocol.send_request = AsyncMock(side_effect=BlancoUnitGattTimeoutError())
+    client._session_data = _BlancoUnitSessionData(
+        client=mock_ble_client, dev_id="device123", dev_type=1, protocol=mock_protocol
+    )
+
+    with pytest.raises(BlancoUnitGattTimeoutError):
+        await client._execute_transaction(evt_type=7, ctrl=3)
+
+    mock_ble_client.unpair.assert_not_awaited()
+    mock_ble_client.disconnect.assert_awaited()
+    assert client._session_data is None
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
 async def test_establish_validated_connection_gatt_timeout_twice(mock_establish):
     """Test a second stuck GATT operation is raised."""
     device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
-    first_client = AsyncMock()
-    second_client = AsyncMock()
+    first_client = _bluez_client()
+    second_client = _bluez_client()
     mock_establish.side_effect = [first_client, second_client]
     validate = AsyncMock(side_effect=BlancoUnitGattTimeoutError())
 
@@ -2568,7 +2623,7 @@ async def test_bluetooth_client_connect_recovers_from_gatt_timeout(mock_establis
         pin="12345", device=device, connection_callback=MagicMock()
     )
 
-    stuck_client = AsyncMock()
+    stuck_client = _bluez_client()
     stuck_client.write_gatt_char = AsyncMock(side_effect=BlancoUnitGattTimeoutError())
     fresh_client = AsyncMock()
     fresh_client.read_gatt_char = AsyncMock(
@@ -2594,7 +2649,7 @@ async def test_bluetooth_client_execute_transaction_removes_device_on_gatt_timeo
         pin="12345", device=device, connection_callback=MagicMock()
     )
 
-    mock_ble_client = AsyncMock()
+    mock_ble_client = _bluez_client()
     mock_protocol = MagicMock()
     mock_protocol.send_request = AsyncMock(side_effect=BlancoUnitGattTimeoutError())
     client._session_data = _BlancoUnitSessionData(

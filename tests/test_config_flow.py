@@ -4,6 +4,7 @@ import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from bleak.backends import BleakBackend
 from bleak.exc import BleakError
 from bleak_retry_connector import BleakNotFoundError, BleakOutOfConnectionSlotsError
 import pytest
@@ -514,6 +515,7 @@ async def test_validate_input_recovers_from_stuck_write(
     from custom_components.blanco_unit.config_flow import BlancoUnitConfigFlow
 
     stuck_client = AsyncMock()
+    stuck_client.backend_id = BleakBackend.BLUEZ_DBUS
     fresh_client = AsyncMock()
     mock_device_from_address.return_value = mock_bluetooth_device
     mock_establish_connection.side_effect = [stuck_client, fresh_client]
