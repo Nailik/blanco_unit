@@ -711,6 +711,9 @@ async def test_validate_input_garbled_response_is_a_connection_error(
     from custom_components.blanco_unit.config_flow import BlancoUnitConfigFlow
 
     mock_device_from_address.return_value = mock_bluetooth_device
+    # services is a property on BleakClient, not a coroutine
+    mock_bleak_client.services = MagicMock()
+    mock_bleak_client.services.get_characteristic.return_value = None
     mock_bleak_client.read_gatt_char = AsyncMock(
         return_value=bytes([0xFF, 0x00, 1, 2, 0x00]) + b"{not json\x00\xff"
     )
