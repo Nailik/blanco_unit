@@ -498,7 +498,7 @@ BlueZ can keep a Bluetooth operation pending forever after the link drops, after
 
 ### Requests Are Slow
 
-Requests are split into packets that fit the connection's negotiated MTU. When the adapter only negotiates the 23 byte minimum, a request takes up to twenty writes instead of one or two. This works, it is only slower. Newer adapters, BlueZ 5.62 or later, or an ESPHome Bluetooth proxy usually negotiate a larger MTU. The debug log shows the packet size of each connection.
+Requests are split into packets of up to 200 bytes, smaller when the connection reports a smaller MTU, so each packet fits a single write. With a small MTU a request takes more writes, which works but is slower. When the MTU is not known, for example because BlueZ does not publish it for a bonded device, the 200 byte packets are kept. The debug log shows the packet size of each connection ("Using N byte packets" or "MTU not published").
 
 ### Collecting Logs
 

@@ -2500,7 +2500,7 @@ async def test_protocol_write_does_not_retry_permanent_error(error):
 
 @pytest.mark.parametrize(
     ("write_size", "expected"),
-    [(20, 20), (182, 182), (514, MTU_SIZE)],
+    [(21, 21), (182, 182), (514, MTU_SIZE)],
 )
 def test_packet_size_fits_negotiated_mtu(write_size, expected):
     """Test packets fit a single write, capped at the protocol target."""
@@ -2508,6 +2508,17 @@ def test_packet_size_fits_negotiated_mtu(write_size, expected):
 
     assert _packet_size(mock_client) == expected
     mock_client.services.get_characteristic.assert_called_once_with(CHARACTERISTIC_UUID)
+
+
+def test_packet_size_without_published_mtu():
+    """Test the protocol target is kept when only bleak's 20 byte fallback is known.
+
+    BlueZ does not publish the MTU for a bonded device whose GATT objects are
+    cached from an earlier connection, bleak then reports the 23 byte minimum.
+    """
+    mock_client = _ble_client(packet_size=20)
+
+    assert _packet_size(mock_client) == MTU_SIZE
 
 
 def test_packet_size_without_characteristic():
@@ -2531,13 +2542,14 @@ def test_packet_size_without_service_discovery():
 @pytest.mark.asyncio
 async def test_validate_pin_sizes_packets_to_mtu():
     """Test a PIN validation without a protocol writes MTU sized packets."""
-    mock_client = _ble_client(packet_size=20)
+    mock_client = _ble_client(packet_size=61)
     mock_client.read_gatt_char = AsyncMock(return_value=_response_packet({"type": 10}))
 
     await validate_pin(mock_client, "12345")
 
+    assert mock_client.write_gatt_char.await_count > 1
     for call in mock_client.write_gatt_char.await_args_list:
-        assert len(call.args[1]) <= 20
+        assert len(call.args[1]) <= 61
 
 
 @pytest.mark.asyncio
@@ -2554,9 +2566,9 @@ async def test_bluetooth_client_perform_pairing_sizes_protocol():
         "custom_components.blanco_unit.client.validate_pin",
         AsyncMock(return_value=validation),
     ):
-        await client._perform_pairing(_ble_client(packet_size=20), protocol)
+        await client._perform_pairing(_ble_client(packet_size=61), protocol)
 
-    assert protocol.mtu == 20
+    assert protocol.mtu == 61
 
 
 @pytest.mark.asyncio

@@ -44,6 +44,8 @@ GATT_TIMEOUT = 10
 RESPONSE_DELAY = 0.3
 READ_INTERVAL = 0.05
 MAX_READ_ERRORS = 10
+# Write size at the 23 byte minimum MTU, also bleak's value for an unknown MTU
+MIN_WRITE_SIZE = 20
 # A write the device is too busy for is rejected, not dropped, so it can be retried
 WRITE_ATTEMPTS = 3
 WRITE_RETRY_DELAY = 0.1
@@ -1058,8 +1060,13 @@ def _packet_size(client: BleakClient) -> int:
 
     A larger write turns into a long write, which the device can reject with
     ATT error 0x0e. A write request carries ATT MTU - 3 bytes, the same as a
-    write without response. BlueZ before 5.62 does not publish the MTU, bleak
-    then reports the 20 bytes of the minimum MTU.
+    write without response.
+
+    When BlueZ does not publish the MTU, bleak reports the 20 bytes of the
+    minimum MTU. That happens before BlueZ 5.62, and also for a bonded device
+    whose GATT objects are cached from an earlier connection, because BlueZ
+    only signals the MTU on the connection that created them. The real MTU is
+    unknown then, so the protocol target is kept, as before.
     """
     try:
         characteristic = client.services.get_characteristic(CHARACTERISTIC_UUID)
@@ -1068,7 +1075,11 @@ def _packet_size(client: BleakClient) -> int:
     if characteristic is None:
         _LOGGER.debug("Characteristic not resolved, using %d byte packets", MTU_SIZE)
         return MTU_SIZE
-    size = min(MTU_SIZE, characteristic.max_write_without_response_size)
+    write_size = characteristic.max_write_without_response_size
+    if write_size <= MIN_WRITE_SIZE:
+        _LOGGER.debug("MTU not published, using %d byte packets", MTU_SIZE)
+        return MTU_SIZE
+    size = min(MTU_SIZE, write_size)
     _LOGGER.debug("Using %d byte packets", size)
     return size
 
