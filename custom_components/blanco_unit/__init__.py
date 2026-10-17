@@ -7,7 +7,6 @@ import logging
 
 from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
-from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 from packaging import version
 
 from homeassistant.components import bluetooth
@@ -25,7 +24,11 @@ from homeassistant.exceptions import (
     IntegrationError,
 )
 
-from .client import validate_pin
+from .client import (
+    BlancoUnitConnectionError,
+    establish_validated_connection,
+    validate_pin,
+)
 from .const import (
     BLE_CALLBACK,
     CONF_DEV_ID,
@@ -113,15 +116,9 @@ async def _find_device_by_scanning(
         )
         client = None
         try:
-            client = await establish_connection(
-                client_class=BleakClientWithServiceCache,
-                device=device,
-                name=device.name or "Unknown Device",
-                # without a bond BlueZ fails service discovery
-                pair=True,
+            client, result = await establish_validated_connection(
+                device, lambda client: validate_pin(client, pin)
             )
-
-            result = await validate_pin(client, pin)
 
             if not result.is_valid:
                 _LOGGER.debug(
@@ -144,7 +141,7 @@ async def _find_device_by_scanning(
                 result.dev_id,
                 expected_dev_id,
             )
-        except (BleakError, OSError, TimeoutError):
+        except (BlancoUnitConnectionError, BleakError, OSError, TimeoutError):
             _LOGGER.debug(
                 "Random MAC scan: connection failed for %s",
                 device.address,
@@ -295,9 +292,7 @@ async def async_reload_entry(
     hass: HomeAssistant, config_entry: BlancoUnitConfigEntry
 ) -> None:
     """Reload config entry."""
-    _LOGGER.debug(
-        "async_reload_entry async_reload with pin %s", config_entry.data["conf_pin"]
-    )
+    _LOGGER.debug("async_reload_entry async_reload %s", config_entry.entry_id)
     await async_unload_entry(hass, config_entry)
     await async_setup_entry(hass, config_entry)
 

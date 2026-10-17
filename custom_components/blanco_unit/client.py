@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 import contextlib
 from dataclasses import asdict, dataclass, field
 import hashlib
@@ -12,11 +12,15 @@ import logging
 import math
 import random
 import time
-from typing import Any
+from typing import Any, TypeVar
 
 from bleak import BleakClient
 from bleak.backends.device import BLEDevice
-from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
+from bleak_retry_connector import (
+    BleakClientWithServiceCache,
+    close_stale_connections_by_address,
+    establish_connection,
+)
 
 from .const import CHARACTERISTIC_UUID, MTU_SIZE
 from .data import (
@@ -29,6 +33,19 @@ from .data import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
+
+# BlueZ can keep a GATT operation pending forever, so each one gets a limit
+GATT_TIMEOUT = 10
+# The device needs a moment to prepare its response after a request
+RESPONSE_DELAY = 0.3
+READ_INTERVAL = 0.05
+MAX_READ_ERRORS = 10
+# Time for a device removed from BlueZ to be discovered again
+REDISCOVERY_DELAY = 5
+# Request parameters that must not end up in logs
+SECRET_PARS = ("new_pass", "password")
 
 # -------------------------------
 # region Exceptions
@@ -52,6 +69,14 @@ class BlancoUnitConnectionError(BlancoUnitClientError):
 
     def __init__(self, message: str = "Connection failed") -> None:
         """Initialize BlancoUnitConnectionError."""
+        super().__init__(message)
+
+
+class BlancoUnitGattTimeoutError(BlancoUnitConnectionError):
+    """Exception raised when a GATT read or write does not complete."""
+
+    def __init__(self, message: str = "GATT operation timed out") -> None:
+        """Initialize BlancoUnitGattTimeoutError."""
         super().__init__(message)
 
 
@@ -220,6 +245,17 @@ class _AllowCloudServicesPars:
         return {"rca_id": self.rca_id}
 
 
+def _loggable_body(body: _RequestBody) -> dict[str, Any]:
+    """Return the request body with secret parameters redacted."""
+    data = body.to_dict()
+    if pars := data.get("pars"):
+        data["pars"] = {
+            key: "**REDACTED**" if key in SECRET_PARS else value
+            for key, value in pars.items()
+        }
+    return data
+
+
 # -------------------------------
 # region Protocol Helper
 # -------------------------------
@@ -315,19 +351,31 @@ class _BlancoUnitProtocol:
         last_data = b""
         attempts = 0
         max_attempts = 40
+        read_errors = 0
 
         while len(chunks) < expected and attempts < max_attempts:
+            attempts += 1
             try:
-                data = await client.read_gatt_char(CHARACTERISTIC_UUID)
-                if data != last_data:
-                    last_data = data
-                    chunks.append(data)
-                    if data[0] == 0xFF:
-                        expected = data[2]
-                attempts += 1
+                async with asyncio.timeout(GATT_TIMEOUT):
+                    data = await client.read_gatt_char(CHARACTERISTIC_UUID)
+            except TimeoutError as e:
+                raise BlancoUnitGattTimeoutError("Read did not complete") from e
             except Exception as e:  # noqa: BLE001
-                _LOGGER.error("Read error: %s", e)
-                break
+                read_errors += 1
+                if not client.is_connected or read_errors >= MAX_READ_ERRORS:
+                    _LOGGER.error("Read error: %s", e)
+                    break
+                # the device may not have prepared its response yet
+                _LOGGER.debug("Read error, retrying: %s", e)
+                await asyncio.sleep(READ_INTERVAL)
+                continue
+            if data and data != last_data:
+                last_data = data
+                chunks.append(data)
+                if data[0] == 0xFF:
+                    expected = data[2]
+            if len(chunks) < expected:
+                await asyncio.sleep(READ_INTERVAL)
 
         if len(chunks) != expected:
             raise TimeoutError(
@@ -335,6 +383,18 @@ class _BlancoUnitProtocol:
             )
 
         return chunks
+
+    async def _write_packets(self, client: BleakClient, packets: list[bytes]) -> None:
+        """Write request packets and give the device time to prepare its response."""
+        for packet in packets:
+            try:
+                async with asyncio.timeout(GATT_TIMEOUT):
+                    await client.write_gatt_char(
+                        CHARACTERISTIC_UUID, packet, response=True
+                    )
+            except TimeoutError as e:
+                raise BlancoUnitGattTimeoutError("Write did not complete") from e
+        await asyncio.sleep(RESPONSE_DELAY)
 
     async def send_pairing_request(
         self, client: BleakClient, pin: str
@@ -357,12 +417,10 @@ class _BlancoUnitProtocol:
         request_dict = envelope.to_dict()
         packets = self.create_packets(request_dict, self.msg_id_counter)
 
-        _LOGGER.debug("Sending pairing data: %s", request_dict)
+        _LOGGER.debug("Sending pairing data: %s", _loggable_body(body))
         _LOGGER.debug("Sending pairing request (ReqID: %s)", req_id)
 
-        # Send packets
-        for packet in packets:
-            await client.write_gatt_char(CHARACTERISTIC_UUID, packet, response=True)
+        await self._write_packets(client, packets)
 
         # Read response
         chunks = await self.read_response_chunks(client)
@@ -401,12 +459,10 @@ class _BlancoUnitProtocol:
         request_dict = envelope.to_dict()
         packets = self.create_packets(request_dict, self.msg_id_counter)
 
-        _LOGGER.debug("Sending data: %s from %s", request_dict, body)
+        _LOGGER.debug("Sending data: %s", _loggable_body(body))
         _LOGGER.debug("Sending request (ReqID: %s, %d packets)", req_id, len(packets))
 
-        # Send packets
-        for packet in packets:
-            await client.write_gatt_char(CHARACTERISTIC_UUID, packet, response=True)
+        await self._write_packets(client, packets)
 
         # Read response
         chunks = await self.read_response_chunks(client)
@@ -482,26 +538,16 @@ class BlancoUnitBluetoothClient:
                 _LOGGER.debug("Already connected")
                 return self._session_data
 
-            client = await establish_connection(
-                client_class=BleakClientWithServiceCache,
-                device=self._device,
-                name=self._device.name or "Unknown Device",
-                disconnected_callback=self._handle_disconnect,
-                pair=True,
-                timeout=120,
-            )
-
             # Create protocol instance for this session
             protocol = _BlancoUnitProtocol(mtu=MTU_SIZE)
 
-            # Perform initial pairing
-            try:
-                result = await self._perform_pairing(client, protocol)
-            except BaseException:
-                # nothing references the client anymore, do not leave it connected
-                with contextlib.suppress(Exception):
-                    await client.disconnect()
-                raise
+            # Connect and perform initial pairing
+            client, result = await establish_validated_connection(
+                self._device,
+                lambda client: self._perform_pairing(client, protocol),
+                disconnected_callback=self._handle_disconnect,
+                timeout=120,
+            )
 
             _LOGGER.debug(
                 "Connected and paired with device ID: %s, device type: %d",
@@ -569,7 +615,9 @@ class BlancoUnitBluetoothClient:
                 ctrl=ctrl,
                 pars=pars,
             )
-        except BaseException:
+        except BaseException as err:
+            if isinstance(err, BlancoUnitGattTimeoutError):
+                await _remove_device(session_data.client)
             # the link may be half dead, reconnect on the next call
             with contextlib.suppress(Exception):
                 await self.disconnect()
@@ -957,6 +1005,64 @@ def _extract_device_type(response: dict[str, Any]) -> int | None:
     return None
 
 
+async def _remove_device(client: BleakClient) -> None:
+    """Remove the device from BlueZ, this clears its stuck GATT operations."""
+    with contextlib.suppress(Exception):
+        await client.unpair()
+    with contextlib.suppress(Exception):
+        await client.disconnect()
+
+
+async def establish_validated_connection(
+    device: BLEDevice,
+    validate: Callable[[BleakClient], Awaitable[_T]],
+    **connect_kwargs: Any,
+) -> tuple[BleakClient, _T]:
+    """Connect to the device, bond with it and run validate on the connection.
+
+    The connection is closed when validate fails. BlueZ keeps a GATT operation
+    that was pending when the link dropped forever, every later one on that
+    characteristic then never completes. Only removing the device clears it, so
+    after a GATT timeout the device is removed and connected once more.
+
+    Raises:
+        BlancoUnitGattTimeoutError: If GATT operations still time out after
+            removing the device.
+        Any exception of establish_connection or validate.
+    """
+    removed_device = False
+    while True:
+        # a link left open by a previous run keeps the device busy
+        with contextlib.suppress(Exception):
+            await close_stale_connections_by_address(device.address)
+
+        client = await establish_connection(
+            client_class=BleakClientWithServiceCache,
+            device=device,
+            name=device.name or "Unknown Device",
+            # without a bond BlueZ fails service discovery
+            pair=True,
+            **connect_kwargs,
+        )
+        try:
+            return client, await validate(client)
+        except BlancoUnitGattTimeoutError:
+            await _remove_device(client)
+            if removed_device:
+                raise
+            removed_device = True
+            _LOGGER.warning(
+                "GATT operation on %s did not complete, removed the device "
+                "from BlueZ and connecting again",
+                device.address,
+            )
+            await asyncio.sleep(REDISCOVERY_DELAY)
+        except BaseException:
+            with contextlib.suppress(Exception):
+                await client.disconnect()
+            raise
+
+
 async def validate_pin(
     client: BleakClient, pin: str, protocol: _BlancoUnitProtocol | None = None
 ) -> PinValidationResult:
@@ -983,7 +1089,7 @@ async def validate_pin(
     if len(pin) != 5 or not pin.isdigit():
         raise ValueError("PIN must be exactly 5 digits")
 
-    _LOGGER.debug("Validating PIN %s", pin)
+    _LOGGER.debug("Validating PIN")
 
     # Use provided protocol or create new one
     if protocol is None:
