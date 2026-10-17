@@ -6,6 +6,7 @@ import asyncio
 import logging
 
 from bleak.backends.device import BLEDevice
+from bleak.exc import BleakError
 from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 from packaging import version
 
@@ -28,7 +29,6 @@ from .client import validate_pin
 from .cloud import BlancoCloudCoordinator
 from .const import (
     BLE_CALLBACK,
-    CHARACTERISTIC_UUID,
     CLOUD_COORDINATOR,
     CONF_CLOUD_ENABLED,
     CONF_DEV_ID,
@@ -37,6 +37,7 @@ from .const import (
     DOMAIN,
     MIN_HA_VERSION,
     RANDOM_MAC_PLACEHOLDER,
+    SERVICE_UUID,
 )
 from .coordinator import BlancoUnitCoordinator
 from .services import async_setup_services
@@ -76,7 +77,7 @@ def _is_random_mac(config_entry: BlancoUnitConfigEntry) -> bool:
 async def _find_device_by_scanning(
     hass: HomeAssistant, pin: str, expected_dev_id: str
 ) -> BLEDevice:
-    """Find a BLE device by active scanning for CHARACTERISTIC_UUID and matching PIN + dev_id.
+    """Find a BLE device by active scanning for SERVICE_UUID and matching PIN + dev_id.
 
     Uses the shared HA BLE scanner to actively scan for devices that advertise
     the Blanco Unit service UUID, sorts them by RSSI (closest first),
@@ -89,17 +90,17 @@ async def _find_device_by_scanning(
     scanner = bluetooth.async_get_scanner(hass)
     discovered = scanner.discovered_devices_and_advertisement_data
 
-    # Filter by CHARACTERISTIC_UUID and sort by RSSI (closest first)
+    # Filter by SERVICE_UUID and sort by RSSI (closest first)
     candidates: list[tuple[BLEDevice, int]] = []
     for device, adv_data in discovered.values():
-        if CHARACTERISTIC_UUID in adv_data.service_uuids:
+        if SERVICE_UUID in adv_data.service_uuids:
             candidates.append((device, adv_data.rssi))
     candidates.sort(key=lambda item: item[1], reverse=True)
 
     _LOGGER.debug(
         "Random MAC scan: found %d candidates with UUID %s",
         len(candidates),
-        CHARACTERISTIC_UUID,
+        SERVICE_UUID,
     )
 
     if not candidates:
@@ -119,6 +120,8 @@ async def _find_device_by_scanning(
                 client_class=BleakClientWithServiceCache,
                 device=device,
                 name=device.name or "Unknown Device",
+                # without a bond BlueZ fails service discovery
+                pair=True,
             )
 
             result = await validate_pin(client, pin)
@@ -144,7 +147,7 @@ async def _find_device_by_scanning(
                 result.dev_id,
                 expected_dev_id,
             )
-        except (OSError, TimeoutError):
+        except (BleakError, OSError, TimeoutError):
             _LOGGER.debug(
                 "Random MAC scan: connection failed for %s",
                 device.address,
@@ -194,7 +197,7 @@ def _register_retry_callback(
         unregister_ble_callback = bluetooth.async_register_callback(
             hass,
             _available_callback,
-            {"service_uuid": CHARACTERISTIC_UUID, "connectable": True},
+            {"service_uuid": SERVICE_UUID, "connectable": True},
             BluetoothScanningMode.ACTIVE,
         )
     else:

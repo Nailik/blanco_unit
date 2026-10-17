@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+import contextlib
 from dataclasses import asdict, dataclass, field
 import hashlib
 import json
@@ -466,8 +467,12 @@ class BlancoUnitBluetoothClient:
 
     async def disconnect(self) -> None:
         """Disconnect from the Blanco Unit BLE device if connected."""
-        if self._session_data:
-            await self._session_data.client.disconnect()
+        session_data = self._session_data
+        if session_data is None:
+            return
+        self._session_data = None
+        self._connection_callback(False)
+        await session_data.client.disconnect()
 
     async def _connect(self) -> _BlancoUnitSessionData:
         """Connect to the device if not already connected and authenticate."""
@@ -490,7 +495,13 @@ class BlancoUnitBluetoothClient:
             protocol = _BlancoUnitProtocol(mtu=MTU_SIZE)
 
             # Perform initial pairing
-            result = await self._perform_pairing(client, protocol)
+            try:
+                result = await self._perform_pairing(client, protocol)
+            except BaseException:
+                # nothing references the client anymore, do not leave it connected
+                with contextlib.suppress(Exception):
+                    await client.disconnect()
+                raise
 
             _LOGGER.debug(
                 "Connected and paired with device ID: %s, device type: %d",
@@ -506,9 +517,12 @@ class BlancoUnitBluetoothClient:
             self._connection_callback(self._session_data.client.is_connected)
             return self._session_data
 
-    def _handle_disconnect(self, _: BleakClient) -> None:
+    def _handle_disconnect(self, client: BleakClient) -> None:
         """Reset session and call connection callback."""
         _LOGGER.debug("Device disconnected")
+        # a late callback of a previous client must not drop the current session
+        if self._session_data is None or self._session_data.client is not client:
+            return
         self._session_data = None
         self._connection_callback(False)
 
@@ -545,15 +559,21 @@ class BlancoUnitBluetoothClient:
         """Execute a request-response transaction."""
         session_data = await self._connect()
 
-        response = await session_data.protocol.send_request(
-            client=session_data.client,
-            pin=self._pin,
-            dev_id=session_data.dev_id,
-            dev_type=session_data.dev_type,
-            evt_type=evt_type,
-            ctrl=ctrl,
-            pars=pars,
-        )
+        try:
+            response = await session_data.protocol.send_request(
+                client=session_data.client,
+                pin=self._pin,
+                dev_id=session_data.dev_id,
+                dev_type=session_data.dev_type,
+                evt_type=evt_type,
+                ctrl=ctrl,
+                pars=pars,
+            )
+        except BaseException:
+            # the link may be half dead, reconnect on the next call
+            with contextlib.suppress(Exception):
+                await self.disconnect()
+            raise
 
         # Check for errors
         errors = session_data.protocol.extract_errors(response)

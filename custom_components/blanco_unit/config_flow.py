@@ -186,6 +186,8 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
                 client_class=BleakClientWithServiceCache,
                 device=device,
                 name=device.name or "Unknown Device",
+                # without a bond BlueZ fails service discovery
+                pair=True,
                 timeout=120,
             )
 

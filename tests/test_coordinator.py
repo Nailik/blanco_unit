@@ -7,7 +7,12 @@ from bleak_retry_connector import BleakConnectionError, BleakNotFoundError
 import pytest
 
 from custom_components.blanco_unit.client import BlancoUnitAuthenticationError
-from custom_components.blanco_unit.const import CONF_MAC, CONF_PIN
+from custom_components.blanco_unit.const import (
+    CONF_MAC,
+    CONF_PIN,
+    RANDOM_MAC_PLACEHOLDER,
+    SERVICE_UUID,
+)
 from custom_components.blanco_unit.coordinator import BlancoUnitCoordinator
 from custom_components.blanco_unit.data import (
     BlancoUnitData,
@@ -148,6 +153,26 @@ async def test_coordinator_init(
 
         mock_track_unavailable.assert_called_once()
         mock_register_callback.assert_called_once()
+
+
+async def test_coordinator_init_random_mac_listens_for_service_uuid(
+    hass: HomeAssistant, mock_device, mock_config_entry
+) -> None:
+    """Test a random MAC entry listens for the advertised service UUID."""
+    mock_config_entry.data = {CONF_MAC: RANDOM_MAC_PLACEHOLDER, CONF_PIN: 12345}
+
+    with (
+        patch("custom_components.blanco_unit.coordinator.BlancoUnitBluetoothClient"),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_track_unavailable"
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_register_callback"
+        ) as mock_register_callback,
+    ):
+        BlancoUnitCoordinator(hass, mock_config_entry, mock_device, MagicMock())
+
+    assert mock_register_callback.call_args[0][2]["service_uuid"] == SERVICE_UUID
 
 
 async def test_coordinator_available_callback(
