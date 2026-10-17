@@ -18,6 +18,7 @@ from custom_components.blanco_unit.client import (
     BlancoUnitClientError,
     BlancoUnitConnectionError,
     BlancoUnitGattTimeoutError,
+    BlancoUnitProtocolError,
     PinValidationResult,
     _AllowCloudServicesPars,
     _BlancoUnitProtocol,
@@ -304,7 +305,7 @@ def test_protocol_parse_response_invalid_header():
     protocol = _BlancoUnitProtocol()
     packet = bytes([0x00, 0x00, 1, 10, 0x00]) + b'{"test":"data"}\x00\xff'
 
-    with pytest.raises(ValueError, match="Invalid chunk stream"):
+    with pytest.raises(BlancoUnitProtocolError, match="Invalid chunk stream"):
         protocol.parse_response([packet])
 
 
@@ -314,7 +315,7 @@ def test_protocol_parse_response_message_id_mismatch():
     packet1 = bytes([0xFF, 0x00, 2, 10, 0x00]) + b'{"test":'
     packet2 = bytes([11, 1]) + b'"data"}\x00\xff'  # Wrong message ID
 
-    with pytest.raises(ValueError, match="Chunk message ID mismatch"):
+    with pytest.raises(BlancoUnitProtocolError, match="Chunk message ID mismatch"):
         protocol.parse_response([packet1, packet2])
 
 
@@ -323,7 +324,7 @@ def test_protocol_parse_response_invalid_json():
     protocol = _BlancoUnitProtocol()
     packet = bytes([0xFF, 0x00, 1, 10, 0x00]) + b"invalid json\x00\xff"
 
-    with pytest.raises(ValueError, match="Failed to parse JSON response"):
+    with pytest.raises(BlancoUnitProtocolError, match="Failed to parse JSON response"):
         protocol.parse_response([packet])
 
 

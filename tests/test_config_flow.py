@@ -696,6 +696,37 @@ async def test_validate_input_maps_errors(
         assert result.description_placeholders == {"error": expected_placeholder}
 
 
+@patch("custom_components.blanco_unit.client.establish_connection")
+@patch(
+    "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
+)
+async def test_validate_input_garbled_response_is_a_connection_error(
+    mock_device_from_address: AsyncMock,
+    mock_establish_connection: AsyncMock,
+    hass: HomeAssistant,
+    mock_bluetooth_device,
+    mock_bleak_client,
+) -> None:
+    """Test a response that cannot be parsed is not shown as a PIN format error."""
+    from custom_components.blanco_unit.config_flow import BlancoUnitConfigFlow
+
+    mock_device_from_address.return_value = mock_bluetooth_device
+    mock_bleak_client.read_gatt_char = AsyncMock(
+        return_value=bytes([0xFF, 0x00, 1, 2, 0x00]) + b"{not json\x00\xff"
+    )
+    mock_establish_connection.return_value = mock_bleak_client
+
+    flow = BlancoUnitConfigFlow()
+    flow.hass = hass
+
+    result = await flow.validate_input(MOCKED_CONFIG)
+
+    assert result.errors == {CONF_ERROR: "error_connection"}
+    assert result.description_placeholders["error"].startswith(
+        "BlancoUnitProtocolError"
+    )
+
+
 # -------------------------------
 # Prefilled Form Tests
 # -------------------------------
