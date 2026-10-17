@@ -494,7 +494,7 @@ automation:
 
 ### Connection Gets Stuck
 
-BlueZ can keep a Bluetooth operation pending forever after the link drops, after which every request to the device hangs. The integration detects this, removes the device from BlueZ and connects again, and logs a warning saying so. If the warning keeps coming back, restart the Blanco Unit.
+BlueZ can keep a Bluetooth operation pending forever after the link drops, after which every request to the device hangs. The integration detects this, removes the device from BlueZ and connects again, and logs a warning saying so. The stuck operation lives in BlueZ on the Home Assistant host, not in the Blanco Unit. If the warning keeps coming back, reboot the host (on Home Assistant OS: Settings → System → Restart → Reboot system, restarting only Home Assistant is not enough), or restart the Bluetooth proxy if you use one. Restart the Blanco Unit only if that does not help.
 
 ### Collecting Logs
 

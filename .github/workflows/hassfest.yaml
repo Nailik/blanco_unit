@@ -1,9 +1,8 @@
 name: Validate with hassfest
 
 on:
+  # every target, so stacked pull requests get checked too
   pull_request:
-    branches:
-      - main
   push:
     branches:
       - main

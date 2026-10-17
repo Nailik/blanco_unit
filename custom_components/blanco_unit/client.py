@@ -15,6 +15,7 @@ import time
 from typing import Any, TypeVar
 
 from bleak import BleakClient
+from bleak.backends import BleakBackend
 from bleak.backends.device import BLEDevice
 from bleak.exc import BleakGATTProtocolError, BleakGATTProtocolErrorCode
 from bleak_retry_connector import (
@@ -1042,9 +1043,15 @@ def _extract_device_type(response: dict[str, Any]) -> int | None:
 
 
 async def _remove_device(client: BleakClient) -> None:
-    """Remove the device from BlueZ, this clears its stuck GATT operations."""
-    with contextlib.suppress(Exception):
-        await client.unpair()
+    """Close a connection whose GATT operation did not complete.
+
+    BlueZ keeps such an operation after the link drops, only removing the
+    device from BlueZ clears it. Other backends, like an ESPHome proxy, do not
+    have that problem, so they keep their bond and are only disconnected.
+    """
+    if client.backend_id == BleakBackend.BLUEZ_DBUS:
+        with contextlib.suppress(Exception):
+            await client.unpair()
     with contextlib.suppress(Exception):
         await client.disconnect()
 
@@ -1059,7 +1066,8 @@ async def establish_validated_connection(
     The connection is closed when validate fails. BlueZ keeps a GATT operation
     that was pending when the link dropped forever, every later one on that
     characteristic then never completes. Only removing the device clears it, so
-    after a GATT timeout the device is removed and connected once more.
+    after a GATT timeout a BlueZ device is removed, and any device is connected
+    once more.
 
     Raises:
         BlancoUnitGattTimeoutError: If GATT operations still time out after
@@ -1088,9 +1096,11 @@ async def establish_validated_connection(
                 raise
             removed_device = True
             _LOGGER.warning(
-                "GATT operation on %s did not complete, removed the device "
-                "from BlueZ and connecting again",
+                "GATT operation on %s did not complete, connecting again (%s)",
                 device.address,
+                "removed the device from BlueZ"
+                if client.backend_id == BleakBackend.BLUEZ_DBUS
+                else "kept the bond",
             )
             await asyncio.sleep(REDISCOVERY_DELAY)
         except BaseException:
