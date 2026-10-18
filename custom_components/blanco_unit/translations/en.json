@@ -26,6 +26,12 @@
     },
     "not_saved_water_hardness": {
       "message": "Water hardness change was not saved on the device. Expected level {expected} but device shows level {actual}."
+    },
+    "cloud_access_not_granted": {
+      "message": "Access to the BLANCO cloud has not been granted for this device. Grant it in the BLANCO UNIT app."
+    },
+    "cloud_update_failed": {
+      "message": "Updating from the BLANCO cloud failed: {error}"
     }
   },
   "config": {
@@ -83,6 +89,22 @@
           "conf_pin": "PIN (5 digits)"
         }
       }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "BLANCO cloud statistics",
+        "description": "Optionally read water statistics (litres dispensed, per water type) and the error list from the BLANCO Smart Home cloud, every 15 minutes. Access must first be granted once in the BLANCO UNIT app, within Bluetooth range of the device.",
+        "data": {
+          "cloud_enabled": "Water statistics from the BLANCO cloud"
+        }
+      }
+    },
+    "error": {
+      "cloud_access_not_granted": "Access has not been granted yet. Grant it in the BLANCO UNIT app (within Bluetooth range of the device) and try again.",
+      "cloud_cannot_connect": "Could not reach the BLANCO cloud.",
+      "cloud_device_not_ready": "The device has not been read over Bluetooth yet, so its serial number is unknown. Try again once it is connected."
     }
   },
   "entity": {
@@ -264,6 +286,30 @@
       },
       "subnet": {
         "name": "Subnet Mask"
+      },
+      "cloud_water_total": {
+        "name": "Water dispensed"
+      },
+      "cloud_water_still": {
+        "name": "Still water dispensed"
+      },
+      "cloud_water_medium": {
+        "name": "Medium sparkling water dispensed"
+      },
+      "cloud_water_classic": {
+        "name": "Classic sparkling water dispensed"
+      },
+      "cloud_water_hot": {
+        "name": "Hot water dispensed"
+      },
+      "cloud_errors_critical": {
+        "name": "Critical errors"
+      },
+      "cloud_errors_warning": {
+        "name": "Warnings"
+      },
+      "cloud_last_error": {
+        "name": "Last cloud error"
       }
     }
   },

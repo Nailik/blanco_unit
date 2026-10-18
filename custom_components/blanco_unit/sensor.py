@@ -1,8 +1,14 @@
 """Sensor entities to define properties for Blanco Unit BLE entities."""
 
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
+    SensorEntityDescription,
     SensorStateClass,
 )
 from homeassistant.const import (
@@ -11,17 +17,22 @@ from homeassistant.const import (
     EntityCategory,
     UnitOfTemperature,
     UnitOfTime,
+    UnitOfVolume,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import BlancoUnitConfigEntry
 from .base import BlancoUnitBaseEntity
+from .cloud import BlancoCloudCoordinator, BlancoCloudData
+from .const import CLOUD_COORDINATOR, DOMAIN
 from .coordinator import BlancoUnitCoordinator
 
 
 async def async_setup_entry(
-    _: HomeAssistant,
+    hass: HomeAssistant,
     config_entry: BlancoUnitConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -73,6 +84,15 @@ async def async_setup_entry(
     ]
     if coordinator.data.device_type == 2:
         entities.extend(entitiesExtended)
+    cloud: BlancoCloudCoordinator | None = (
+        hass.data.get(DOMAIN, {}).get(config_entry.entry_id, {}).get(CLOUD_COORDINATOR)
+    )
+    if cloud is not None:
+        entities.extend(
+            CloudSensor(cloud, coordinator, description)
+            for description in CLOUD_SENSORS
+        )
+        entities.append(CloudLastErrorSensor(cloud, coordinator))
     async_add_entities(entities)
 
 
@@ -821,3 +841,123 @@ class SubnetSensor(BlancoUnitBaseEntity, SensorEntity):
         if self.coordinator.data.wifi_info is None:
             return None
         return self.coordinator.data.wifi_info.subnet
+
+
+# -------------------------------
+# Cloud statistics sensors (optional, see options flow)
+# -------------------------------
+
+
+@dataclass(frozen=True, kw_only=True)
+class CloudSensorEntityDescription(SensorEntityDescription):
+    """Describes a sensor fed by the BLANCO Smart Home cloud."""
+
+    value_fn: Callable[[BlancoCloudData], float | int | None]
+
+
+def _water(
+    key: str, value_fn: Callable[[BlancoCloudData], float]
+) -> CloudSensorEntityDescription:
+    return CloudSensorEntityDescription(
+        key=key,
+        translation_key=key,
+        device_class=SensorDeviceClass.WATER,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        native_unit_of_measurement=UnitOfVolume.LITERS,
+        suggested_display_precision=1,
+        value_fn=value_fn,
+    )
+
+
+CLOUD_SENSORS: tuple[CloudSensorEntityDescription, ...] = (
+    _water("cloud_water_total", lambda d: d.water_total),
+    _water("cloud_water_still", lambda d: d.water_still),
+    _water("cloud_water_medium", lambda d: d.water_medium),
+    _water("cloud_water_classic", lambda d: d.water_classic),
+    _water("cloud_water_hot", lambda d: d.water_hot),
+    CloudSensorEntityDescription(
+        key="cloud_errors_critical",
+        translation_key="cloud_errors_critical",
+        icon="mdi:alert-circle",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.errors_critical,
+    ),
+    CloudSensorEntityDescription(
+        key="cloud_errors_warning",
+        translation_key="cloud_errors_warning",
+        icon="mdi:alert",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.errors_warning,
+    ),
+)
+
+
+class CloudBaseEntity(CoordinatorEntity[BlancoCloudCoordinator]):
+    """Cloud entity attached to the device of the BLE coordinator."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self, cloud: BlancoCloudCoordinator, ble: BlancoUnitCoordinator
+    ) -> None:
+        """Initialize the entity."""
+        super().__init__(cloud)
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, ble.address)})
+
+    @property
+    def available(self) -> bool:
+        """Available while the last cloud update succeeded."""
+        return super().available and self.coordinator.data is not None
+
+
+class CloudSensor(CloudBaseEntity, SensorEntity):
+    """Statistics value from the cloud."""
+
+    entity_description: CloudSensorEntityDescription
+
+    def __init__(
+        self,
+        cloud: BlancoCloudCoordinator,
+        ble: BlancoUnitCoordinator,
+        description: CloudSensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(cloud, ble)
+        self.entity_description = description
+        self._attr_unique_id = description.key
+
+    @property
+    def native_value(self) -> float | int | None:
+        """Return the value."""
+        return self.entity_description.value_fn(self.coordinator.data)
+
+
+class CloudLastErrorSensor(CloudBaseEntity, SensorEntity):
+    """Most recent error code reported to the cloud."""
+
+    _attr_unique_id = "cloud_last_error"
+    _attr_translation_key = _attr_unique_id
+    _attr_icon = "mdi:message-alert"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the error code."""
+        return self.coordinator.data.last_error_code
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return type and time of the error."""
+        data = self.coordinator.data
+        if data.last_error_code is None:
+            return None
+        return {
+            "type": data.last_error_type,
+            "timestamp": datetime.fromtimestamp(
+                data.last_error_ts / 1000, UTC
+            ).isoformat()
+            if data.last_error_ts
+            else None,
+        }

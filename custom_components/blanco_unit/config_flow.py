@@ -7,6 +7,7 @@ import logging
 import re
 from typing import Any
 
+from blanco_smart_home_api_client import BlancoApiError, BlancoAuthError
 from bleak.exc import BleakError
 from bleak_retry_connector import BleakNotFoundError, BleakOutOfConnectionSlotsError
 import voluptuous as vol
@@ -14,7 +15,13 @@ from voluptuous.schema_builder import UNDEFINED
 
 from homeassistant.components import bluetooth
 from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     TextSelector,
     TextSelectorConfig,
@@ -27,7 +34,12 @@ from .client import (
     establish_validated_connection,
     validate_pin,
 )
+from .cloud import async_create_api_client, compute_dev_id
 from .const import (
+    CLOUD_PENDING_APP_IDS,
+    CONF_CLOUD_APP_ID,
+    CONF_CLOUD_DEV_ID,
+    CONF_CLOUD_ENABLED,
     CONF_DEV_ID,
     CONF_ERROR,
     CONF_MAC,
@@ -66,6 +78,12 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle the config flow for Blanco Unit Integration."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> BlancoUnitOptionsFlow:
+        """Return the options flow."""
+        return BlancoUnitOptionsFlow()
 
     _discovery_info: BluetoothServiceInfoBleak | None = None
 
@@ -370,3 +388,71 @@ class BlancoUnitConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=result.errors,
             description_placeholders=result.description_placeholders,
         )
+
+
+class BlancoUnitOptionsFlow(OptionsFlow):
+    """Opt in to water statistics from the BLANCO Smart Home cloud."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Enable or disable the cloud statistics."""
+        options = dict(self.config_entry.options)
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if not user_input[CONF_CLOUD_ENABLED]:
+                # Keep the app id so a later re-enable does not register again.
+                return self.async_create_entry(
+                    data={**options, CONF_CLOUD_ENABLED: False}
+                )
+            errors = await self._async_enable_cloud(options)
+            if not errors:
+                return self.async_create_entry(
+                    data={**options, CONF_CLOUD_ENABLED: True}
+                )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_CLOUD_ENABLED,
+                        default=options.get(CONF_CLOUD_ENABLED, False),
+                    ): bool
+                }
+            ),
+            errors=errors,
+        )
+
+    async def _async_enable_cloud(self, options: dict[str, Any]) -> dict[str, str]:
+        """Register (once) and check access, filling in app id and dev id."""
+        coordinator = getattr(self.config_entry, "runtime_data", None)
+        identity = getattr(getattr(coordinator, "data", None), "identity", None)
+        if identity is None:
+            return {CONF_ERROR: "cloud_device_not_ready"}
+        dev_id = compute_dev_id(identity.serial_no, identity.service_code)
+
+        # An app id registered in an earlier, unfinished attempt is reused, so
+        # retrying until access is granted does not register new app ids.
+        pending = self.hass.data.setdefault(DOMAIN, {}).setdefault(
+            CLOUD_PENDING_APP_IDS, {}
+        )
+        app_id = options.get(CONF_CLOUD_APP_ID) or pending.get(
+            self.config_entry.entry_id, ""
+        )
+        try:
+            api = await async_create_api_client(self.hass, app_id, dev_id)
+            if not app_id:
+                app_id = (await api.register_app(self.hass.config.language))["app_id"]
+                pending[self.config_entry.entry_id] = app_id
+            await api.authenticate(dev_id)
+        except BlancoAuthError:
+            return {CONF_ERROR: "cloud_access_not_granted"}
+        except BlancoApiError:
+            _LOGGER.debug("Cloud check failed", exc_info=True)
+            return {CONF_ERROR: "cloud_cannot_connect"}
+
+        pending.pop(self.config_entry.entry_id, None)
+        options[CONF_CLOUD_APP_ID] = app_id
+        options[CONF_CLOUD_DEV_ID] = dev_id
+        return {}
