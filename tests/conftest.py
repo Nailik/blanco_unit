@@ -1,6 +1,6 @@
 """Common test fixtures for Blanco Unit tests."""
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -23,10 +23,39 @@ def expected_lingering_timers() -> bool:
     return True
 
 
+@pytest.fixture
+def mock_bluetooth_mgmt_socket():
+    """Make the Bluetooth mgmt socket unavailable, as it is on CI.
+
+    Where the kernel supports it (e.g. WSL) pytest-socket blocks it otherwise
+    and the bluetooth integration fails to set up.
+    """
+    with patch(
+        "btsocket.btmgmt_socket.open",
+        side_effect=OSError("Bluetooth mgmt socket not available"),
+    ):
+        yield
+
+
 @pytest.fixture(autouse=True)
-def mock_bluetooth(enable_bluetooth):
+def mock_bluetooth(mock_bluetooth_mgmt_socket, enable_bluetooth):
     """Auto-enable Bluetooth for all tests."""
     return enable_bluetooth
+
+
+@pytest.fixture(autouse=True, name="mock_close_stale_connections")
+def mock_ble_client_timing():
+    """Skip the BLE client's delays and its BlueZ calls."""
+    with (
+        patch("custom_components.blanco_unit.client.RESPONSE_DELAY", 0),
+        patch("custom_components.blanco_unit.client.READ_INTERVAL", 0),
+        patch("custom_components.blanco_unit.client.REDISCOVERY_DELAY", 0),
+        patch(
+            "custom_components.blanco_unit.client.close_stale_connections_by_address",
+            new_callable=AsyncMock,
+        ) as mock_close_stale_connections,
+    ):
+        yield mock_close_stale_connections
 
 
 async def setup_integration(hass: HomeAssistant, config_entry: MockConfigEntry) -> None:

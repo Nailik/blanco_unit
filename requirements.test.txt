@@ -1,10 +1,16 @@
-homeassistant==2025.6.0
+# Test against the minimum supported Home Assistant version. Keep both pins in
+# sync: pytest-homeassistant-custom-component pins one exact homeassistant
+# version, and a mismatch makes pip silently pick an older plugin release.
+homeassistant==2026.6.0
+pytest-homeassistant-custom-component==0.13.336
 pytest
 pytest-cov
-pytest-homeassistant-custom-component
-pyserial
-bleak
-pyudev
-aiousbwatcher
-pycares==4.11.0
+# requirements of the bluetooth and usb integrations, which are not installed
+# with homeassistant itself. serialx imports aioesphomeapi for its ESPHome
+# serial proxy.
+bleak==3.0.2
+bleak-retry-connector==4.6.1
+aiousbwatcher==1.1.2
+serialx==1.8.0
+aioesphomeapi==45.3.1
 blanco-smart-home-api-client==1.2.0

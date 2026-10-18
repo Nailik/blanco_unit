@@ -13,6 +13,6 @@
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/Nailik/blanco_unit/issues",
-  "requirements": ["bleak>=0.21.1", "blanco-smart-home-api-client==1.2.0"],
-  "version": "0.0.13"
+  "requirements": ["blanco-smart-home-api-client==1.2.0"],
+  "version": "0.0.14"
 }

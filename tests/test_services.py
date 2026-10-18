@@ -1,5 +1,6 @@
 """Tests for Blanco Unit services."""
 
+import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -194,8 +195,11 @@ async def test_handle_dispense_water(hass: HomeAssistant) -> None:
         mock_coordinator.dispense_water.assert_called_once_with(500, 2)
 
 
-async def test_handle_change_pin_without_config_update(hass: HomeAssistant) -> None:
+async def test_handle_change_pin_without_config_update(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
     """Test change PIN service handler without config update."""
+    caplog.set_level(logging.DEBUG)
     mock_coordinator = MagicMock(spec=BlancoUnitCoordinator)
     mock_coordinator.change_pin = AsyncMock()
 
@@ -228,6 +232,7 @@ async def test_handle_change_pin_without_config_update(hass: HomeAssistant) -> N
         )
 
         mock_coordinator.change_pin.assert_called_once_with("12345")
+        assert "12345" not in caplog.text
 
 
 async def test_handle_change_pin_with_config_update(hass: HomeAssistant) -> None:
@@ -484,8 +489,11 @@ async def test_handle_scan_wifi_networks(hass: HomeAssistant) -> None:
         assert response["networks"][0]["auth_mode"] == 3
 
 
-async def test_handle_connect_wifi(hass: HomeAssistant) -> None:
+async def test_handle_connect_wifi(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
     """Test connect WiFi service handler."""
+    caplog.set_level(logging.DEBUG)
     mock_coordinator = MagicMock(spec=BlancoUnitCoordinator)
     mock_coordinator.connect_wifi = AsyncMock()
 
@@ -518,6 +526,7 @@ async def test_handle_connect_wifi(hass: HomeAssistant) -> None:
         )
 
         mock_coordinator.connect_wifi.assert_called_once_with("TestSSID", "password123")
+        assert "password123" not in caplog.text
 
 
 async def test_handle_disconnect_wifi(hass: HomeAssistant) -> None:

@@ -1,12 +1,20 @@
 """Tests for the Blanco Unit config flow."""
 
+import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from bleak.backends import BleakBackend
+from bleak.exc import BleakError
+from bleak_retry_connector import BleakNotFoundError, BleakOutOfConnectionSlotsError
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.blanco_unit.client import PinValidationResult
+from custom_components.blanco_unit.client import (
+    BlancoUnitConnectionError,
+    BlancoUnitGattTimeoutError,
+    PinValidationResult,
+)
 from custom_components.blanco_unit.const import (
     CONF_ERROR,
     CONF_MAC,
@@ -68,7 +76,7 @@ def mock_discovery():
 
 
 @patch("custom_components.blanco_unit.config_flow.validate_pin")
-@patch("custom_components.blanco_unit.config_flow.establish_connection")
+@patch("custom_components.blanco_unit.client.establish_connection")
 @patch(
     "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
 )
@@ -121,7 +129,7 @@ async def test_user_flow_already_configured(hass: HomeAssistant) -> None:
             return_value=PinValidationResult(True, MOCKED_CONF_DEV_ID, 2),
         ),
         patch(
-            "custom_components.blanco_unit.config_flow.establish_connection",
+            "custom_components.blanco_unit.client.establish_connection",
             return_value=AsyncMock(is_connected=True, disconnect=AsyncMock()),
         ),
         patch(
@@ -196,7 +204,7 @@ async def test_user_flow_device_not_found(
 
 
 @patch("custom_components.blanco_unit.config_flow.validate_pin")
-@patch("custom_components.blanco_unit.config_flow.establish_connection")
+@patch("custom_components.blanco_unit.client.establish_connection")
 @patch(
     "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
 )
@@ -297,7 +305,7 @@ async def test_bluetooth_discovery_already_configured(
 
 
 @patch("custom_components.blanco_unit.config_flow.validate_pin")
-@patch("custom_components.blanco_unit.config_flow.establish_connection")
+@patch("custom_components.blanco_unit.client.establish_connection")
 @patch(
     "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
 )
@@ -338,7 +346,7 @@ async def test_reauth_flow_success(
 
 
 @patch("custom_components.blanco_unit.config_flow.validate_pin")
-@patch("custom_components.blanco_unit.config_flow.establish_connection")
+@patch("custom_components.blanco_unit.client.establish_connection")
 @patch(
     "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
 )
@@ -389,7 +397,7 @@ async def test_reauth_flow_wrong_device(
 
 
 @patch("custom_components.blanco_unit.config_flow.validate_pin")
-@patch("custom_components.blanco_unit.config_flow.establish_connection")
+@patch("custom_components.blanco_unit.client.establish_connection")
 @patch(
     "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
 )
@@ -435,7 +443,7 @@ async def test_reconfigure_flow_success(
 
 
 @patch("custom_components.blanco_unit.config_flow.validate_pin")
-@patch("custom_components.blanco_unit.config_flow.establish_connection")
+@patch("custom_components.blanco_unit.client.establish_connection")
 @patch(
     "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
 )
@@ -464,7 +472,7 @@ async def test_validate_input_success(
 
 
 @patch("custom_components.blanco_unit.config_flow.validate_pin")
-@patch("custom_components.blanco_unit.config_flow.establish_connection")
+@patch("custom_components.blanco_unit.client.establish_connection")
 @patch(
     "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
 )
@@ -491,6 +499,71 @@ async def test_validate_input_pairs_ble(
     assert mock_establish_connection.call_args.kwargs["pair"] is True
 
 
+@patch("custom_components.blanco_unit.config_flow.validate_pin")
+@patch("custom_components.blanco_unit.client.establish_connection")
+@patch(
+    "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
+)
+async def test_validate_input_recovers_from_stuck_write(
+    mock_device_from_address: AsyncMock,
+    mock_establish_connection: AsyncMock,
+    mock_validate_pin: AsyncMock,
+    hass: HomeAssistant,
+    mock_bluetooth_device,
+) -> None:
+    """Test a write BlueZ keeps pending removes the device and validates again."""
+    from custom_components.blanco_unit.config_flow import BlancoUnitConfigFlow
+
+    stuck_client = AsyncMock()
+    stuck_client.backend_id = BleakBackend.BLUEZ_DBUS
+    fresh_client = AsyncMock()
+    mock_device_from_address.return_value = mock_bluetooth_device
+    mock_establish_connection.side_effect = [stuck_client, fresh_client]
+    mock_validate_pin.side_effect = [
+        BlancoUnitGattTimeoutError(),
+        PinValidationResult(True, "test_device_id", 2),
+    ]
+
+    flow = BlancoUnitConfigFlow()
+    flow.hass = hass
+
+    result = await flow.validate_input(MOCKED_CONFIG)
+
+    assert not result.errors
+    stuck_client.unpair.assert_awaited_once()
+    fresh_client.disconnect.assert_awaited_once()
+
+
+@patch("custom_components.blanco_unit.config_flow.validate_pin")
+@patch("custom_components.blanco_unit.client.establish_connection")
+@patch(
+    "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
+)
+async def test_validate_input_does_not_log_pin(
+    mock_device_from_address: AsyncMock,
+    mock_establish_connection: AsyncMock,
+    mock_validate_pin: AsyncMock,
+    hass: HomeAssistant,
+    mock_bluetooth_device,
+    mock_bleak_client,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test the PIN entered in the flow is not logged."""
+    from custom_components.blanco_unit.config_flow import BlancoUnitConfigFlow
+
+    caplog.set_level(logging.DEBUG)
+    mock_device_from_address.return_value = mock_bluetooth_device
+    mock_establish_connection.return_value = mock_bleak_client
+    mock_validate_pin.return_value = PinValidationResult(True, "test_device_id", 2)
+
+    flow = BlancoUnitConfigFlow()
+    flow.hass = hass
+
+    await flow.validate_input(MOCKED_CONFIG)
+
+    assert MOCKED_CONF_PIN not in caplog.text
+
+
 async def test_validate_input_value_error(hass: HomeAssistant) -> None:
     """Test input validation with value error."""
     from custom_components.blanco_unit.config_flow import BlancoUnitConfigFlow
@@ -504,7 +577,7 @@ async def test_validate_input_value_error(hass: HomeAssistant) -> None:
 
 
 @patch("custom_components.blanco_unit.config_flow.validate_pin")
-@patch("custom_components.blanco_unit.config_flow.establish_connection")
+@patch("custom_components.blanco_unit.client.establish_connection")
 @patch(
     "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
 )
@@ -532,7 +605,7 @@ async def test_validate_input_disconnects_on_success(
 
 
 @patch("custom_components.blanco_unit.config_flow.validate_pin")
-@patch("custom_components.blanco_unit.config_flow.establish_connection")
+@patch("custom_components.blanco_unit.client.establish_connection")
 @patch(
     "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
 )
@@ -557,6 +630,104 @@ async def test_validate_input_disconnects_on_error(
     await flow.validate_input(MOCKED_CONFIG)
 
     mock_bleak_client.disconnect.assert_awaited_once()
+
+
+@pytest.mark.parametrize(
+    ("connect_error", "validate_error", "expected_error", "expected_placeholder"),
+    [
+        (BleakNotFoundError("gone"), None, "error_device_not_found", None),
+        (
+            BleakOutOfConnectionSlotsError("no slot"),
+            None,
+            "error_no_connection_slot",
+            None,
+        ),
+        (None, BlancoUnitGattTimeoutError(), "error_device_not_responding", None),
+        (
+            None,
+            BlancoUnitConnectionError("No response"),
+            "error_connection",
+            "BlancoUnitConnectionError: No response",
+        ),
+        (
+            BleakError("Service Discovery has not been performed yet"),
+            None,
+            "error_connection",
+            "BleakError: Service Discovery has not been performed yet",
+        ),
+        (None, TimeoutError(), "error_connection", "TimeoutError"),
+        (None, RuntimeError("boom"), "error_unknown", "RuntimeError: boom"),
+    ],
+)
+@patch("custom_components.blanco_unit.config_flow.validate_pin")
+@patch("custom_components.blanco_unit.client.establish_connection")
+@patch(
+    "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
+)
+async def test_validate_input_maps_errors(
+    mock_device_from_address: AsyncMock,
+    mock_establish_connection: AsyncMock,
+    mock_validate_pin: AsyncMock,
+    connect_error: Exception | None,
+    validate_error: Exception | None,
+    expected_error: str,
+    expected_placeholder: str | None,
+    hass: HomeAssistant,
+    mock_bluetooth_device,
+    mock_bleak_client,
+) -> None:
+    """Test connection and communication errors get their own message."""
+    from custom_components.blanco_unit.config_flow import BlancoUnitConfigFlow
+
+    mock_device_from_address.return_value = mock_bluetooth_device
+    mock_establish_connection.return_value = mock_bleak_client
+    mock_establish_connection.side_effect = connect_error
+    mock_validate_pin.side_effect = validate_error
+
+    flow = BlancoUnitConfigFlow()
+    flow.hass = hass
+
+    result = await flow.validate_input(MOCKED_CONFIG)
+
+    assert result.errors == {CONF_ERROR: expected_error}
+    if expected_placeholder is None:
+        assert result.description_placeholders is None
+    else:
+        assert result.description_placeholders == {"error": expected_placeholder}
+
+
+@patch("custom_components.blanco_unit.client.establish_connection")
+@patch(
+    "custom_components.blanco_unit.config_flow.bluetooth.async_ble_device_from_address"
+)
+async def test_validate_input_garbled_response_is_a_connection_error(
+    mock_device_from_address: AsyncMock,
+    mock_establish_connection: AsyncMock,
+    hass: HomeAssistant,
+    mock_bluetooth_device,
+    mock_bleak_client,
+) -> None:
+    """Test a response that cannot be parsed is not shown as a PIN format error."""
+    from custom_components.blanco_unit.config_flow import BlancoUnitConfigFlow
+
+    mock_device_from_address.return_value = mock_bluetooth_device
+    # services is a property on BleakClient, not a coroutine
+    mock_bleak_client.services = MagicMock()
+    mock_bleak_client.services.get_characteristic.return_value = None
+    mock_bleak_client.read_gatt_char = AsyncMock(
+        return_value=bytes([0xFF, 0x00, 1, 2, 0x00]) + b"{not json\x00\xff"
+    )
+    mock_establish_connection.return_value = mock_bleak_client
+
+    flow = BlancoUnitConfigFlow()
+    flow.hass = hass
+
+    result = await flow.validate_input(MOCKED_CONFIG)
+
+    assert result.errors == {CONF_ERROR: "error_connection"}
+    assert result.description_placeholders["error"].startswith(
+        "BlancoUnitProtocolError"
+    )
 
 
 # -------------------------------

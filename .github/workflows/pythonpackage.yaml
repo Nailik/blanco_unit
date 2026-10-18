@@ -1,9 +1,8 @@
 name: Python package
 
 on:
+  # every target, so stacked pull requests get checked too
   pull_request:
-    branches:
-      - main
   push:
     branches:
       - main
@@ -14,7 +13,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ["3.13.9"]
+        python-version: ["3.14"]
 
     steps:
       - uses: actions/checkout@v4

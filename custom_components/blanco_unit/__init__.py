@@ -7,7 +7,6 @@ import logging
 
 from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
-from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 from packaging import version
 
 from homeassistant.components import bluetooth
@@ -24,8 +23,13 @@ from homeassistant.exceptions import (
     ConfigEntryNotReady,
     IntegrationError,
 )
+from homeassistant.helpers import config_validation as cv
 
-from .client import validate_pin
+from .client import (
+    BlancoUnitConnectionError,
+    establish_validated_connection,
+    validate_pin,
+)
 from .cloud import BlancoCloudCoordinator
 from .const import (
     BLE_CALLBACK,
@@ -55,6 +59,9 @@ PLATFORMS: list[Platform] = [
 ]
 
 type BlancoUnitConfigEntry = ConfigEntry[BlancoUnitCoordinator]
+
+# set up through config entries only, async_setup only registers the services
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, entry: BlancoUnitConfigEntry) -> bool:
@@ -116,15 +123,9 @@ async def _find_device_by_scanning(
         )
         client = None
         try:
-            client = await establish_connection(
-                client_class=BleakClientWithServiceCache,
-                device=device,
-                name=device.name or "Unknown Device",
-                # without a bond BlueZ fails service discovery
-                pair=True,
+            client, result = await establish_validated_connection(
+                device, lambda client: validate_pin(client, pin)
             )
-
-            result = await validate_pin(client, pin)
 
             if not result.is_valid:
                 _LOGGER.debug(
@@ -147,7 +148,7 @@ async def _find_device_by_scanning(
                 result.dev_id,
                 expected_dev_id,
             )
-        except (BleakError, OSError, TimeoutError):
+        except (BlancoUnitConnectionError, BleakError, OSError, TimeoutError):
             _LOGGER.debug(
                 "Random MAC scan: connection failed for %s",
                 device.address,
@@ -307,9 +308,7 @@ async def async_reload_entry(
     hass: HomeAssistant, config_entry: BlancoUnitConfigEntry
 ) -> None:
     """Reload config entry."""
-    _LOGGER.debug(
-        "async_reload_entry async_reload with pin %s", config_entry.data["conf_pin"]
-    )
+    _LOGGER.debug("async_reload_entry async_reload %s", config_entry.entry_id)
     await async_unload_entry(hass, config_entry)
     await async_setup_entry(hass, config_entry)
 
