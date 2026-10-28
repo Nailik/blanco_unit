@@ -521,6 +521,100 @@ async def test_coordinator_set_water_hardness_verification_failed(
             await coordinator.set_water_hardness(7)
 
 
+@pytest.mark.parametrize("active", [True, False])
+async def test_coordinator_set_away_mode(
+    hass: HomeAssistant, mock_device, mock_config_entry, mock_client, active
+) -> None:
+    """Test set_away_mode switches and reads the state back."""
+    unsub_listener = MagicMock()
+
+    mock_client.set_away_mode = AsyncMock()
+    mock_client.get_settings = AsyncMock(
+        return_value=BlancoUnitSettings(
+            calib_still_wtr=5,
+            calib_soda_wtr=5,
+            filter_life_tm=365,
+            post_flush_quantity=100,
+            set_point_cooling=7,
+            wtr_hardness=5,
+            absence_mode_active=active,
+        )
+    )
+
+    with (
+        patch(
+            "custom_components.blanco_unit.coordinator.BlancoUnitBluetoothClient",
+            return_value=mock_client,
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_track_unavailable"
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_register_callback"
+        ),
+    ):
+        coordinator = BlancoUnitCoordinator(
+            hass, mock_config_entry, mock_device, unsub_listener
+        )
+
+        coordinator.data = BlancoUnitData(
+            connected=True,
+            available=True,
+            device_id="test_device_id",
+        )
+
+        await coordinator.set_away_mode(active)
+
+        mock_client.set_away_mode.assert_called_once_with(active)
+        mock_client.get_settings.assert_called_once()
+        assert coordinator.data.settings.absence_mode_active is active
+
+
+async def test_coordinator_set_away_mode_verification_failed(
+    hass: HomeAssistant, mock_device, mock_config_entry, mock_client
+) -> None:
+    """Test set_away_mode when the device keeps the away mode on."""
+    unsub_listener = MagicMock()
+
+    mock_client.set_away_mode = AsyncMock()
+    mock_client.get_settings = AsyncMock(
+        return_value=BlancoUnitSettings(
+            calib_still_wtr=5,
+            calib_soda_wtr=5,
+            filter_life_tm=365,
+            post_flush_quantity=100,
+            set_point_cooling=7,
+            wtr_hardness=5,
+            absence_mode_active=True,
+        )
+    )
+
+    with (
+        patch(
+            "custom_components.blanco_unit.coordinator.BlancoUnitBluetoothClient",
+            return_value=mock_client,
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_track_unavailable"
+        ),
+        patch(
+            "custom_components.blanco_unit.coordinator.bluetooth.async_register_callback"
+        ),
+    ):
+        coordinator = BlancoUnitCoordinator(
+            hass, mock_config_entry, mock_device, unsub_listener
+        )
+
+        coordinator.data = BlancoUnitData(
+            connected=True,
+            available=True,
+            device_id="test_device_id",
+        )
+
+        with pytest.raises(ServiceValidationError, match="not_saved_away_mode"):
+            await coordinator.set_away_mode(False)
+
+
 async def test_coordinator_dispense_water(
     hass: HomeAssistant, mock_device, mock_config_entry, mock_client
 ) -> None:

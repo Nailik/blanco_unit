@@ -179,6 +179,10 @@ Once configured, the integration creates the following entities:
   - Level 8: 26-28°dH
   - Level 9: >28°dH
 
+### Switch Entities (1 total)
+
+- **Away Mode** - Lowers cooling and heating while you are away and restores the previous settings when switched off. Only created when the device reports an away mode.
+
 ## Services
 
 ### blanco_unit.dispense_water

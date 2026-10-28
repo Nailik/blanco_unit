@@ -29,6 +29,7 @@ from custom_components.blanco_unit.client import (
     _RequestBody,
     _RequestEnvelope,
     _RequestMeta,
+    _SetAwayModePars,
     _SetCalibrationPars,
     _SetHeatingTemperaturePars,
     _SetTemperaturePars,
@@ -152,6 +153,24 @@ def test_set_heating_temperature_pars_to_pars():
     pars = _SetHeatingTemperaturePars(heating_celsius=65)
     result = pars.to_pars()
     assert result["set_point_heating"]["val"] == 65
+
+
+def test_set_away_mode_pars_to_pars_off():
+    """Test _SetAwayModePars.to_pars() when switching off."""
+    pars = _SetAwayModePars(active=False, timestamp_ms=1793198677460)
+    assert pars.to_pars() == {"active": False, "timestamp": 1793198677460}
+
+
+def test_set_away_mode_pars_to_pars_on():
+    """Test _SetAwayModePars.to_pars() sends the app's reduced setpoints when on."""
+    pars = _SetAwayModePars(active=True, timestamp_ms=1793198677460)
+    assert pars.to_pars() == {
+        "active": True,
+        "timestamp": 1793198677460,
+        "set_point_heating": 65,
+        "set_point_cooling": 10,
+        "child_protect": True,
+    }
 
 
 def test_set_water_hardness_pars_to_pars_valid():
@@ -1330,6 +1349,7 @@ async def test_bluetooth_client_get_settings(mock_establish):
     assert settings.post_flush_quantity == 100
     assert settings.set_point_cooling == 7
     assert settings.wtr_hardness == 4
+    assert settings.absence_mode_active is None
 
 
 @pytest.mark.asyncio
@@ -1587,6 +1607,92 @@ async def test_bluetooth_client_set_temperature_invalid_high():
 
     with pytest.raises(ValueError, match="Temperature must be between 4 and 10"):
         await client.set_temperature(cooling_celsius=11)
+
+
+@pytest.mark.asyncio
+@patch("custom_components.blanco_unit.client.establish_connection")
+async def test_bluetooth_client_get_settings_away_mode(mock_establish):
+    """Test get_settings reads the away mode state."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=MagicMock()
+    )
+
+    mock_ble_client = AsyncMock()
+    mock_ble_client.is_connected = True
+    mock_establish.return_value = mock_ble_client
+
+    pairing_json = json.dumps(
+        {"body": {"meta": {"dev_id": "device123", "dev_type": 2}}}
+    )
+    pairing_packet = (
+        bytes([0xFF, 0x00, 1, 10, 0x00]) + pairing_json.encode("utf-8") + b"\x00\xff"
+    )
+    # Recorded from a CHOICE.All in away mode
+    settings_json = json.dumps(
+        {
+            "body": {
+                "pars": {
+                    "set_point_cooling": {"val": 10},
+                    "set_point_heating": {"val": 65},
+                    "child_protect": {"val": True},
+                    "absence_mode_active": {"val": True},
+                    "absence_mode_timestamp": {"val": 1792213090806},
+                    "set_point_cooling_bkp": {"val": 4},
+                    "set_point_heating_bkp": {"val": 100},
+                    "child_protect_bkp": {"val": False},
+                }
+            }
+        }
+    )
+    settings_packet = (
+        bytes([0xFF, 0x00, 1, 11, 0x00]) + settings_json.encode("utf-8") + b"\x00\xff"
+    )
+
+    read_count = 0
+
+    async def mock_read(*args, **kwargs):
+        nonlocal read_count
+        read_count += 1
+        if read_count == 1:
+            return pairing_packet
+        return settings_packet
+
+    mock_ble_client.write_gatt_char = AsyncMock()
+    mock_ble_client.read_gatt_char = mock_read
+
+    settings = await client.get_settings()
+
+    assert settings.absence_mode_active is True
+    assert settings.set_point_heating == 65
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("active", [True, False])
+async def test_bluetooth_client_set_away_mode(active):
+    """Test set_away_mode sends control code 18 with a millisecond timestamp."""
+    device = BLEDevice(address="AA:BB:CC:DD:EE:FF", name="Test Device", details={})
+    client = BlancoUnitBluetoothClient(
+        pin="12345", device=device, connection_callback=MagicMock()
+    )
+
+    with (
+        patch.object(
+            client, "_execute_transaction", AsyncMock(return_value={"type": 2})
+        ) as mock_transaction,
+        patch(
+            "custom_components.blanco_unit.client.time.time",
+            return_value=1793198677.46,
+        ),
+    ):
+        result = await client.set_away_mode(active)
+
+    assert result is True
+    mock_transaction.assert_awaited_once_with(
+        evt_type=7,
+        ctrl=18,
+        pars=_SetAwayModePars(active=active, timestamp_ms=1793198677460).to_pars(),
+    )
 
 
 @pytest.mark.asyncio

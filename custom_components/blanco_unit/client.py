@@ -195,6 +195,30 @@ class _SetHeatingTemperaturePars:
 
 
 @dataclass
+class _SetAwayModePars:
+    """Internal: Parameters for switching the away mode.
+
+    Unlike settings, the away mode values are sent without a "val" wrapper.
+    Switching on also sends the reduced setpoints the BLANCO app uses; the
+    device keeps the previous ones and restores them when switched off.
+    """
+
+    active: bool
+    timestamp_ms: int
+
+    def to_pars(self) -> dict[str, Any]:
+        """Convert to parameters dictionary."""
+        pars: dict[str, Any] = {"active": self.active, "timestamp": self.timestamp_ms}
+        if self.active:
+            pars |= {
+                "set_point_heating": 65,
+                "set_point_cooling": 10,
+                "child_protect": True,
+            }
+        return pars
+
+
+@dataclass
 class _SetWaterHardnessPars:
     """Internal: Parameters for setting water hardness."""
 
@@ -710,6 +734,7 @@ class BlancoUnitBluetoothClient:
             calib_hot_wtr=pars.get("calib_hot_wtr", {}).get("val", 0),
             gbl_medium_wtr_ratio=pars.get("gbl_medium_wtr_ratio", {}).get("val", 0.0),
             gbl_classic_wtr_ratio=pars.get("gbl_classic_wtr_ratio", {}).get("val", 0.0),
+            absence_mode_active=pars.get("absence_mode_active", {}).get("val"),
         )
 
     async def get_status(self) -> BlancoUnitStatus:
@@ -800,6 +825,20 @@ class BlancoUnitBluetoothClient:
         _LOGGER.info("Setting heating temperature to %d°C", heating_celsius)
         req = _SetHeatingTemperaturePars(heating_celsius=heating_celsius)
         resp = await self._execute_transaction(evt_type=7, ctrl=5, pars=req.to_pars())
+        return resp.get("type") == 2
+
+    async def set_away_mode(self, active: bool) -> bool:
+        """Switch the away mode on or off.
+
+        Args:
+            active: True to switch the away mode on, False to switch it off.
+
+        Returns:
+            True if successful.
+        """
+        _LOGGER.info("Setting away mode to %s", active)
+        req = _SetAwayModePars(active=active, timestamp_ms=int(time.time() * 1000))
+        resp = await self._execute_transaction(evt_type=7, ctrl=18, pars=req.to_pars())
         return resp.get("type") == 2
 
     async def set_water_hardness(self, level: int) -> bool:

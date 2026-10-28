@@ -24,6 +24,9 @@
     "not_saved_heating_temperature": {
       "message": "Heating temperature change was not saved on the device. Expected {expected}°C but device shows {actual}°C."
     },
+    "not_saved_away_mode": {
+      "message": "Away mode change was not saved on the device. Expected {expected} but device shows {actual}."
+    },
     "not_saved_water_hardness": {
       "message": "Water hardness change was not saved on the device. Expected level {expected} but device shows level {actual}."
     }
@@ -264,6 +267,11 @@
       },
       "subnet": {
         "name": "Subnet Mask"
+      }
+    },
+    "switch": {
+      "away_mode": {
+        "name": "Away Mode"
       }
     }
   },

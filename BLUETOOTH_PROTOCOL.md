@@ -267,6 +267,7 @@ Example:
 | 7          | 12           | Scan available WiFi networks   | `{}` - Returns list of access points with SSID, signal, auth_mode                                                                 |
 | 7          | 14           | Allow cloud services           | `{"rca_id":"<id>"}` - Empty string to allow all                                                                                   |
 | 7          | 15           | Factory reset                  | `{}` - Performs full software reset                                                                                               |
+| 7          | 18           | Away mode                      | `{"active": <bool>, "timestamp": <ms>}` - Values are not wrapped in `{"val": ...}`, see [Away Mode](#away-mode)                    |
 | 7          | 1000         | Dispense water                 | `{"disp_amt": <amount_ml>, "co2_int": <intensity>}` - Amount: 100-1500ml (multiples of 100), Intensity: 1=still, 2=medium, 3=high |
 | 10         | N/A          | Initial pairing/authentication | `{}` - Returns device ID on successful authentication                                                                             |
 
@@ -343,6 +344,38 @@ The CHOICE.All settings response includes these additional fields:
 | Setting             | Parameter Format                         | Valid Values | Description                    |
 | ------------------- | ---------------------------------------- | ------------ | ------------------------------ |
 | Heating temperature | `{"set_point_heating": {"val": <temp>}}` | 60-100°C     | Set target heating temperature |
+
+### Away Mode
+
+The away mode is switched with event type 7, control code 18. Unlike settings writes, the values are sent as plain values. Writing `absence_mode_active` with control code 5 is acknowledged but ignored.
+
+Switching off:
+
+```json
+{ "active": false, "timestamp": 1793198677460 }
+```
+
+Switching on, as sent by the BLANCO UNIT app (reduced setpoints and child lock):
+
+```json
+{
+  "active": true,
+  "timestamp": 1793198677460,
+  "set_point_heating": 65,
+  "set_point_cooling": 10,
+  "child_protect": true
+}
+```
+
+While active, the device keeps the previous values in the settings (`evt_type=5`) and restores them when the mode is switched off:
+
+| Parameter                | Type | Description                                   |
+| ------------------------ | ---- | --------------------------------------------- |
+| `absence_mode_active`    | bool | Away mode is active                           |
+| `absence_mode_timestamp` | int  | Activation time in milliseconds, 0 when off   |
+| `set_point_cooling_bkp`  | int  | Cooling setpoint to restore                   |
+| `set_point_heating_bkp`  | int  | Heating setpoint to restore                   |
+| `child_protect_bkp`      | bool | Child lock state to restore                   |
 
 ## Request/Response Examples
 

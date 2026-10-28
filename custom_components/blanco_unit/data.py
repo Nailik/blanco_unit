@@ -31,6 +31,8 @@ class BlancoUnitSettings:
     calib_hot_wtr: int = 0
     gbl_medium_wtr_ratio: float = 0.0
     gbl_classic_wtr_ratio: float = 0.0
+    # None when the device does not report an away mode
+    absence_mode_active: bool | None = None
 
 
 @dataclass

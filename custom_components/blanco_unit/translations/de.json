@@ -24,6 +24,9 @@
     "not_saved_heating_temperature": {
       "message": "Die Änderung der Heiztemperatur wurde nicht auf dem Gerät gespeichert. Erwartet wurden {expected}°C, das Gerät zeigt jedoch {actual}°C an."
     },
+    "not_saved_away_mode": {
+      "message": "Die Änderung des Abwesenheitsmodus wurde nicht auf dem Gerät gespeichert. Erwartet wurde {expected}, das Gerät zeigt jedoch {actual} an."
+    },
     "not_saved_water_hardness": {
       "message": "Die Änderung der Wasserhärte wurde nicht auf dem Gerät gespeichert. Erwartet wurde Stufe {expected}, das Gerät zeigt jedoch Stufe {actual} an."
     }
@@ -272,6 +275,11 @@
       },
       "subnet": {
         "name": "Subnetzmaske"
+      }
+    },
+    "switch": {
+      "away_mode": {
+        "name": "Abwesenheitsmodus"
       }
     }
   },

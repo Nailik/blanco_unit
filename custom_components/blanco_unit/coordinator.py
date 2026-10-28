@@ -155,6 +155,23 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
                 },
             )
 
+    async def set_away_mode(self, active: bool) -> None:
+        """Switch the away mode on or off."""
+        await self._call(self._client.set_away_mode, active)
+        # Refresh settings to verify the change
+        settings = await self._call(self._client.get_settings)
+        if self.data is not None:
+            self.async_set_updated_data(replace(self.data, settings=settings))
+        if settings.absence_mode_active != active:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="not_saved_away_mode",
+                translation_placeholders={
+                    "expected": str(active),
+                    "actual": str(settings.absence_mode_active),
+                },
+            )
+
     async def set_water_hardness(self, level: int) -> None:
         """Set water hardness level (1-9)."""
         await self._call(self._client.set_water_hardness, level)
