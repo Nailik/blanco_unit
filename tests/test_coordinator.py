@@ -778,7 +778,7 @@ async def test_coordinator_async_update_data_connection_error(
             device_id="test_device_id",
         )
 
-        with pytest.raises(UpdateFailed):
+        with pytest.raises(UpdateFailed, match="error_device_not_found"):
             await coordinator._async_update_data()
 
 
@@ -816,7 +816,7 @@ async def test_coordinator_async_update_data_not_found_error(
             device_id="test_device_id",
         )
 
-        with pytest.raises(UpdateFailed):
+        with pytest.raises(UpdateFailed, match="error_device_not_found"):
             await coordinator._async_update_data()
 
 
@@ -854,7 +854,7 @@ async def test_coordinator_async_update_data_generic_error(
             device_id="test_device_id",
         )
 
-        with pytest.raises(UpdateFailed):
+        with pytest.raises(UpdateFailed, match="error_unknown"):
             await coordinator._async_update_data()
 
 

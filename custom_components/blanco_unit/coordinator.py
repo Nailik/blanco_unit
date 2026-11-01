@@ -282,17 +282,24 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
             raise ConfigEntryAuthFailed from err
         except BleakConnectionError as err:
             # treat BleakConnectionError as device not found
-            raise UpdateFailed(translation_key="error_device_not_found") from err
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="error_device_not_found",
+            ) from err
         except BleakNotFoundError as err:
             _LOGGER.debug("_async_update_data BleakNotFoundError %s", str(err))
             self._set_unavailable()
             # treat BleakNotFoundError as device not found
-            raise UpdateFailed(translation_key="error_device_not_found") from err
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="error_device_not_found",
+            ) from err
         except Exception as err:
             _LOGGER.debug("_async_update_data Exception %s", repr(err))
             self._set_unavailable()
             # Device unreachable → tell HA gracefully
             raise UpdateFailed(
+                translation_domain=DOMAIN,
                 translation_key="error_unknown",
                 translation_placeholders={"error": repr(err)},
             ) from err
@@ -310,20 +317,23 @@ class BlancoUnitCoordinator(DataUpdateCoordinator[BlancoUnitData]):
             self._set_unavailable()
             # treat BleakConnectionError as device not found
             raise ServiceValidationError(
-                translation_key="error_device_not_found"
+                translation_domain=DOMAIN,
+                translation_key="error_device_not_found",
             ) from err
         except BleakNotFoundError as err:
             _LOGGER.debug("_call BleakNotFoundError %s", str(err))
             self._set_unavailable()
             # treat BleakNotFoundError as device not found
             raise ServiceValidationError(
-                translation_key="error_device_not_found"
+                translation_domain=DOMAIN,
+                translation_key="error_device_not_found",
             ) from err
         except Exception as err:
             _LOGGER.debug("_call Exception %s", repr(err))
             self._set_unavailable()
             # Device unreachable → tell HA gracefully
             raise ServiceValidationError(
+                translation_domain=DOMAIN,
                 translation_key="error_unknown",
                 translation_placeholders={"error": repr(err)},
             ) from err

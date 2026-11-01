@@ -15,8 +15,14 @@
     "error_device_not_found": {
       "message": "Gerät nicht gefunden. Bitte überprüfe die MAC-Adresse und stelle sicher, dass das Gerät eingeschaltet und in Reichweite ist."
     },
+    "error_invalid_authentication": {
+      "message": "Authentifizierung fehlgeschlagen. Bitte überprüfe, ob die PIN korrekt ist."
+    },
     "error_unknown": {
       "message": "Ein unbekannter Fehler ist aufgetreten: {error}"
+    },
+    "invalid_ha_version": {
+      "message": "Die Blanco Unit Integration benötigt Home Assistant Version {version} oder neuer."
     },
     "not_saved_temperature": {
       "message": "Die Temperaturänderung wurde nicht auf dem Gerät gespeichert. Erwartet wurden {expected}°C, das Gerät zeigt jedoch {actual}°C an."

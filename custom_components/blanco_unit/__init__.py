@@ -66,6 +66,7 @@ async def async_setup(hass: HomeAssistant, entry: BlancoUnitConfigEntry) -> bool
     _LOGGER.debug("async_setup called with config_entry: %s", entry)
     if version.parse(ha_version) < version.parse(MIN_HA_VERSION):
         raise IntegrationError(
+            translation_domain=DOMAIN,
             translation_key="invalid_ha_version",
             translation_placeholders={"version": MIN_HA_VERSION},
         )
@@ -109,6 +110,7 @@ async def _find_device_by_scanning(
 
     if not candidates:
         raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
             translation_key="error_device_not_found",
         )
 
@@ -158,10 +160,12 @@ async def _find_device_by_scanning(
     # Tried all candidates, none matched
     if had_auth_failure:
         raise ConfigEntryAuthFailed(
+            translation_domain=DOMAIN,
             translation_key="error_invalid_authentication",
         )
 
     raise ConfigEntryNotReady(
+        translation_domain=DOMAIN,
         translation_key="error_device_not_found",
     )
 
@@ -237,6 +241,7 @@ async def _resolve_device(
         _LOGGER.debug("async_setup_entry device not found")
         _register_retry_callback(hass, config_entry)
         raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
             translation_key="error_device_not_found",
         )
 

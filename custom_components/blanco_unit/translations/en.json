@@ -15,8 +15,14 @@
     "error_device_not_found": {
       "message": "Device not found. Please check the MAC address and ensure the device is powered on and in range."
     },
+    "error_invalid_authentication": {
+      "message": "Authentication failed. Please check that the PIN is correct."
+    },
     "error_unknown": {
       "message": "An unknown error occurred: {error}"
+    },
+    "invalid_ha_version": {
+      "message": "Blanco Unit integration requires Home Assistant version {version} or newer."
     },
     "not_saved_temperature": {
       "message": "Temperature change was not saved on the device. Expected {expected}°C but device shows {actual}°C."
