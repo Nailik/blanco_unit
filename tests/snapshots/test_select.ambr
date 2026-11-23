@@ -42,7 +42,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'temperature',
-    'unique_id': 'temperature',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_temperature',
     'unit_of_measurement': <UnitOfTemperature.CELSIUS: '°C'>,
   })
 # ---
@@ -115,7 +115,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'water_hardness',
-    'unique_id': 'water_hardness',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_water_hardness',
     'unit_of_measurement': None,
   })
 # ---

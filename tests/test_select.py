@@ -27,6 +27,7 @@ from .conftest import setup_integration  # noqa: TID251
 def mock_coordinator():
     """Create a mock coordinator."""
     coordinator = MagicMock()
+    coordinator.config_entry.unique_id = "AA:BB:CC:DD:EE:FF"
     coordinator.data = BlancoUnitData(
         connected=True,
         available=True,
@@ -124,7 +125,7 @@ async def test_temperature_select(mock_coordinator) -> None:
 
     assert select.available is True
     assert select.current_option == "7"
-    assert select.unique_id == "temperature"
+    assert select.unique_id == "AA:BB:CC:DD:EE:FF_temperature"
 
 
 async def test_temperature_select_options(mock_coordinator) -> None:
@@ -159,7 +160,7 @@ async def test_water_hardness_select(mock_coordinator) -> None:
 
     assert select.available is True
     assert select.current_option == "5"
-    assert select.unique_id == "water_hardness"
+    assert select.unique_id == "AA:BB:CC:DD:EE:FF_water_hardness"
 
 
 async def test_water_hardness_select_options(mock_coordinator) -> None:

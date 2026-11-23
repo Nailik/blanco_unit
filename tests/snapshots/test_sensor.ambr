@@ -32,7 +32,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'ble_mac',
-    'unique_id': 'ble_mac',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_ble_mac',
     'unit_of_measurement': None,
   })
 # ---
@@ -83,7 +83,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'clean_mode_state',
-    'unique_id': 'clean_mode_state',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_clean_mode_state',
     'unit_of_measurement': None,
   })
 # ---
@@ -136,7 +136,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'co2_remaining',
-    'unique_id': 'co2_remaining',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_co2_remaining',
     'unit_of_measurement': '%',
   })
 # ---
@@ -189,7 +189,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'firmware_comm',
-    'unique_id': 'firmware_comm',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_firmware_comm',
     'unit_of_measurement': None,
   })
 # ---
@@ -240,7 +240,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'device_id',
-    'unique_id': 'device_id',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_device_id',
     'unit_of_measurement': None,
   })
 # ---
@@ -291,7 +291,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'device_name',
-    'unique_id': 'device_name',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_device_name',
     'unit_of_measurement': None,
   })
 # ---
@@ -342,7 +342,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'device_type',
-    'unique_id': 'device_type',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_device_type',
     'unit_of_measurement': None,
   })
 # ---
@@ -393,7 +393,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'firmware_elec',
-    'unique_id': 'firmware_elec',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_firmware_elec',
     'unit_of_measurement': None,
   })
 # ---
@@ -444,7 +444,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'error_bits',
-    'unique_id': 'error_bits',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_error_bits',
     'unit_of_measurement': None,
   })
 # ---
@@ -497,7 +497,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'filter_remaining',
-    'unique_id': 'filter_remaining',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_filter_remaining',
     'unit_of_measurement': '%',
   })
 # ---
@@ -553,7 +553,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'filter_lifetime',
-    'unique_id': 'filter_lifetime',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_filter_lifetime',
     'unit_of_measurement': <UnitOfTime.DAYS: 'd'>,
   })
 # ---
@@ -606,7 +606,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'gateway_mac',
-    'unique_id': 'gateway_mac',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_gateway_mac',
     'unit_of_measurement': None,
   })
 # ---
@@ -657,7 +657,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'ip_address',
-    'unique_id': 'ip_address',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_ip_address',
     'unit_of_measurement': None,
   })
 # ---
@@ -708,7 +708,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'firmware_main',
-    'unique_id': 'firmware_main',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_firmware_main',
     'unit_of_measurement': None,
   })
 # ---
@@ -759,7 +759,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'gateway',
-    'unique_id': 'gateway',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_gateway',
     'unit_of_measurement': None,
   })
 # ---
@@ -813,7 +813,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'post_flush_quantity',
-    'unique_id': 'post_flush_quantity',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_post_flush_quantity',
     'unit_of_measurement': 'mL',
   })
 # ---
@@ -868,7 +868,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'reset_count',
-    'unique_id': 'reset_count',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_reset_count',
     'unit_of_measurement': None,
   })
 # ---
@@ -920,7 +920,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'serial_number',
-    'unique_id': 'serial_number',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_serial_number',
     'unit_of_measurement': None,
   })
 # ---
@@ -971,7 +971,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'service_code',
-    'unique_id': 'service_code',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_service_code',
     'unit_of_measurement': None,
   })
 # ---
@@ -1022,7 +1022,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'subnet',
-    'unique_id': 'subnet',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_subnet',
     'unit_of_measurement': None,
   })
 # ---
@@ -1073,7 +1073,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'tap_state',
-    'unique_id': 'tap_state',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_tap_state',
     'unit_of_measurement': None,
   })
 # ---
@@ -1124,7 +1124,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'wifi_mac',
-    'unique_id': 'wifi_mac',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_wifi_mac',
     'unit_of_measurement': None,
   })
 # ---
@@ -1175,7 +1175,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'wifi_ssid',
-    'unique_id': 'wifi_ssid',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_wifi_ssid',
     'unit_of_measurement': None,
   })
 # ---
@@ -1228,7 +1228,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'wifi_signal',
-    'unique_id': 'wifi_signal',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_wifi_signal',
     'unit_of_measurement': 'dBm',
   })
 # ---

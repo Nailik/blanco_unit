@@ -32,7 +32,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'disconnect',
-    'unique_id': 'disconnect',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_disconnect',
     'unit_of_measurement': None,
   })
 # ---
@@ -83,7 +83,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'refresh_data',
-    'unique_id': 'refresh_data',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_refresh_data',
     'unit_of_measurement': None,
   })
 # ---

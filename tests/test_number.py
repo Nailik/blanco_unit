@@ -27,6 +27,7 @@ from .conftest import setup_integration  # noqa: TID251
 def mock_coordinator():
     """Create a mock coordinator."""
     coordinator = MagicMock()
+    coordinator.config_entry.unique_id = "AA:BB:CC:DD:EE:FF"
     coordinator.data = BlancoUnitData(
         connected=True,
         available=True,
@@ -112,7 +113,7 @@ async def test_calibration_still_number(mock_coordinator) -> None:
 
     assert number.available is True
     assert number.native_value == 5
-    assert number.unique_id == "calibration_still"
+    assert number.unique_id == "AA:BB:CC:DD:EE:FF_calibration_still"
 
 
 async def test_calibration_still_number_set_value(mock_coordinator) -> None:
@@ -139,7 +140,7 @@ async def test_calibration_soda_number(mock_coordinator) -> None:
 
     assert number.available is True
     assert number.native_value == 6
-    assert number.unique_id == "calibration_soda"
+    assert number.unique_id == "AA:BB:CC:DD:EE:FF_calibration_soda"
 
 
 async def test_calibration_soda_number_set_value(mock_coordinator) -> None:

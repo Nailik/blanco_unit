@@ -17,13 +17,13 @@ from homeassistant.components.bluetooth import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, __version__ as ha_version
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryNotReady,
     IntegrationError,
 )
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import config_validation as cv, entity_registry as er
 
 from .client import (
     BlancoUnitConnectionError,
@@ -243,6 +243,21 @@ async def _resolve_device(
     return device
 
 
+async def _async_migrate_unique_ids(
+    hass: HomeAssistant, config_entry: BlancoUnitConfigEntry
+) -> None:
+    """Prefix unique IDs from before 0.0.15 with the config entry's unique ID."""
+    prefix = f"{config_entry.unique_id}_"
+
+    @callback
+    def _migrate(entry: er.RegistryEntry) -> dict[str, str] | None:
+        if entry.unique_id.startswith(prefix):
+            return None
+        return {"new_unique_id": prefix + entry.unique_id}
+
+    await er.async_migrate_entries(hass, config_entry.entry_id, _migrate)
+
+
 async def async_setup_entry(
     hass: HomeAssistant, config_entry: BlancoUnitConfigEntry
 ) -> bool:
@@ -270,6 +285,8 @@ async def async_setup_entry(
         unsub_options_update_listener=unsub_update_listener,
     )
     config_entry.runtime_data = coordinator
+
+    await _async_migrate_unique_ids(hass, config_entry)
 
     # Connecting to the Blanco unit over BLE can take a long time or fail
     # transiently, so the first refresh must not block Home Assistant startup.

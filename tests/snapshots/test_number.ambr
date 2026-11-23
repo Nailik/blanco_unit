@@ -37,7 +37,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'calibration_soda',
-    'unique_id': 'calibration_soda',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_calibration_soda',
     'unit_of_measurement': 'mL',
   })
 # ---
@@ -98,7 +98,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'calibration_still',
-    'unique_id': 'calibration_still',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_calibration_still',
     'unit_of_measurement': 'mL',
   })
 # ---

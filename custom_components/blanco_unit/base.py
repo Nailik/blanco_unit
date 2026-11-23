@@ -15,6 +15,13 @@ class BlancoUnitBaseEntity(CoordinatorEntity[BlancoUnitCoordinator]):
 
     _attr_has_entity_name: bool = True
 
+    def __init__(self, coordinator: BlancoUnitCoordinator) -> None:
+        """Initialize the entity with a unique ID scoped to its config entry."""
+        super().__init__(coordinator)
+        self._attr_unique_id = (
+            f"{coordinator.config_entry.unique_id}_{self._attr_unique_id}"
+        )
+
     @cached_property
     def device_info(self) -> DeviceInfo:
         """Return device information."""
