@@ -5,9 +5,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from bleak_retry_connector import BleakConnectionError
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.blanco_unit import (
     FIRST_REFRESH_RETRY_SECONDS,
+    _async_migrate_unique_ids,
     _find_device_by_scanning,
     _is_random_mac,
     _register_retry_callback,
@@ -41,6 +43,7 @@ from homeassistant.exceptions import (
     ConfigEntryNotReady,
     IntegrationError,
 )
+from homeassistant.helpers import entity_registry as er
 
 
 async def test_async_setup_min_ha_version_check(hass: HomeAssistant) -> None:
@@ -79,6 +82,7 @@ async def test_async_setup_entry_success(hass: HomeAssistant) -> None:
     mock_coordinator.async_refresh = AsyncMock()
 
     mock_entry = MagicMock(spec=ConfigEntry)
+    mock_entry.unique_id = "AA:BB:CC:DD:EE:FF"
     mock_entry.entry_id = "test_entry_id"
     mock_entry.data = {CONF_MAC: "AA:BB:CC:DD:EE:FF"}
     mock_entry.add_update_listener = MagicMock(return_value=MagicMock())
@@ -142,6 +146,7 @@ async def test_async_setup_entry_retries_until_data(hass: HomeAssistant) -> None
     mock_coordinator.async_refresh = AsyncMock(side_effect=_refresh)
 
     mock_entry = MagicMock(spec=ConfigEntry)
+    mock_entry.unique_id = "AA:BB:CC:DD:EE:FF"
     mock_entry.entry_id = "test_entry_id"
     mock_entry.data = {CONF_MAC: "AA:BB:CC:DD:EE:FF"}
     mock_entry.add_update_listener = MagicMock(return_value=MagicMock())
@@ -457,6 +462,7 @@ def _make_random_mac_entry() -> MagicMock:
         CONF_PIN: "12345",
         CONF_DEV_ID: "expected_dev_id",
     }
+    entry.unique_id = "expected_dev_id"
     return entry
 
 
@@ -1005,3 +1011,27 @@ async def test_async_unload_entry_random_mac_skips_rediscover(
         mock_coordinator.unload.assert_called_once()
         # Should NOT call rediscover for random MAC
         mock_rediscover.assert_not_called()
+
+
+async def test_migrate_unique_ids(hass: HomeAssistant) -> None:
+    """Test that bare unique IDs get the config entry's unique ID as prefix."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id="AA:BB:CC:DD:EE:FF")
+    entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+    legacy = registry.async_get_or_create(
+        "sensor", DOMAIN, "co2_remaining", config_entry=entry
+    )
+    current = registry.async_get_or_create(
+        "sensor", DOMAIN, "AA:BB:CC:DD:EE:FF_tap_state", config_entry=entry
+    )
+
+    await _async_migrate_unique_ids(hass, entry)
+
+    assert (
+        registry.async_get(legacy.entity_id).unique_id
+        == "AA:BB:CC:DD:EE:FF_co2_remaining"
+    )
+    assert (
+        registry.async_get(current.entity_id).unique_id
+        == "AA:BB:CC:DD:EE:FF_tap_state"
+    )
