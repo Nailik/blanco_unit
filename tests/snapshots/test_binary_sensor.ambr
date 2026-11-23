@@ -32,7 +32,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'connection',
-    'unique_id': 'connection',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_connection',
     'unit_of_measurement': None,
   })
 # ---
@@ -84,7 +84,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'cloud_connection',
-    'unique_id': 'cloud_connection',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_cloud_connection',
     'unit_of_measurement': None,
   })
 # ---
@@ -136,7 +136,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'firmware_update',
-    'unique_id': 'firmware_update',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_firmware_update',
     'unit_of_measurement': None,
   })
 # ---
@@ -188,7 +188,7 @@
     'suggested_object_id': None,
     'supported_features': 0,
     'translation_key': 'water_dispensing',
-    'unique_id': 'water_dispensing',
+    'unique_id': 'AA:BB:CC:DD:EE:FF_water_dispensing',
     'unit_of_measurement': None,
   })
 # ---
